@@ -51,8 +51,8 @@ func main() {
     }
 
     klog.V(1).Infof("Starting driver type: %v\n", conf.DriverType)
-    drv := driver.NewDriver()
-    err := drv.Run(&conf)
+    drv := driver.NewDriver(&conf)
+    err := drv.Run()
 	if err != nil {
 		klog.Fatalln(err)
 	}
