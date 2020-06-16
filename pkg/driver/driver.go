@@ -9,7 +9,11 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 )
 
-// Driver contains the default identity,node and controller struct
+const (
+	driverName = "irods.csi.cyverse.org"
+)
+
+// contain the default identity, node and controller struct
 type Driver struct {
     config *util.Config
 
@@ -18,7 +22,7 @@ type Driver struct {
     mounter Mounter
 }
 
-// NewDriver returns new ceph driver
+// NewDriver returns new driver
 func NewDriver(conf *util.Config) *Driver {
     return &Driver{
         config: conf,

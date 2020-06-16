@@ -22,12 +22,6 @@ const (
     webdavType = "webdav"
 )
 
-// variables which will be set during the build time
-var (
-	// DriverVersion which will be driver version
-	DriverVersion string
-)
-
 // hold the parameters list which can be configured
 type Config struct {
 	DriverType string // driver type [fuse|nfs|webdav]

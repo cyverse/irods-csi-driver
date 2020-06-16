@@ -35,15 +35,11 @@ func main() {
             klog.Fatalln(err)
         }
 
-        fmt.Println("iRODS CSI Driver Version:", util.DriverVersion)
-        fmt.Println("Go Version:", runtime.Version())
-        fmt.Println("Compiler:", runtime.Compiler)
-		fmt.Printf("Platform: %s/%s\n", runtime.GOOS, runtime.GOARCH)
         fmt.Println(info)
         os.Exit(0)
     }
 
-    klog.V(1).Infof("Driver version: %s", util.DriverVersion)
+    klog.V(1).Infof("Driver version: %s", driver.driverVersion)
 
     err := util.ValidateDriverType(conf.DriverType)
     if err != nil {
