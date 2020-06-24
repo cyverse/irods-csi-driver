@@ -41,10 +41,12 @@ WORKDIR /opt/irods_client_fuse
 
 ENV LD_LIBRARY_PATH /opt/irods-externals/clang-runtime6.0-0/lib/
 ENV PATH $PATH:/opt/irods-externals/cmake3.11.4-0/bin
+
 RUN cmake -DCMAKE_INSTALL_PREFIX=/ . && \
     make && make install && \
     mkdir /root/.irods && \
-    ln -s /usr/bin/irodsFs /sbin/mount.irodsfs
+    echo "LD_LIBRARY_PATH=/opt/irods-externals/clang-runtime6.0-0/lib/" > /etc/irodsfs_env && \
+    cp bin/mount.irodsfs /sbin/
 
 WORKDIR /opt/
 
