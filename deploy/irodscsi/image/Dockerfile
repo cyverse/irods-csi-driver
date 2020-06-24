@@ -14,30 +14,15 @@ ARG SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver/"
 ARG DEBIAN_FRONTEND=noninteractive
 
 ##############################################
-# Setup an account
-##############################################
-ENV HOME /home/cyverse
-
-RUN useradd cyverse && echo 'cyverse:cyverse' | chpasswd && \
-    echo "cyverse ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    mkdir /home/cyverse && \
-    chown -R cyverse:cyverse $HOME
-
-ENV USER cyverse
-
-##############################################
 # Setup Utility Packages
 ##############################################
 RUN apt-get update && \
     apt-get install -y sudo --option=Dpkg::Options::=--force-confdef && \
     apt-get install -y wget curl unzip python-pip build-essential fuse git apt-transport-https pkg-config libfuse-dev lsb-release
 
-WORKDIR $HOME
-
 ##############################################
 # Setup iRODS Packages
 ##############################################
-USER root
 RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | apt-key add -
 RUN echo "deb [arch=amd64] https://packages.irods.org/apt/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/renci-irods.list
 RUN apt-get update && \
@@ -50,32 +35,27 @@ RUN apt-get update && \
 ##############################################
 # Download cyverse-irods
 ##############################################
-USER $USER
+WORKDIR /opt/
 RUN git clone https://github.com/cyverse/irods_client_fuse.git
-WORKDIR irods_client_fuse
+WORKDIR /opt/irods_client_fuse
 
 ENV LD_LIBRARY_PATH /opt/irods-externals/clang-runtime6.0-0/lib/
 ENV PATH $PATH:/opt/irods-externals/cmake3.11.4-0/bin
-RUN cmake . && \
-    make
+RUN cmake -DCMAKE_INSTALL_PREFIX=/ . && \
+    make && make install && \
+    mkdir /root/.irods && \
+    ln -s /usr/bin/irodsFs /sbin/mount.irodsfs
 
-USER root
-RUN cp irodsFs /usr/bin && \
-    chmod 755 /usr/bin
-
-WORKDIR $HOME
+WORKDIR /opt/
 
 ##############################################
 # Setup NFS Client and WebDAV Client
 ##############################################
 RUN apt-get install -y nfs-common davfs2
 
-USER $USER
-
 ##############################################
 # Setup CSI Driver
 ##############################################
-#USER root
 #RUN mkdir -p ${GOROOT} && \
 #    curl https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-${GO_ARCH}.tar.gz | tar xzf - -C ${GOROOT} --strip-components=1
 
@@ -86,7 +66,6 @@ USER $USER
 # Copy output
 #COPY --from=builder ${SRC_DIR}/_output/irodscsi /usr/local/bin/irodscsi
 
-#USER $USER
 #ENV GOROOT=${GOROOT} \
 #    GOPATH=/go \
 #    CGO_ENABLED=1 \
