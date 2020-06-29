@@ -19,20 +19,19 @@ import (
     "os"
 
     "github.com/cyverse/irods-csi-driver/pkg/driver"
-    "github.com/cyverse/irods-csi-driver/pkg/util"
 
     "k8s.io/klog"
 )
 
 var (
-	conf util.Config
+	conf driver.Config
 )
 
 func main() {
     // Parse parameters
-    flag.StringVar(&conf.DriverType, "type", "", "driver type [fuse|nfs|webdav]")
+    flag.StringVar(&conf.DriverType, "type", "fuse", "driver type [fuse|nfs|webdav]")
     flag.StringVar(&conf.Endpoint, "endpoint", "unix://tmp/csi.sock", "CSI endpoint")
-
+    flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
     flag.BoolVar(&conf.Version, "version", false, "Print driver version information")
 
 
@@ -53,8 +52,12 @@ func main() {
 
     klog.V(1).Infof("Driver version: %s", driver.GetDriverVersion())
 
-    if err := util.ValidateDriverType(conf.DriverType); err != nil {
+    if err := driver.ValidateDriverType(conf.DriverType); err != nil {
         klog.Fatalln(err) // calls exit
+    }
+
+    if conf.NodeID == "" {
+        klog.Fatalln("Node ID is not given")
     }
 
     klog.V(1).Infof("Starting driver type: %v\n", conf.DriverType)

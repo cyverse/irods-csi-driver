@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+package driver
 
 import (
     "fmt"
@@ -34,6 +34,7 @@ const (
 type Config struct {
 	DriverType string // driver type [fuse|nfs|webdav]
 	Endpoint string // CSI endpoint
+    NodeID string // node ID
 
 	Version bool // irods csi version
 }
