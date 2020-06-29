@@ -15,6 +15,7 @@
 
 PKG=github.com/cyverse/irods-csi-driver
 IMAGE?=cyverse/irods-csi-driver
+DOCKERFILE=deploy/image/Dockerfile
 VERSION=v0.1.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -47,7 +48,7 @@ irods-csi-driver:
 
 .PHONY: image
 image:
-	docker build -t $(IMAGE):latest .
+	docker build -t $(IMAGE):latest -f $(DOCKERFILE) .
 
 .PHONY: push
 push: image
@@ -55,7 +56,7 @@ push: image
 
 .PHONY: image-release
 image-release:
-	docker build -t $(IMAGE):$(VERSION) -f deploy/image/Dockerfile .
+	docker build -t $(IMAGE):$(VERSION) -f -f $(DOCKERFILE) .
 
 .PHONY: push-release
 push-release:

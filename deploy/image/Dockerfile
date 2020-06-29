@@ -7,7 +7,10 @@
 # Build irods-csi-driver
 ##############################################
 FROM golang:1.14.4-stretch as builder
-WORKDIR /go/src/github.com/cyverse/irods-csi-driver
+
+ARG SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver/"
+
+WORKDIR ${SRC_DIR}
 
 # Cache go modules
 ENV GOPROXY=direct
@@ -76,17 +79,6 @@ WORKDIR /opt/
 ##############################################
 # Setup CSI Driver
 ##############################################
-#RUN mkdir -p ${GOROOT} && \
-#    curl https://https://storage.googleapis.com/golang/go1.14.4.src.tar.gz | tar xzf - -C ${GOROOT} --strip-components=1
-
-#ENV GOROOT=${GOROOT} \
-#    GOPATH=/go \
-#    PATH="${GOROOT}/bin:${GOPATH}/bin:${PATH}"
-
-# Copy source directories
-#COPY . ${SRC_DIR}
-#RUN chmod -R
-
 COPY --from=builder ${SRC_DIR}/bin/irods-csi-driver /bin/irods-csi-driver
 
 ENTRYPOINT ["/bin/irods-csi-driver"]
