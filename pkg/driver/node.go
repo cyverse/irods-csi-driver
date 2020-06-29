@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/cyverse/irods-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -114,20 +115,20 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	klog.V(5).Infof("NodePublishVolume: creating dir %s", target)
-	if err := driver.mounter.MakeDir(target); err != nil {
+	if err := MakeDir(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
 	var fsType string
 	switch(driver.config.DriverType) {
-	    case fuseType:
-			fsType = "irodsfs"
-	    case nfsType:
-			fsType = "nfs"
-	    case webdavType:
-			fsType = "webdav"
-	    default:
-	        return nil, status.Errorf(codes.Internal, "unknown driver type - %v", driver.config.DriverType)
+	case util.FuseType:
+		fsType = "irodsfs"
+    case util.NfsType:
+		fsType = "nfs"
+    case util.WebdavType:
+		fsType = "webdav"
+    default:
+        return nil, status.Errorf(codes.Internal, "unknown driver type - %v", driver.config.DriverType)
     }
 
 	klog.V(5).Infof("NodePublishVolume: mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)

@@ -45,6 +45,10 @@ func GetVersion() VersionInfo {
 	}
 }
 
+func GetDriverVersion() string {
+	return driverVersion
+}
+
 func GetVersionJSON() (string, error) {
 	info := GetVersion()
 	marshalled, err := json.MarshalIndent(&info, "", "  ")
