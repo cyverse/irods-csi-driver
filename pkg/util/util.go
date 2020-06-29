@@ -22,17 +22,12 @@ import (
     "strings"
 
 	"github.com/pkg/errors"
-    "google.golang.org/grpc/codes"
-    "google.golang.org/grpc/status"
-	"k8s.io/klog"
-	"k8s.io/utils/mount"
-
 )
 
 const (
-    fuseType = "fuse"
-    nfsType = "nfs"
-    webdavType = "webdav"
+    FuseType = "fuse"
+    NfsType = "nfs"
+    WebdavType = "webdav"
 )
 
 // hold the parameters list which can be configured
@@ -50,11 +45,11 @@ func ValidateDriverType(driverType string) error {
 	}
 
     switch(driverType) {
-    case fuseType:
+    case FuseType:
         fallthrough
-    case nfsType:
+    case NfsType:
         fallthrough
-    case webdavType:
+    case WebdavType:
         return nil
 
     default:
@@ -85,41 +80,4 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	}
 
 	return scheme, addr, nil
-}
-
-
-
-/////////////// UNUSED YET
-
-
-
-
-// CreateMountPoint creates the directory with given path
-func CreateMountPoint(mountPath string) error {
-	return os.MkdirAll(mountPath, 0750)
-}
-
-// CheckDirExists checks directory  exists or not
-func CheckDirExists(p string) bool {
-	if _, err := os.Stat(p); os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-// IsMountPoint checks if the given path is mountpoint or not
-func IsMountPoint(p string) (bool, error) {
-	dummyMount := mount.New("")
-	notMnt, err := dummyMount.IsLikelyNotMountPoint(p)
-	if err != nil {
-		return false, status.Error(codes.Internal, err.Error())
-	}
-
-	return !notMnt, nil
-}
-
-// Mount mounts the source to target path
-func Mount(source, target, fstype string, options []string) error {
-	dummyMount := mount.New("")
-	return dummyMount.Mount(source, target, fstype, options)
 }

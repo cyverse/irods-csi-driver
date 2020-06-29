@@ -14,10 +14,13 @@ limitations under the License.
 package driver
 
 import (
+	"context"
+	"net"
+
 	"k8s.io/klog"
     "google.golang.org/grpc"
 
-    "github.com/iychoi/irods-csi-driver/pkg/util"
+    "github.com/cyverse/irods-csi-driver/pkg/util"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 )
@@ -31,6 +34,7 @@ type Driver struct {
     config *util.Config
 
     server *grpc.Server
+	nodeID string //TODO
 
     mounter Mounter
 }

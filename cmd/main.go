@@ -17,10 +17,9 @@ import (
     "flag"
     "fmt"
     "os"
-    "runtime"
 
-    "github.com/iychoi/irods-csi-driver/pkg/driver"
-    "github.com/iychoi/irods-csi-driver/pkg/util"
+    "github.com/cyverse/irods-csi-driver/pkg/driver"
+    "github.com/cyverse/irods-csi-driver/pkg/util"
 
     "k8s.io/klog"
 )
@@ -52,17 +51,15 @@ func main() {
         os.Exit(0)
     }
 
-    klog.V(1).Infof("Driver version: %s", driver.driverVersion)
+    klog.V(1).Infof("Driver version: %s", driver.GetDriverVersion())
 
-    err := util.ValidateDriverType(conf.DriverType)
-    if err != nil {
+    if err := util.ValidateDriverType(conf.DriverType); err != nil {
         klog.Fatalln(err) // calls exit
     }
 
     klog.V(1).Infof("Starting driver type: %v\n", conf.DriverType)
     drv := driver.NewDriver(&conf)
-    err := drv.Run()
-	if err != nil {
+	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}
 

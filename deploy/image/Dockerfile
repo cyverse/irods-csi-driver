@@ -2,13 +2,31 @@
 #
 # VERSION	1.0
 
-FROM	ubuntu:18.04
+
+##############################################
+# Build irods-csi-driver
+##############################################
+FROM golang:1.14.4-stretch as builder
+WORKDIR /go/src/github.com/cyverse/irods-csi-driver
+
+# Cache go modules
+ENV GOPROXY=direct
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+ADD . .
+RUN make irods-csi-driver
+
+
+##############################################
+# irods-csi-driver image
+##############################################
+FROM ubuntu:18.04
 LABEL maintainer="Illyoung Choi <iychoi@email.arizona.edu>"
 LABEL version="0.1"
 LABEL description="iRODS CSI Docker Image"
 
-ARG GOLANG_VERSION=1.13.9
-ARG GO_ARCH
 ARG GOROOT=/usr/local/go
 ARG SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver/"
 ARG DEBIAN_FRONTEND=noninteractive
@@ -19,6 +37,11 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y sudo --option=Dpkg::Options::=--force-confdef && \
     apt-get install -y wget curl unzip python-pip build-essential fuse git apt-transport-https pkg-config libfuse-dev lsb-release
+
+##############################################
+# Setup NFS Client and WebDAV Client
+##############################################
+RUN apt-get install -y nfs-common davfs2
 
 ##############################################
 # Setup iRODS Packages
@@ -51,33 +74,19 @@ RUN cmake -DCMAKE_INSTALL_PREFIX=/ . && \
 WORKDIR /opt/
 
 ##############################################
-# Setup NFS Client and WebDAV Client
-##############################################
-RUN apt-get install -y nfs-common davfs2
-
-##############################################
 # Setup CSI Driver
 ##############################################
 #RUN mkdir -p ${GOROOT} && \
-#    curl https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-${GO_ARCH}.tar.gz | tar xzf - -C ${GOROOT} --strip-components=1
+#    curl https://https://storage.googleapis.com/golang/go1.14.4.src.tar.gz | tar xzf - -C ${GOROOT} --strip-components=1
+
+#ENV GOROOT=${GOROOT} \
+#    GOPATH=/go \
+#    PATH="${GOROOT}/bin:${GOPATH}/bin:${PATH}"
 
 # Copy source directories
 #COPY . ${SRC_DIR}
 #RUN chmod -R
 
-# Copy output
-#COPY --from=builder ${SRC_DIR}/_output/irodscsi /usr/local/bin/irodscsi
+COPY --from=builder ${SRC_DIR}/bin/irods-csi-driver /bin/irods-csi-driver
 
-#ENV GOROOT=${GOROOT} \
-#    GOPATH=/go \
-#    CGO_ENABLED=1 \
-#    PATH="${GOROOT}/bin:${GOPATH}/bin:${PATH}"
-
-#WORKDIR ${SRC_DIR}
-
-
-
-# verify that all dynamically linked libraries are available
-#RUN [ $(ldd /usr/local/bin/irodscsi | grep -c '=> not found') = '0' ]
-
-#ENTRYPOINT ["/usr/local/bin/irodscsi"]
+ENTRYPOINT ["/bin/irods-csi-driver"]
