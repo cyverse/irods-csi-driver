@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/cyverse/irods-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -121,11 +120,11 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	var fsType string
 	switch(driver.config.DriverType) {
-	case util.FuseType:
+	case FuseType:
 		fsType = "irodsfs"
-    case util.NfsType:
+    case NfsType:
 		fsType = "nfs"
-    case util.WebdavType:
+    case WebdavType:
 		fsType = "webdav"
     default:
         return nil, status.Errorf(codes.Internal, "unknown driver type - %v", driver.config.DriverType)
@@ -206,7 +205,7 @@ func (driver *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReque
 	klog.V(4).Infof("NodeGetInfo: called with args %+v", req)
 
 	return &csi.NodeGetInfoResponse{
-		NodeId: driver.nodeID,
+		NodeId: driver.config.NodeID,
 	}, nil
 }
 

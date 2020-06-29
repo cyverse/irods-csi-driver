@@ -38,10 +38,6 @@ const (
 	procMountsPath = "/proc/mounts"
 	// Location of the mountinfo file
 	procMountInfoPath = "/proc/self/mountinfo"
-	// 'fsck' found errors and corrected them
-	fsckErrorsCorrected = 1
-	// 'fsck' found errors but exited without correcting them
-	fsckErrorsUncorrected = 4
 )
 
 type Mounter interface {

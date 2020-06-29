@@ -20,8 +20,6 @@ import (
 	"k8s.io/klog"
     "google.golang.org/grpc"
 
-    "github.com/cyverse/irods-csi-driver/pkg/util"
-
 	"github.com/container-storage-interface/spec/lib/go/csi"
 )
 
@@ -31,16 +29,14 @@ const (
 
 // contain the default identity, node and controller struct
 type Driver struct {
-    config *util.Config
+    config *Config
 
     server *grpc.Server
-	nodeID string //TODO
-
-    mounter Mounter
+	mounter Mounter
 }
 
 // NewDriver returns new driver
-func NewDriver(conf *util.Config) *Driver {
+func NewDriver(conf *Config) *Driver {
     return &Driver{
         config: conf,
         mounter: newNodeMounter(),
@@ -48,7 +44,7 @@ func NewDriver(conf *util.Config) *Driver {
 }
 
 func (driver *Driver) Run() error {
-    scheme, addr, err := util.ParseEndpoint(driver.config.Endpoint)
+    scheme, addr, err := ParseEndpoint(driver.config.Endpoint)
 	if err != nil {
 		return err
 	}
