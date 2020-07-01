@@ -35,8 +35,6 @@ type Config struct {
 	DriverType string // driver type [fuse|nfs|webdav]
 	Endpoint string // CSI endpoint
     NodeID string // node ID
-
-	Version bool // irods csi version
 }
 
 // validate the driver type
