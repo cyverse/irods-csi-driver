@@ -28,18 +28,21 @@ var (
 )
 
 func main() {
+    var version bool
+
     // Parse parameters
-    flag.StringVar(&conf.DriverType, "type", "fuse", "driver type [fuse|nfs|webdav]")
+    flag.StringVar(&conf.DriverType, "drivertype", "fuse", "driver type [fuse|nfs|webdav]")
     flag.StringVar(&conf.Endpoint, "endpoint", "unix://tmp/csi.sock", "CSI endpoint")
     flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
-    flag.BoolVar(&conf.Version, "version", false, "Print driver version information")
+
+    flag.BoolVar(&version, "version", false, "Print driver version information")
 
 
     klog.InitFlags(nil)
 	flag.Parse()
 
     // Handle Version
-    if conf.Version {
+    if version {
         info, err := driver.GetVersionJSON()
 
         if err != nil {

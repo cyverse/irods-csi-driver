@@ -1,0 +1,12 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: irods-csi-node
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: irods-plugin
+          image: cyverse/irods-csi-driver:latest
+          imagePullPolicy: Always
