@@ -39,6 +39,8 @@ const (
     FuseType = "fuse"
     NfsType = "nfs"
     WebdavType = "webdav"
+
+	sensitiveArgsRemoved = "<masked>"
 )
 
 // this is for dynamic volume provisioning
@@ -85,9 +87,6 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		case "password":
 			password = v
 		case "host":
-			if len(v) == 0 {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid hostname", k))
-			}
 			host = v
 		case "port":
 			p, err := strconv.Atoi(v)
@@ -96,9 +95,6 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			}
 			port = p
 		case "zone":
-			if len(v) == 0 {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid zone", k))
-			}
 			zone = v
 		case "path":
 			if !filepath.IsAbs(v) {
@@ -119,7 +115,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	if len(password) == 0 {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("user password specified is invalid", password))
+		return nil, status.Error(codes.InvalidArgument, "user password specified is invalid")
 	}
 
 	if len(host) == 0 {
@@ -132,17 +128,21 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	var fsType string
 	var source string
+	var sourceMasked string
 	switch(irodsClient) {
 	case FuseType:
 		fsType = "irodsfs"
 		source = fmt.Sprintf("irods://%s:%s@%s:%s/%s%s", user, password, host, port, zone, path)
+		sourceMasked = fmt.Sprintf("irods://%s:%s@%s:%s/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
     case NfsType:
 		fsType = "nfs"
 		//TODO: need to fix this
-		source = fmt.Sprintf("nfs://%s:%s@%s:%s/%s%s", user, password, host, port, zone, path)
+		source = fmt.Sprintf("%s:%s/%s%s", host, port, zone, path)
+		sourceMasked = fmt.Sprintf("%s:%s/%s%s", host, port, zone, path)
     case WebdavType:
 		fsType = "webdav"
 		source = fmt.Sprintf("https://%s:%s@%s:%s/%s%s", user, password, host, port, zone, path)
+		sourceMasked = fmt.Sprintf("https://%s:%s@%s:%s/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
     default:
         return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
     }
@@ -173,12 +173,11 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
-	klog.V(5).Infof("NodePublishVolume: mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
+	klog.V(5).Infof("NodePublishVolume: mounting %s (%s) at %s with options %v", sourceMasked, fsType, target, mountOptions)
 
-	// TODO: need to consider calling Mountsensitive
-	if err := driver.mounter.Mount(source, target, fsType, mountOptions); err != nil {
+	if err := driver.mounter.MountSensitive2(source, sourceMasked, target, fsType, mountOptions, nil); err != nil {
 		os.Remove(target)
-		return nil, status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, target, err)
+		return nil, status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", sourceMasked, fsType, target, err)
 	}
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
 
