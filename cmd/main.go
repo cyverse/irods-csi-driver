@@ -31,12 +31,10 @@ func main() {
     var version bool
 
     // Parse parameters
-    flag.StringVar(&conf.DriverType, "drivertype", "fuse", "driver type [fuse|nfs|webdav]")
     flag.StringVar(&conf.Endpoint, "endpoint", "unix://tmp/csi.sock", "CSI endpoint")
     flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
 
     flag.BoolVar(&version, "version", false, "Print driver version information")
-
 
     klog.InitFlags(nil)
 	flag.Parse()
@@ -55,15 +53,10 @@ func main() {
 
     klog.V(1).Infof("Driver version: %s", driver.GetDriverVersion())
 
-    if err := driver.ValidateDriverType(conf.DriverType); err != nil {
-        klog.Fatalln(err) // calls exit
-    }
-
     if conf.NodeID == "" {
         klog.Fatalln("Node ID is not given")
     }
 
-    klog.V(1).Infof("Starting driver type: %v\n", conf.DriverType)
     drv := driver.NewDriver(&conf)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)

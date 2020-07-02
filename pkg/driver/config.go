@@ -20,40 +20,12 @@ import (
     "path"
     "path/filepath"
     "strings"
-
-	"github.com/pkg/errors"
-)
-
-const (
-    FuseType = "fuse"
-    NfsType = "nfs"
-    WebdavType = "webdav"
 )
 
 // hold the parameters list which can be configured
 type Config struct {
-	DriverType string // driver type [fuse|nfs|webdav]
 	Endpoint string // CSI endpoint
     NodeID string // node ID
-}
-
-// validate the driver type
-func ValidateDriverType(driverType string) error {
-	if driverType == "" {
-		return errors.New("driver type is empty")
-	}
-
-    switch(driverType) {
-    case FuseType:
-        fallthrough
-    case NfsType:
-        fallthrough
-    case WebdavType:
-        return nil
-
-    default:
-        return fmt.Errorf("unknown driver type - %v", driverType)
-    }
 }
 
 // parse endpoint (TCP or UNIX)
