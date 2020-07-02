@@ -43,6 +43,7 @@ const (
 type Mounter interface {
 	mount.Interface
 	GetDeviceName(mountPath string) (string, int, error)
+	MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string) error
 }
 
 type NodeMounter struct {
@@ -78,20 +79,35 @@ func (mounter *NodeMounter) MountSensitive(source string, target string, fstype 
 	// All Linux distros are expected to be shipped with a mount utility that a support bind mounts.
 	bind, bindOpts, bindRemountOpts, bindRemountOptsSensitive := mount.MakeBindOptsSensitive(options, sensitiveOptions)
 	if bind {
-		err := mounter.doMount(defaultMountCommand, source, target, fstype, bindOpts, bindRemountOptsSensitive)
+		err := mounter.doMount(defaultMountCommand, source, source, target, fstype, bindOpts, bindRemountOptsSensitive)
 		if err != nil {
 			return err
 		}
-		return mounter.doMount(defaultMountCommand, source, target, fstype, bindRemountOpts, bindRemountOptsSensitive)
+		return mounter.doMount(defaultMountCommand, source, source, target, fstype, bindRemountOpts, bindRemountOptsSensitive)
 	}
 
-	return mounter.doMount(defaultMountCommand, source, target, fstype, options, sensitiveOptions)
+	return mounter.doMount(defaultMountCommand, source, source, target, fstype, options, sensitiveOptions)
+}
+
+func (mounter *NodeMounter) MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string) error {
+	// Path to mounter binary if containerized mounter is needed. Otherwise, it is set to empty.
+	// All Linux distros are expected to be shipped with a mount utility that a support bind mounts.
+	bind, bindOpts, bindRemountOpts, bindRemountOptsSensitive := mount.MakeBindOptsSensitive(options, sensitiveOptions)
+	if bind {
+		err := mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, bindOpts, bindRemountOptsSensitive)
+		if err != nil {
+			return err
+		}
+		return mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, bindRemountOpts, bindRemountOptsSensitive)
+	}
+
+	return mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, options, sensitiveOptions)
 }
 
 // doMount runs the mount command. mounterPath is the path to mounter binary if containerized mounter is used.
 // sensitiveOptions is an extension of options except they will not be logged (because they may contain sensitive material)
-func (mounter *NodeMounter) doMount(mountCmd string, source string, target string, fstype string, options []string, sensitiveOptions []string) error {
-	mountArgs, mountArgsLogStr := MakeMountArgsSensitive(source, target, fstype, options, sensitiveOptions)
+func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string) error {
+	mountArgs, mountArgsLogStr := MakeMountArgsSensitive(source, sourceMasked, target, fstype, options, sensitiveOptions)
 
 	// Logging with sensitive mount options removed.
 	klog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgsLogStr)
@@ -107,7 +123,7 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, target strin
 
 // MakeMountArgsSensitive makes the arguments to the mount(8) command.
 // sensitiveOptions is an extension of options except they will not be logged (because they may contain sensitive material)
-func MakeMountArgsSensitive(source, target, fstype string, options []string, sensitiveOptions []string) (mountArgs []string, mountArgsLogStr string) {
+func MakeMountArgsSensitive(source, sourceMasked, target, fstype string, options []string, sensitiveOptions []string) (mountArgs []string, mountArgsLogStr string) {
 	// Build mount command as follows:
 	//   mount [-t $fstype] [-o $options] [$source] $target
 	mountArgs = []string{}
@@ -126,7 +142,7 @@ func MakeMountArgsSensitive(source, target, fstype string, options []string, sen
 	}
 	if len(source) > 0 {
 		mountArgs = append(mountArgs, source)
-		mountArgsLogStr += " " + source
+		mountArgsLogStr += " " + sourceMasked
 	}
 	mountArgs = append(mountArgs, target)
 	mountArgsLogStr += " " + target

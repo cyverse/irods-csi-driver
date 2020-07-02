@@ -26,14 +26,11 @@ spec:
             privileged: true
           image: cyverse/irods-csi-driver:latest
           args:
-            - --drivertype=$(DRIVER_TYPE)
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
             - --logtostderr
             - --v=5
           env:
-            - name: DRIVER_TYPE
-              value: fuse
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
             - name: NODE_ID
@@ -86,8 +83,8 @@ spec:
             - --csi-address=/csi/csi.sock
             - --health-port=9809
           volumeMounts:
-            - mountPath: /csi
-              name: plugin-dir
+            - name: plugin-dir
+              mountPath: /csi
       volumes:
         - name: kubelet-dir
           hostPath:

@@ -17,9 +17,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
+	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -33,6 +33,14 @@ var (
 		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 	}
+)
+
+const (
+    FuseType = "fuse"
+    NfsType = "nfs"
+    WebdavType = "webdav"
+
+	sensitiveArgsRemoved = "<masked>"
 )
 
 // this is for dynamic volume provisioning
@@ -62,35 +70,82 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
-	// TODO when CreateVolume is implemented, it must use the same key names
-	subpath := "/"
+	// this is volumeHandle -- we don't use this
+	//volumeId := req.GetVolumeId()
+	var user, password, host, zone string
+	irodsClient := "fuse"
+	port := 1247
+	path := "/"
+
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
-		//Deprecated
+	    case "driver":
+			irodsClient = v
+		case "user":
+			user = v
+		case "password":
+			password = v
+		case "host":
+			host = v
+		case "port":
+			p, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid port number - %s", k, err))
+			}
+			port = p
+		case "zone":
+			zone = v
 		case "path":
-			klog.Warning("Use of path under volumeAttributes is depracated. This field will be removed in future release")
 			if !filepath.IsAbs(v) {
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
 			}
-			subpath = filepath.Join(subpath, v)
+			path = v
 		default:
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
 		}
 	}
 
-	volumeId := req.GetVolumeId()
-
-	var source string
-	tokens := strings.Split(volumeId, ":")
-	if len(tokens) == 1 {
-		// fs-xxxxxx
-		source = fmt.Sprintf("%s:%s", volumeId, subpath)
-	} else if len(tokens) == 2 {
-		// fs-xxxxxx:/a/b/c
-		cleanPath := path.Clean(tokens[1])
-		source = fmt.Sprintf("%s:%s", tokens[0], cleanPath)
+	if !driver.validateDriverType(irodsClient) {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("driver type specified (%s) is invalid", irodsClient))
 	}
+
+	if len(user) == 0 {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("user specified (%s) is invalid", user))
+	}
+
+	if len(password) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user password specified is invalid")
+	}
+
+	if len(host) == 0 {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
+	}
+
+	if len(zone) == 0 {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("zone specified (%s) is invalid", zone))
+	}
+
+	var fsType string
+	var source string
+	var sourceMasked string
+	switch(irodsClient) {
+	case FuseType:
+		fsType = "irodsfs"
+		source = fmt.Sprintf("irods://%s:%s@%s:%s/%s%s", user, password, host, port, zone, path)
+		sourceMasked = fmt.Sprintf("irods://%s:%s@%s:%s/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
+    case NfsType:
+		fsType = "nfs"
+		//TODO: need to fix this
+		source = fmt.Sprintf("%s:%s/%s%s", host, port, zone, path)
+		sourceMasked = fmt.Sprintf("%s:%s/%s%s", host, port, zone, path)
+    case WebdavType:
+		fsType = "webdav"
+		source = fmt.Sprintf("https://%s:%s@%s:%s/%s%s", user, password, host, port, zone, path)
+		sourceMasked = fmt.Sprintf("https://%s:%s@%s:%s/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
+    default:
+        return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
+    }
 
 	mountOptions := []string{}
 	if req.GetReadonly() {
@@ -118,24 +173,11 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
-	var fsType string
-	switch(driver.config.DriverType) {
-	case FuseType:
-		fsType = "irodsfs"
-    case NfsType:
-		fsType = "nfs"
-    case WebdavType:
-		fsType = "webdav"
-    default:
-        return nil, status.Errorf(codes.Internal, "unknown driver type - %v", driver.config.DriverType)
-    }
+	klog.V(5).Infof("NodePublishVolume: mounting %s (%s) at %s with options %v", sourceMasked, fsType, target, mountOptions)
 
-	klog.V(5).Infof("NodePublishVolume: mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
-
-	// TODO: need to consider calling Mountsensitive
-	if err := driver.mounter.Mount(source, target, fsType, mountOptions); err != nil {
+	if err := driver.mounter.MountSensitive2(source, sourceMasked, target, fsType, mountOptions, nil); err != nil {
 		os.Remove(target)
-		return nil, status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, target, err)
+		return nil, status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", sourceMasked, fsType, target, err)
 	}
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
 
@@ -226,4 +268,17 @@ func (driver *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability)
 		}
 	}
 	return foundAll
+}
+
+func (driver *Driver) validateDriverType(driverType string) bool {
+	switch(driverType) {
+    case FuseType:
+        fallthrough
+    case NfsType:
+        fallthrough
+    case WebdavType:
+        return true
+    default:
+        return false
+    }
 }
