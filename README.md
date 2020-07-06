@@ -52,6 +52,10 @@ Claim Persistent Volume (PVC):
 kubectl apply -f "examples/kubernetes/static_provisioning/pvc.yaml"
 ```
 
+Execute Application with Volume Mount:
+```sh
+kubectl apply -f "examples/kubernetes/static_provisioning/app.yaml"
+```
 
 ### References
 
