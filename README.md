@@ -30,6 +30,19 @@ Deploy the development driver:
 kubectl apply -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
 
+Verify the driver Installation:
+```sh
+kubectl get csinodes -o jsonpath='{range .items[*]} {.metadata.name}{": "} {range .spec.drivers[*]} {.name}{"\n"} {end}{end}'
+```
+
+### Mount
+
+Define Storage Class:
+
+```sh
+kubectl apply -k "examples/kubernetes/static_provisioning/storageclass.yaml"
+```
+
 ### References
 
 Following CSI driver implementations were used as references:
