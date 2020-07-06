@@ -30,16 +30,33 @@ Deploy the development driver:
 kubectl apply -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
 
-Verify the driver Installation:
+Verify the driver installation:
 ```sh
 kubectl get csinodes -o jsonpath='{range .items[*]} {.metadata.name}{": "} {range .spec.drivers[*]} {.name}{"\n"} {end}{end}'
 ```
 
+### Uninstallation
+
+Uninstall the stable driver:
+```sh
+kubectl delete -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+```
+
+Uninstall the development driver:
+```sh
+kubectl delete -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
+```
+
 ### Mount
 
-Define Storage Class:
+Define Storage Class (SC):
 ```sh
 kubectl apply -f "examples/kubernetes/static_provisioning/storageclass.yaml"
+```
+
+Verify the Storage Class definition:
+```sh
+kubectl get sc
 ```
 
 Define Persistent Volume (PV):
@@ -47,9 +64,19 @@ Define Persistent Volume (PV):
 kubectl apply -f "examples/kubernetes/static_provisioning/pv.yaml"
 ```
 
+Verify the Persistent Volume definition:
+```sh
+kubectl get pv
+```
+
 Claim Persistent Volume (PVC):
 ```sh
 kubectl apply -f "examples/kubernetes/static_provisioning/pvc.yaml"
+```
+
+Verify the Persistent Volume Claim:
+```sh
+kubectl get pvc
 ```
 
 Execute Application with Volume Mount:
