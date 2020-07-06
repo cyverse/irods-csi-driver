@@ -47,6 +47,11 @@ Define Persistent Volume (PV):
 kubectl apply -f "examples/kubernetes/static_provisioning/pv.yaml"
 ```
 
+Claim Persistent Volume (PVC):
+```sh
+kubectl apply -f "examples/kubernetes/static_provisioning/pvc.yaml"
+```
+
 
 ### References
 
