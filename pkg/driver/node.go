@@ -132,17 +132,17 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	switch(irodsClient) {
 	case FuseType:
 		fsType = "irodsfs"
-		source = fmt.Sprintf("irods://%s:%s@%s:%s/%s%s", user, password, host, port, zone, path)
-		sourceMasked = fmt.Sprintf("irods://%s:%s@%s:%s/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
+		source = fmt.Sprintf("irods://%s:%s@%s:%d/%s%s", user, password, host, port, zone, path)
+		sourceMasked = fmt.Sprintf("irods://%s:%s@%s:%d/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
     case NfsType:
 		fsType = "nfs"
 		//TODO: need to fix this
-		source = fmt.Sprintf("%s:%s/%s%s", host, port, zone, path)
-		sourceMasked = fmt.Sprintf("%s:%s/%s%s", host, port, zone, path)
+		source = fmt.Sprintf("%s:%d/%s%s", host, port, zone, path)
+		sourceMasked = fmt.Sprintf("%s:%d/%s%s", host, port, zone, path)
     case WebdavType:
 		fsType = "webdav"
-		source = fmt.Sprintf("https://%s:%s@%s:%s/%s%s", user, password, host, port, zone, path)
-		sourceMasked = fmt.Sprintf("https://%s:%s@%s:%s/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
+		source = fmt.Sprintf("https://%s:%s@%s:%d/%s%s", user, password, host, port, zone, path)
+		sourceMasked = fmt.Sprintf("https://%s:%s@%s:%d/%s%s", user, sensitiveArgsRemoved, host, port, zone, path)
     default:
         return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
     }
