@@ -38,10 +38,15 @@ kubectl get csinodes -o jsonpath='{range .items[*]} {.metadata.name}{": "} {rang
 ### Mount
 
 Define Storage Class:
-
 ```sh
-kubectl apply -k "examples/kubernetes/static_provisioning/storageclass.yaml"
+kubectl apply -f "examples/kubernetes/static_provisioning/storageclass.yaml"
 ```
+
+Define Persistent Volume (PV):
+```sh
+kubectl apply -f "examples/kubernetes/static_provisioning/pv.yaml"
+```
+
 
 ### References
 
