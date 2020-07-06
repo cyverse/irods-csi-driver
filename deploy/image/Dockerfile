@@ -72,6 +72,7 @@ RUN cmake -DCMAKE_INSTALL_PREFIX=/ . && \
     make && make install && \
     mkdir /root/.irods && \
     echo "LD_LIBRARY_PATH=/opt/irods-externals/clang-runtime6.0-0/lib/" > /etc/irodsfs_env && \
+    echo "HOME=/root" >> /etc/irodsfs_env && \
     cp bin/mount.irodsfs /sbin/
 
 WORKDIR /opt/
