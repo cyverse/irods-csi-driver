@@ -84,6 +84,14 @@ Execute Application with Volume Mount:
 kubectl apply -f "examples/kubernetes/static_provisioning/app.yaml"
 ```
 
+### Unmount
+
+Delete Application:
+```sh
+kubectl delete --grace-period=0 --force -f "examples/kubernetes/static_provisioning/app.yaml"
+```
+
+
 ### References
 
 Following CSI driver implementations were used as references:
