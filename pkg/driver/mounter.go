@@ -15,6 +15,7 @@ package driver
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,7 +44,7 @@ const (
 type Mounter interface {
 	mount.Interface
 	GetDeviceName(mountPath string) (string, int, error)
-	MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string) error
+	MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string, stdinValues []string) error
 }
 
 type NodeMounter struct {
@@ -79,44 +80,55 @@ func (mounter *NodeMounter) MountSensitive(source string, target string, fstype 
 	// All Linux distros are expected to be shipped with a mount utility that a support bind mounts.
 	bind, bindOpts, bindRemountOpts, bindRemountOptsSensitive := mount.MakeBindOptsSensitive(options, sensitiveOptions)
 	if bind {
-		err := mounter.doMount(defaultMountCommand, source, source, target, fstype, bindOpts, bindRemountOptsSensitive)
+		err := mounter.doMount(defaultMountCommand, source, source, target, fstype, bindOpts, bindRemountOptsSensitive, nil)
 		if err != nil {
 			return err
 		}
-		return mounter.doMount(defaultMountCommand, source, source, target, fstype, bindRemountOpts, bindRemountOptsSensitive)
+		return mounter.doMount(defaultMountCommand, source, source, target, fstype, bindRemountOpts, bindRemountOptsSensitive, nil)
 	}
 
-	return mounter.doMount(defaultMountCommand, source, source, target, fstype, options, sensitiveOptions)
+	return mounter.doMount(defaultMountCommand, source, source, target, fstype, options, sensitiveOptions, nil)
 }
 
-func (mounter *NodeMounter) MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string) error {
+func (mounter *NodeMounter) MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string, stdinValues []string) error {
 	// Path to mounter binary if containerized mounter is needed. Otherwise, it is set to empty.
 	// All Linux distros are expected to be shipped with a mount utility that a support bind mounts.
 	bind, bindOpts, bindRemountOpts, bindRemountOptsSensitive := mount.MakeBindOptsSensitive(options, sensitiveOptions)
 	if bind {
-		err := mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, bindOpts, bindRemountOptsSensitive)
+		err := mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, bindOpts, bindRemountOptsSensitive, stdinValues)
 		if err != nil {
 			return err
 		}
-		return mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, bindRemountOpts, bindRemountOptsSensitive)
+		return mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, bindRemountOpts, bindRemountOptsSensitive, stdinValues)
 	}
 
-	return mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, options, sensitiveOptions)
+	return mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, options, sensitiveOptions, stdinValues)
 }
 
 // doMount runs the mount command. mounterPath is the path to mounter binary if containerized mounter is used.
 // sensitiveOptions is an extension of options except they will not be logged (because they may contain sensitive material)
-func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string) error {
+func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string, stdinValues []string) error {
 	mountArgs, mountArgsLogStr := MakeMountArgsSensitive(source, sourceMasked, target, fstype, options, sensitiveOptions)
 
 	// Logging with sensitive mount options removed.
 	klog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgsLogStr)
 	command := exec.Command(mountCmd, mountArgs...)
+	stdin, err := command.StdinPipe()
+	if err != nil {
+		klog.Errorf("Accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s\n", err, mountCmd, mountArgsLogStr)
+		return fmt.Errorf("accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s", err, mountCmd, mountArgsLogStr)
+	}
+
+	for _, stdinValue := range stdinValues {
+		io.WriteString(stdin, stdinValue)
+		io.WriteString(stdin, "\n")
+	}
+	stdin.Close()
+
 	output, err := command.CombinedOutput()
 	if err != nil {
 		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, mountArgsLogStr, string(output))
-		return fmt.Errorf("mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s",
-			err, mountCmd, mountArgsLogStr, string(output))
+		return fmt.Errorf("mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s", err, mountCmd, mountArgsLogStr, string(output))
 	}
 	return err
 }
