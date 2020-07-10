@@ -284,7 +284,7 @@ func (driver *Driver) makeMountOptionsFuse(volContext map[string]string, mntOpti
 	mountOptions = append(mountOptions, mntOptions...)
 
 	if len(ticket) > 0 {
-		mountSensitiveOptions = append(mountSensitiveOptions, "-o", fmt.Sprintf("ticket:%s", ticket))
+		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket:%s", ticket))
 	}
 
 	stdinArgs = append(stdinArgs, password)
@@ -346,7 +346,7 @@ func (driver *Driver) makeMountOptionsNfs(volContext map[string]string, mntOptio
 	mountOptions = append(mountOptions, mntOptions...)
 
 	if port != 2049 {
-		mountOptions = append(mountOptions, "-o", fmt.Sprintf("port=%d", port))
+		mountOptions = append(mountOptions, fmt.Sprintf("port=%d", port))
 	}
 
 	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", sourceMasked, fsType, target, mountOptions)
@@ -426,7 +426,7 @@ func (driver *Driver) makeMountOptionsWebdav(volContext map[string]string, mntOp
 	mountOptions = append(mountOptions, mntOptions...)
 
 	if len(user) > 0 && len(password) > 0 {
-		mountSensitiveOptions = append(mountSensitiveOptions, "-o", fmt.Sprintf("username=%s", user))
+		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("username=%s", user))
 		stdinArgs = append(stdinArgs, password)
 	}
 
