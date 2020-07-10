@@ -14,10 +14,11 @@ spec:
     driver: irods.csi.cyverse.org
     volumeHandle: irods-vol-id
     volumeAttributes:
-      driver: "fuse"
+      driver: "webdav"
+      protocol: "https"
       host: "data.cyverse.org"
-      port: "1247"
       zone: "iplant"
       user: "iychoi"
+      urlprefix: "dav"
       password: "yourpassword"
       path: "/home/iychoi"

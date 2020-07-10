@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Job
+metadata:
+  name: irods-fuse-app
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ["/bin/sh"]
+    args: ["-c", "echo Hello Kubernetes! $(date -u) >> /data/kubernetes_fuse_out.txt"]
+    volumeMounts:
+    - name: persistent-storage
+      mountPath: /data
+  volumes:
+  - name: persistent-storage
+    persistentVolumeClaim:
+      claimName: irods-pvc

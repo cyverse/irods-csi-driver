@@ -1,13 +1,13 @@
 apiVersion: v1
-kind: Pod
+kind: Job
 metadata:
-  name: irods-app1
+  name: irods-webdav-app
 spec:
   containers:
   - name: app
     image: busybox
     command: ["/bin/sh"]
-    args: ["-c", "while true; do echo $(date -u) >> /data/out1.txt; sleep 5; done"]
+    args: ["-c", "echo Hello Kubernetes! $(date -u) >> /data/kubernetes_webdav_out.txt"]
     volumeMounts:
     - name: persistent-storage
       mountPath: /data

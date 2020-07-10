@@ -51,7 +51,7 @@ kubectl delete -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlay
 
 Define Storage Class (SC):
 ```sh
-kubectl apply -f "examples/kubernetes/static_provisioning/storageclass.yaml"
+kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/storageclass.yaml"
 ```
 
 Verify the Storage Class definition:
@@ -61,7 +61,7 @@ kubectl get sc
 
 Define Persistent Volume (PV):
 ```sh
-kubectl apply -f "examples/kubernetes/static_provisioning/pv.yaml"
+kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/pv.yaml"
 ```
 
 Verify the Persistent Volume definition:
@@ -71,7 +71,7 @@ kubectl get pv
 
 Claim Persistent Volume (PVC):
 ```sh
-kubectl apply -f "examples/kubernetes/static_provisioning/pvc.yaml"
+kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/pvc.yaml"
 ```
 
 Verify the Persistent Volume Claim:
@@ -81,8 +81,16 @@ kubectl get pvc
 
 Execute Application with Volume Mount:
 ```sh
-kubectl apply -f "examples/kubernetes/static_provisioning/app.yaml"
+kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/app.yaml"
 ```
+
+### Unmount
+
+Delete Application:
+```sh
+kubectl delete --grace-period=0 --force -f "examples/kubernetes/irodsfuse_static_provisioning/app.yaml"
+```
+
 
 ### References
 
