@@ -14,7 +14,7 @@ spec:
     driver: irods.csi.cyverse.org
     volumeHandle: irods-vol-id
     volumeAttributes:
-      driver: "fuse"
+      driver: "irodsfuse"
       host: "data.cyverse.org"
       port: "1247"
       zone: "iplant"

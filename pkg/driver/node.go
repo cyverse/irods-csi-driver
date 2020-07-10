@@ -1,4 +1,4 @@
-    /*
+/*
 Copyright 2019 The Kubernetes Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
+	nodeCaps             = []csi.NodeServiceCapability_RPC_Type{}
 	volumeCapAccessModes = []csi.VolumeCapability_AccessMode_Mode{
 		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
@@ -36,9 +36,9 @@ var (
 )
 
 const (
-    FuseType = "fuse"
-    NfsType = "nfs"
-    WebdavType = "webdav"
+	FuseType   = "irodsfuse"
+	NfsType    = "nfs"
+	WebdavType = "webdav"
 
 	sensitiveArgsRemoved = "<masked>"
 )
@@ -93,7 +93,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	// this is volumeHandle -- we don't use this
 	//volumeId := req.GetVolumeId()
-	irodsClient := "fuse"
+	irodsClient := FuseType
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		if strings.ToLower(k) == "driver" {
@@ -106,29 +106,29 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
-	switch(irodsClient) {
+	switch irodsClient {
 	case FuseType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 		if err := driver.makeMountOptionsFuse(volContext, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
-    case NfsType:
+	case NfsType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 		if err := driver.makeMountOptionsNfs(volContext, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
-    case WebdavType:
+	case WebdavType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 		if err := driver.makeMountOptionsWebdav(volContext, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
-    default:
+	default:
 		os.Remove(target)
-        return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
-    }
+		return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
+	}
 
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
 	return &csi.NodePublishVolumeResponse{}, nil
@@ -220,7 +220,7 @@ func (driver *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability)
 	return foundAll
 }
 
-func (driver *Driver) makeMountOptionsFuse(volContext map[string]string, mntOptions []string, target string) (error) {
+func (driver *Driver) makeMountOptionsFuse(volContext map[string]string, mntOptions []string, target string) error {
 	var user, password, host, zone, ticket string
 
 	port := 1247
@@ -228,7 +228,7 @@ func (driver *Driver) makeMountOptionsFuse(volContext map[string]string, mntOpti
 
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
-	    case "driver":
+		case "driver":
 			// do nothing
 			continue
 		case "user":
@@ -297,7 +297,7 @@ func (driver *Driver) makeMountOptionsFuse(volContext map[string]string, mntOpti
 	return nil
 }
 
-func (driver *Driver) makeMountOptionsNfs(volContext map[string]string, mntOptions []string, target string) (error) {
+func (driver *Driver) makeMountOptionsNfs(volContext map[string]string, mntOptions []string, target string) error {
 	var host, zone string
 
 	port := 2049
@@ -357,7 +357,7 @@ func (driver *Driver) makeMountOptionsNfs(volContext map[string]string, mntOptio
 	return nil
 }
 
-func (driver *Driver) makeMountOptionsWebdav(volContext map[string]string, mntOptions []string, target string) (error) {
+func (driver *Driver) makeMountOptionsWebdav(volContext map[string]string, mntOptions []string, target string) error {
 	var user, password, host, zone, urlprefix string
 
 	protocol := "https"
@@ -366,7 +366,7 @@ func (driver *Driver) makeMountOptionsWebdav(volContext map[string]string, mntOp
 
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
-	    case "driver":
+		case "driver":
 			// do nothing
 			continue
 		case "protocol":
