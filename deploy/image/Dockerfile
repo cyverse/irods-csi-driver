@@ -57,6 +57,28 @@ RUN cmake -DCMAKE_INSTALL_PREFIX=/ . && \
     make && make install
 
 
+##############################################
+# Build fuse-nfs
+##############################################
+FROM ubuntu:18.04 as fuse_nfs_builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Setup Utility Packages
+RUN apt-get update && \
+    apt-get install -y sudo --option=Dpkg::Options::=--force-confdef && \
+    apt-get install -y wget build-essential fuse git apt-transport-https pkg-config libfuse-dev lsb-release libnfs11 libtool m4 automake libnfs-dev xsltproc
+
+# Download fuse-nfs
+WORKDIR /opt/
+RUN git clone https://github.com/iychoi/fuse-nfs.git
+WORKDIR /opt/fuse-nfs
+
+# Build
+RUN ./setup.sh && \
+    ./configure && \
+    make && make install
+
 
 ##############################################
 # irods-csi-driver image
@@ -69,11 +91,12 @@ LABEL description="iRODS CSI Docker Image"
 ARG GOROOT=/usr/local/go
 ARG CSI_DRIVER_SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver/"
 ARG IRODS_FUSE_DIR="/opt/irods_client_fuse/"
+ARG FUSE_NFS_DIR="/opt/fuse-nfs/"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Setup Utility Packages
 RUN apt-get update && \
-    apt-get install -y wget fuse apt-transport-https lsb-release gnupg
+    apt-get install -y wget fuse apt-transport-https lsb-release gnupg libnfs11
 
 # Setup iRODS Packages
 RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | apt-key add -
@@ -96,5 +119,7 @@ WORKDIR /opt/
 COPY --from=csi_driver_builder ${CSI_DRIVER_SRC_DIR}/bin/irods-csi-driver /bin/irods-csi-driver
 COPY --from=irods_fuse_builder ${IRODS_FUSE_DIR}/bin/mount.irodsfs /sbin/mount.irodsfs
 COPY --from=irods_fuse_builder ${IRODS_FUSE_DIR}/irodsFs /usr/bin/irodsFs
+COPY --from=fuse_nfs_builder ${FUSE_NFS_DIR}/fuse/fuse-nfs /usr/bin/fuse-nfs
+COPY --from=fuse_nfs_builder ${FUSE_NFS_DIR}/bin/mount.fusenfs /sbin/mount.fusenfs
 
 ENTRYPOINT ["/bin/irods-csi-driver"]
