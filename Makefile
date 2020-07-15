@@ -56,7 +56,7 @@ push: image
 
 .PHONY: image-release
 image-release:
-	docker build -t $(IMAGE):$(VERSION) -f -f $(DOCKERFILE) .
+	docker build -t $(IMAGE):$(VERSION) -f $(DOCKERFILE) .
 
 .PHONY: push-release
 push-release:

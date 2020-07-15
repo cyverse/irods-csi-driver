@@ -11,6 +11,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2020 CyVerse
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package driver
 
 import (
@@ -37,8 +50,8 @@ var (
 
 const (
 	FuseType   = "irodsfuse"
-	NfsType    = "nfs"
 	WebdavType = "webdav"
+	NfsType    = "nfs"
 
 	sensitiveArgsRemoved = "<masked>"
 )
@@ -109,19 +122,19 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	switch irodsClient {
 	case FuseType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.makeMountOptionsFuse(volContext, mountOptions, target); err != nil {
-			os.Remove(target)
-			return nil, err
-		}
-	case NfsType:
-		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.makeMountOptionsNfs(volContext, mountOptions, target); err != nil {
+		if err := driver.mountFuse(volContext, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
 	case WebdavType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.makeMountOptionsWebdav(volContext, mountOptions, target); err != nil {
+		if err := driver.mountWebdav(volContext, mountOptions, target); err != nil {
+			os.Remove(target)
+			return nil, err
+		}
+	case NfsType:
+		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
+		if err := driver.mountNfs(volContext, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
@@ -220,7 +233,7 @@ func (driver *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability)
 	return foundAll
 }
 
-func (driver *Driver) makeMountOptionsFuse(volContext map[string]string, mntOptions []string, target string) error {
+func (driver *Driver) mountFuse(volContext map[string]string, mntOptions []string, target string) error {
 	var user, password, host, zone, ticket string
 
 	port := 1247
@@ -297,67 +310,7 @@ func (driver *Driver) makeMountOptionsFuse(volContext map[string]string, mntOpti
 	return nil
 }
 
-func (driver *Driver) makeMountOptionsNfs(volContext map[string]string, mntOptions []string, target string) error {
-	var host, zone string
-
-	port := 2049
-	path := "/"
-
-	for k, v := range volContext {
-		switch strings.ToLower(k) {
-		case "driver":
-			// do nothing
-			continue
-		case "host":
-			host = v
-		case "port":
-			p, err := strconv.Atoi(v)
-			if err != nil {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid port number - %s", k, err))
-			}
-			port = p
-		case "zone":
-			zone = v
-		case "path":
-			if !filepath.IsAbs(v) {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
-			}
-			path = v
-		default:
-			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
-		}
-	}
-
-	if len(host) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
-	}
-
-	if len(zone) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("zone specified (%s) is invalid", zone))
-	}
-
-	fsType := "nfs"
-	source := fmt.Sprintf("%s:/%s/%s", host, zone, path[1:])
-	sourceMasked := fmt.Sprintf("%s:/%s/%s", host, zone, path[1:])
-
-	mountOptions := []string{}
-	mountSensitiveOptions := []string{}
-
-	mountOptions = append(mountOptions, mntOptions...)
-
-	if port != 2049 {
-		mountOptions = append(mountOptions, fmt.Sprintf("port=%d", port))
-	}
-
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", sourceMasked, fsType, target, mountOptions)
-	if err := driver.mounter.MountSensitive2(source, sourceMasked, target, fsType, mountOptions, mountSensitiveOptions, nil); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", sourceMasked, fsType, target, err)
-	}
-
-	return nil
-}
-
-func (driver *Driver) makeMountOptionsWebdav(volContext map[string]string, mntOptions []string, target string) error {
+func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []string, target string) error {
 	var user, password, host, zone, urlprefix string
 
 	protocol := "https"
@@ -428,6 +381,67 @@ func (driver *Driver) makeMountOptionsWebdav(volContext map[string]string, mntOp
 	if len(user) > 0 && len(password) > 0 {
 		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("username=%s", user))
 		stdinArgs = append(stdinArgs, password)
+	}
+
+	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
+	if err := driver.mounter.MountSensitive2(source, source, target, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, target, err)
+	}
+
+	return nil
+}
+
+func (driver *Driver) mountNfs(volContext map[string]string, mntOptions []string, target string) error {
+	var host string
+
+	uid := -1
+	gid := -1
+	path := "/"
+
+	for k, v := range volContext {
+		switch strings.ToLower(k) {
+		case "driver":
+			// do nothing
+			continue
+		case "uid":
+			u, err := strconv.Atoi(v)
+			if err != nil {
+				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid uid number - %s", k, err))
+			}
+			uid = u
+		case "gid":
+			g, err := strconv.Atoi(v)
+			if err != nil {
+				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid uid number - %s", k, err))
+			}
+			gid = g
+		case "host":
+			host = v
+		case "path":
+			if !filepath.IsAbs(v) {
+				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
+			}
+			path = v
+		default:
+			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
+		}
+	}
+
+	if len(host) == 0 {
+		return status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
+	}
+
+	fsType := "fusenfs"
+	source := fmt.Sprintf("nfs://%s/%s", host, path[1:])
+
+	mountOptions := []string{}
+	mountSensitiveOptions := []string{}
+	stdinArgs := []string{}
+
+	mountOptions = append(mountOptions, mntOptions...)
+
+	if uid > 0 && gid > 0 {
+		source = source + fmt.Sprintf("?uid=%d&gid=%d", uid, gid)
 	}
 
 	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
