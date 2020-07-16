@@ -11,6 +11,7 @@ spec:
     volumeMounts:
     - name: persistent-storage
       mountPath: /data
+  restartPolicy: Never
   volumes:
   - name: persistent-storage
     persistentVolumeClaim:

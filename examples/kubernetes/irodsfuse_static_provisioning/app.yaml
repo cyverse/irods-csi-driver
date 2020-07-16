@@ -7,10 +7,11 @@ spec:
   - name: app
     image: busybox
     command: ["/bin/sh"]
-    args: ["-c", "echo Hello Kubernetes! $(date -u) >> /data/kubernetes_fuse_out.txt"]
+    args: ["-c", "echo Hello Kubernetes! $(date -u) >> /data/kubernetes_irodsfuse_out.txt"]
     volumeMounts:
     - name: persistent-storage
       mountPath: /data
+  restartPolicy: Never
   volumes:
   - name: persistent-storage
     persistentVolumeClaim:
