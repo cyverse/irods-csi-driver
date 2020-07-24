@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: irods-pv
+  name: irods-irodsfuse-pv
 spec:
   capacity:
     storage: 5Gi

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: irods-webdav-pvc
+  name: irods-nfs-pvc
 spec:
   accessModes:
     - ReadWriteMany

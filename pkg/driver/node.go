@@ -297,7 +297,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, mntOptions []strin
 	mountOptions = append(mountOptions, mntOptions...)
 
 	if len(ticket) > 0 {
-		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket:%s", ticket))
+		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket=%s", ticket))
 	}
 
 	stdinArgs = append(stdinArgs, password)
@@ -394,8 +394,7 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 func (driver *Driver) mountNfs(volContext map[string]string, mntOptions []string, target string) error {
 	var host string
 
-	uid := -1
-	gid := -1
+	port := 2049
 	path := "/"
 
 	for k, v := range volContext {
@@ -403,20 +402,14 @@ func (driver *Driver) mountNfs(volContext map[string]string, mntOptions []string
 		case "driver":
 			// do nothing
 			continue
-		case "uid":
-			u, err := strconv.Atoi(v)
-			if err != nil {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid uid number - %s", k, err))
-			}
-			uid = u
-		case "gid":
-			g, err := strconv.Atoi(v)
-			if err != nil {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid uid number - %s", k, err))
-			}
-			gid = g
 		case "host":
 			host = v
+		case "port":
+			p, err := strconv.Atoi(v)
+			if err != nil {
+				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid port number - %s", k, err))
+			}
+			port = p
 		case "path":
 			if !filepath.IsAbs(v) {
 				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
@@ -431,8 +424,8 @@ func (driver *Driver) mountNfs(volContext map[string]string, mntOptions []string
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
 	}
 
-	fsType := "fusenfs"
-	source := fmt.Sprintf("nfs://%s/%s", host, path[1:])
+	fsType := "nfs"
+	source := fmt.Sprintf("%s:%s", host, path)
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
@@ -440,8 +433,8 @@ func (driver *Driver) mountNfs(volContext map[string]string, mntOptions []string
 
 	mountOptions = append(mountOptions, mntOptions...)
 
-	if uid > 0 && gid > 0 {
-		source = source + fmt.Sprintf("?uid=%d&gid=%d", uid, gid)
+	if port != 2049 {
+		mountOptions = append(mountOptions, fmt.Sprintf("port=%d", port))
 	}
 
 	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
