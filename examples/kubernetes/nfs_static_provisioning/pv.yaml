@@ -16,6 +16,4 @@ spec:
     volumeAttributes:
       driver: "nfs"
       host: "data.cyverse.org"
-      uid: "1000"
-      gid: "1000"
       path: "/home/iychoi"
