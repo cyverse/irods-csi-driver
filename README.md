@@ -9,11 +9,11 @@ iRODS CSI Driver only supports CSI Specification Version v1.2.0 or higher.
 ### Features
 
 iRODS CSI Driver relies on external iRODS clients for mounting iRODS collections.
-| Driver Type | iRODS Client | Server Requirements             |
-|-------------|--------------|---------------------------------|
-| irodsfuse   | iRODS FUSE   | no                              |
-| webdav      | WebDAV       | require [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
-| nfs         | FUSE NFS     | require [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
+| Driver Type | iRODS Client     | Server Requirements             |
+|-------------|------------------|---------------------------------|
+| irodsfuse   | iRODS FUSE       | no                              |
+| webdav      | DavFS2           | require [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
+| nfs         | NFS (nfs-common) | require [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
 
 Currently, iRODS CSI Driver only supports static provisioning.
 
