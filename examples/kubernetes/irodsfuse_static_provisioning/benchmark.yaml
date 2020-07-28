@@ -7,7 +7,7 @@ spec:
   - name: app
     image: pstauffer/iozone
     command: ["/bin/sh"]
-    args: ["-c", "iozone -R -l 1 -u 1 -r 4k -s 100m -F /data/irodsfuse_bench.tmp >> /data/kubernetes_irodsfuse_benchmark.txt"]
+    args: ["-c", "iozone -R -l 1 -u 1 -r 4k -s 100m -F /data/irodsfuse_bench.tmp -b /data/irodsfuse_bench.xls"]
     volumeMounts:
     - name: persistent-storage
       mountPath: /data
