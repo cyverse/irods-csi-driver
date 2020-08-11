@@ -17,6 +17,52 @@ iRODS CSI Driver relies on external iRODS clients for mounting iRODS collections
 
 Currently, iRODS CSI Driver only supports static provisioning.
 
+### Volume Mount Parameters
+
+Certain parameters specified in Persistent Volume (PV) are passed to iRODS CSI Driver to be used for volume mounting.
+Depending on driver types, different parameters should be given.
+
+#### iRODS FUSE Driver
+| Field | Description | Example |
+| --- | --- | --- |
+| driver (or client) | Driver type | "irodsfuse" |
+| user | iRODS user id | "irods_user" |
+| password | iRODS user password | "password" in plane text or Kubernetes Secret |
+| host | iRODS hostname | "data.cyverse.org" |
+| port | iRODS port | Optional, Default "1247" |
+| ticket | Ticket string | Optional |
+| zone | iRODS zone | "iplant" |
+| path | iRODS path to mount, does not include **zone** in string | "/home/irods_user" |
+
+Mounts **zone**/**path**
+
+#### WebDAV Driver
+| Field | Description | Example |
+| --- | --- | --- |
+| driver (or client) | Driver type | "webdav" |
+| user | iRODS user id | "irods_user" |
+| password | iRODS user password | "password" in plane text or Kubernetes Secret |
+| protocol | WebDAV protocol | "https" |
+| host | WebDAV hostname | "data.cyverse.org" |
+| port | WebDAV port | Optional |
+| rootdir (or urlprefix) | WebDAV urlprefix, use this to add a directory in front of **zone** | Optional, "dav" |
+| zone | iRODS zone | "iplant" |
+| path | iRODS path to mount | "/home/irods_user" |
+| url | Shorthand form for **protocol**, **host**, **port**, **urlprefix**, **zone** and **path** | "https://data.cyverse.org/dav/iplant/home/irods_user" |
+
+Mounts **protocol**://**host**:**port**/**urlprefix**/**zone**/**path**
+Or, mounts **url**
+
+#### NFS Driver
+| Field | Description | Example |
+| --- | --- | --- |
+| driver (or client) | Driver type | "nfs" |
+| host | WebDAV hostname | "data.cyverse.org" |
+| port | WebDAV port | Optional |
+| path | iRODS path to mount | "/home/irods_user" |
+
+Mounts **host**:/**path**
+
 ### Installation
 
 Deploy the stable driver:
