@@ -29,10 +29,10 @@ package driver
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"net"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -381,11 +381,16 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 			}
 
 			u_host, u_port, _ := net.SplitHostPort(u.Host)
-			host = u_host
+			if len(u_host) > 0 && len(u_port) > 0 {
+				host = u_host
 
-			p, err := strconv.Atoi(u_port)
-			if err == nil {
-				port = p
+				p, err := strconv.Atoi(u_port)
+				if err == nil {
+					port = p
+				}
+			} else {
+				host = u.Host
+				port = 0
 			}
 
 			path = u.Path
@@ -397,7 +402,7 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 	}
 
 	if len(host) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
+		return status.Error(codes.InvalidArgument, "host specified is empty")
 	}
 
 	fsType := "davfs"
