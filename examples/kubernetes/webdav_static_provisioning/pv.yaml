@@ -12,13 +12,9 @@ spec:
   storageClassName: irods-sc
   csi:
     driver: irods.csi.cyverse.org
-    volumeHandle: irods-vol-id
+    volumeHandle: irods-webdav-vol-id
     volumeAttributes:
       driver: "webdav"
-      protocol: "https"
-      host: "data.cyverse.org"
-      zone: "iplant"
+      url: "https://data.cyverse.org/dav/iplant/home/iychoi"
       user: "iychoi"
-      urlprefix: "dav"
       password: "yourpassword"
-      path: "/home/iychoi"

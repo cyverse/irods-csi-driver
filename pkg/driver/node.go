@@ -31,6 +31,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"net"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -109,7 +111,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	irodsClient := FuseType
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
-		if strings.ToLower(k) == "driver" {
+		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
 			irodsClient = v
 		}
 	}
@@ -244,6 +246,9 @@ func (driver *Driver) mountFuse(volContext map[string]string, mntOptions []strin
 		case "driver":
 			// do nothing
 			continue
+		case "client":
+			// do nothing - same as driver
+			continue
 		case "user":
 			user = v
 		case "password":
@@ -314,13 +319,16 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 	var user, password, host, zone, urlprefix string
 
 	protocol := "https"
-	port := 443
+	port := 0
 	path := "/"
 
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
 		case "driver":
 			// do nothing
+			continue
+		case "client":
+			// do nothing - same as driver
 			continue
 		case "protocol":
 			switch strings.ToLower(v) {
@@ -338,6 +346,8 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 			host = v
 		case "urlprefix":
 			urlprefix = v
+		case "rootdir":
+			urlprefix = v
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
@@ -351,6 +361,36 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
 			}
 			path = v
+		case "url":
+			u, err := url.Parse(v)
+			if err != nil {
+				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid url - %s", k, err))
+			}
+
+			protocol = strings.ToLower(u.Scheme)
+			if u.User != nil {
+				u_user := u.User.Username()
+				if len(u_user) > 0 {
+					user = u_user
+				}
+
+				u_password, u_set := u.User.Password()
+				if u_set && len(u_password) > 0 {
+					password = u_password
+				}
+			}
+
+			u_host, u_port, _ := net.SplitHostPort(u.Host)
+			host = u_host
+
+			p, err := strconv.Atoi(u_port)
+			if err == nil {
+				port = p
+			}
+
+			path = u.Path
+			zone = ""
+			urlprefix = ""
 		default:
 			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
 		}
@@ -360,17 +400,27 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
 	}
 
-	if len(zone) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("zone specified (%s) is invalid", zone))
-	}
-
 	fsType := "davfs"
 	if len(urlprefix) > 0 {
 		urlprefix = strings.Trim(urlprefix, "/")
 		urlprefix += "/"
 	}
 
-	source := fmt.Sprintf("%s://%s:%d/%s%s/%s", protocol, host, port, urlprefix, zone, path[1:])
+	var source string
+	if len(zone) == 0 && len(urlprefix) == 0 {
+		// via "url"
+		if port > 0 {
+			source = fmt.Sprintf("%s://%s:%d/%s", protocol, host, port, path[1:])
+		} else {
+			source = fmt.Sprintf("%s://%s/%s", protocol, host, path[1:])
+		}
+	} else {
+		if port > 0 {
+			source = fmt.Sprintf("%s://%s:%d/%s%s/%s", protocol, host, port, urlprefix, zone, path[1:])
+		} else {
+			source = fmt.Sprintf("%s://%s/%s%s/%s", protocol, host, urlprefix, zone, path[1:])
+		}
+	}
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
@@ -401,6 +451,9 @@ func (driver *Driver) mountNfs(volContext map[string]string, mntOptions []string
 		switch strings.ToLower(k) {
 		case "driver":
 			// do nothing
+			continue
+		case "client":
+			// do nothing - same as driver
 			continue
 		case "host":
 			host = v

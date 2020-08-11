@@ -12,7 +12,7 @@ spec:
   storageClassName: irods-sc
   csi:
     driver: irods.csi.cyverse.org
-    volumeHandle: irods-vol-id
+    volumeHandle: irods-nfs-vol-id
     volumeAttributes:
       driver: "nfs"
       host: "data.cyverse.org"
