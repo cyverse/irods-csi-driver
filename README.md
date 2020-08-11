@@ -27,7 +27,7 @@ Depending on driver types, different parameters should be given.
 | --- | --- | --- |
 | driver (or client) | Driver type | "irodsfuse" |
 | user | iRODS user id | "irods_user" |
-| password | iRODS user password | "password" in plane text or Kubernetes Secret |
+| password | iRODS user password | "password" in plane text |
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional, Default "1247" |
 | ticket | Ticket string | Optional |
@@ -41,7 +41,7 @@ Mounts **zone**/**path**
 | --- | --- | --- |
 | driver (or client) | Driver type | "webdav" |
 | user | iRODS user id | "irods_user" |
-| password | iRODS user password | "password" in plane text or Kubernetes Secret |
+| password | iRODS user password | "password" in plane text |
 | protocol | WebDAV protocol | "https" |
 | host | WebDAV hostname | "data.cyverse.org" |
 | port | WebDAV port | Optional |
