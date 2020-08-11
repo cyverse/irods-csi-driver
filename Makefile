@@ -16,7 +16,7 @@
 PKG=github.com/cyverse/irods-csi-driver
 IMAGE?=cyverse/irods-csi-driver
 DOCKERFILE=deploy/image/Dockerfile
-VERSION=v0.1.0
+VERSION=v0.1.1
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
