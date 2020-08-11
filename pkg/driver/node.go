@@ -106,6 +106,8 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 	}
 
+	secrets := req.GetSecrets()
+
 	// this is volumeHandle -- we don't use this
 	//volumeId := req.GetVolumeId()
 	irodsClient := FuseType
@@ -124,19 +126,19 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	switch irodsClient {
 	case FuseType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.mountFuse(volContext, mountOptions, target); err != nil {
+		if err := driver.mountFuse(volContext, secrets, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
 	case WebdavType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.mountWebdav(volContext, mountOptions, target); err != nil {
+		if err := driver.mountWebdav(volContext, secrets, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
 	case NfsType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.mountNfs(volContext, mountOptions, target); err != nil {
+		if err := driver.mountNfs(volContext, secrets, mountOptions, target); err != nil {
 			os.Remove(target)
 			return nil, err
 		}
@@ -235,7 +237,7 @@ func (driver *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability)
 	return foundAll
 }
 
-func (driver *Driver) mountFuse(volContext map[string]string, mntOptions []string, target string) error {
+func (driver *Driver) mountFuse(volContext map[string]string, secrets map[string]string, mntOptions []string, target string) error {
 	var user, password, host, zone, ticket string
 
 	port := 1247
@@ -273,6 +275,22 @@ func (driver *Driver) mountFuse(volContext map[string]string, mntOptions []strin
 			path = v
 		default:
 			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
+		}
+	}
+
+	// read from secrets
+	for k, v := range secrets {
+		switch strings.ToLower(k) {
+		case "user":
+			user = v
+		case "password":
+			password = v
+		case "ticket":
+			// ticket is optional
+			ticket = v
+		default:
+			// ignore
+			continue
 		}
 	}
 
@@ -315,7 +333,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, mntOptions []strin
 	return nil
 }
 
-func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []string, target string) error {
+func (driver *Driver) mountWebdav(volContext map[string]string, secrets map[string]string, mntOptions []string, target string) error {
 	var user, password, host, zone, urlprefix string
 
 	protocol := "https"
@@ -369,22 +387,22 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 
 			protocol = strings.ToLower(u.Scheme)
 			if u.User != nil {
-				u_user := u.User.Username()
-				if len(u_user) > 0 {
-					user = u_user
+				uUser := u.User.Username()
+				if len(uUser) > 0 {
+					user = uUser
 				}
 
-				u_password, u_set := u.User.Password()
-				if u_set && len(u_password) > 0 {
-					password = u_password
+				uPassword, uSet := u.User.Password()
+				if uSet && len(uPassword) > 0 {
+					password = uPassword
 				}
 			}
 
-			u_host, u_port, _ := net.SplitHostPort(u.Host)
-			if len(u_host) > 0 && len(u_port) > 0 {
-				host = u_host
+			uHost, uPort, _ := net.SplitHostPort(u.Host)
+			if len(uHost) > 0 && len(uPort) > 0 {
+				host = uHost
 
-				p, err := strconv.Atoi(u_port)
+				p, err := strconv.Atoi(uPort)
 				if err == nil {
 					port = p
 				}
@@ -398,6 +416,19 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 			urlprefix = ""
 		default:
 			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
+		}
+	}
+
+	// read from secrets
+	for k, v := range secrets {
+		switch strings.ToLower(k) {
+		case "user":
+			user = v
+		case "password":
+			password = v
+		default:
+			// ignore
+			continue
 		}
 	}
 
@@ -446,7 +477,7 @@ func (driver *Driver) mountWebdav(volContext map[string]string, mntOptions []str
 	return nil
 }
 
-func (driver *Driver) mountNfs(volContext map[string]string, mntOptions []string, target string) error {
+func (driver *Driver) mountNfs(volContext map[string]string, secrets map[string]string, mntOptions []string, target string) error {
 	var host string
 
 	port := 2049

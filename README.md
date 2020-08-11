@@ -36,6 +36,9 @@ Depending on driver types, different parameters should be given.
 
 Mounts **zone**/**path**
 
+**user**, **password** and **ticket** can be supplied via secrets (nodePublishSecretRef).
+Please check out `examples` for more information.
+
 #### WebDAV Driver
 | Field | Description | Example |
 | --- | --- | --- |
@@ -50,8 +53,10 @@ Mounts **zone**/**path**
 | path | iRODS path to mount | "/home/irods_user" |
 | url | Shorthand form for **protocol**, **host**, **port**, **urlprefix**, **zone** and **path** | "https://data.cyverse.org/dav/iplant/home/irods_user" |
 
-Mounts **protocol**://**host**:**port**/**urlprefix**/**zone**/**path**
-Or, mounts **url**
+Mounts **protocol**://**host**:**port**/**urlprefix**/**zone**/**path**, OR mounts **url**
+
+**user** and **password** can be supplied via secrets (nodePublishSecretRef).
+Please check out `examples` for more information.
 
 #### NFS Driver
 | Field | Description | Example |

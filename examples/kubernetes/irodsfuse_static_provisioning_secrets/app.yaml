@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: irods-irodsfuse-app
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ["/bin/sh"]
+    args: ["-c", "echo Hello Kubernetes! $(date -u) >> /data/kubernetes_irodsfuse_out.txt"]
+    volumeMounts:
+    - name: persistent-storage
+      mountPath: /data
+  restartPolicy: Never
+  volumes:
+  - name: persistent-storage
+    persistentVolumeClaim:
+      claimName: irods-irodsfuse-pvc
