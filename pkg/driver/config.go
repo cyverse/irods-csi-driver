@@ -35,13 +35,13 @@ import (
 	"strings"
 )
 
-// hold the parameters list which can be configured
+// Config holds the parameters list which can be configured
 type Config struct {
 	Endpoint string // CSI endpoint
 	NodeID   string // node ID
 }
 
-// parse endpoint (TCP or UNIX)
+// ParseEndpoint parses endpoint string (TCP or UNIX)
 func ParseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {

@@ -14,6 +14,6 @@ spec:
     driver: irods.csi.cyverse.org
     volumeHandle: irods-nfs-vol-id
     volumeAttributes:
-      driver: "nfs"
+      client: "nfs"
       host: "data.cyverse.org"
       path: "/home/public"

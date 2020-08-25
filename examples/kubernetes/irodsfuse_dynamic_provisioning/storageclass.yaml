@@ -1,0 +1,13 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: irods-sc
+provisioner: irods.csi.cyverse.org
+parameters:
+  driver: "irodsfuse"
+  host: "data.cyverse.org"
+  port: "1247"
+  zone: "iplant"
+  user: "iychoi"
+  password: "yourpassword"
+  volumeRootPath: "/home/iychoi"

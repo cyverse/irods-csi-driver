@@ -46,7 +46,7 @@ spec:
             - name: irods-state-dir
               mountPath: /var/run/irods
           ports:
-            - containerPort: 9809
+            - containerPort: 9810
               name: healthz
               protocol: TCP
           livenessProbe:
@@ -58,7 +58,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
@@ -78,10 +78,10 @@ spec:
             - name: registration-dir
               mountPath: /registration
         - name: liveness-probe
-          image: quay.io/k8scsi/livenessprobe:v2.0.0
+          image: quay.io/k8scsi/livenessprobe:v1.1.0
           args:
             - --csi-address=/csi/csi.sock
-            - --health-port=9809
+            - --health-port=9810
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
