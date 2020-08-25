@@ -40,7 +40,14 @@ const (
 	driverName = "irods.csi.cyverse.org"
 )
 
-// contain the default identity, node and controller struct
+var (
+	volumeCaps = []csi.VolumeCapability_AccessMode_Mode{
+		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+	}
+)
+
+// Driver object contains configuration parameters, grpc server and mounter
 type Driver struct {
 	config *Config
 
@@ -56,6 +63,7 @@ func NewDriver(conf *Config) *Driver {
 	}
 }
 
+// Run runs the driver service
 func (driver *Driver) Run() error {
 	scheme, addr, err := ParseEndpoint(driver.config.Endpoint)
 	if err != nil {
@@ -82,8 +90,35 @@ func (driver *Driver) Run() error {
 	driver.server = grpc.NewServer(opts...)
 
 	csi.RegisterIdentityServer(driver.server, driver)
+	csi.RegisterControllerServer(driver.server, driver)
 	csi.RegisterNodeServer(driver.server, driver)
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return driver.server.Serve(listener)
+}
+
+// Stop stops the driver service
+func (driver *Driver) Stop() {
+	klog.Infof("Stopping server")
+	driver.server.Stop()
+}
+
+// isValidVolumeCapabilities checks validity of volume capabilities
+func (driver *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
+	hasSupport := func(cap *csi.VolumeCapability) bool {
+		for _, m := range volumeCaps {
+			if m == cap.AccessMode.GetMode() {
+				return true
+			}
+		}
+		return false
+	}
+
+	foundAll := true
+	for _, c := range volCaps {
+		if !hasSupport(c) {
+			foundAll = false
+		}
+	}
+	return foundAll
 }

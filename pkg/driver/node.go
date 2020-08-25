@@ -29,11 +29,7 @@ package driver
 import (
 	"context"
 	"fmt"
-	"net"
-	"net/url"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -43,36 +39,36 @@ import (
 )
 
 var (
-	nodeCaps             = []csi.NodeServiceCapability_RPC_Type{}
-	volumeCapAccessModes = []csi.VolumeCapability_AccessMode_Mode{
-		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-	}
+	nodeCaps = []csi.NodeServiceCapability_RPC_Type{}
 )
 
 const (
-	FuseType   = "irodsfuse"
-	WebdavType = "webdav"
-	NfsType    = "nfs"
-
 	sensitiveArgsRemoved = "<masked>"
 )
 
-// this is for dynamic volume provisioning
+// NodeStageVolume handles persistent volume stage event in node service
 func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-// this is for dynamic volume provisioning
+// NodeUnstageVolume handles persistent volume unstage event in node service
 func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
+// NodePublishVolume handles persistent volume publish event in node service
 func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
+	//klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
 
-	target := req.GetTargetPath()
-	if len(target) == 0 {
+	volID := req.GetVolumeId()
+	if len(volID) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	klog.V(4).Infof("NodePublishVolume: volumeId (%#v)", volID)
+
+	targetPath := req.GetTargetPath()
+	if len(targetPath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
@@ -106,53 +102,54 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 	}
 
-	secrets := req.GetSecrets()
-
-	// this is volumeHandle -- we don't use this
-	//volumeId := req.GetVolumeId()
-	irodsClient := FuseType
 	volContext := req.GetVolumeContext()
-	for k, v := range volContext {
-		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
-			irodsClient = v
-		}
-	}
+	volSecrets := req.GetSecrets()
 
-	klog.V(5).Infof("NodePublishVolume: creating dir %s", target)
-	if err := MakeDir(target); err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+	irodsClient := ExtractIRODSClientType(volContext, FuseType)
+
+	klog.V(5).Infof("NodePublishVolume: creating dir %s", targetPath)
+	if err := MakeDir(targetPath); err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 	}
 
 	switch irodsClient {
 	case FuseType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.mountFuse(volContext, secrets, mountOptions, target); err != nil {
-			os.Remove(target)
+		if err := driver.mountFuse(volContext, volSecrets, mountOptions, targetPath); err != nil {
+			os.Remove(targetPath)
 			return nil, err
 		}
 	case WebdavType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.mountWebdav(volContext, secrets, mountOptions, target); err != nil {
-			os.Remove(target)
+		if err := driver.mountWebdav(volContext, volSecrets, mountOptions, targetPath); err != nil {
+			os.Remove(targetPath)
 			return nil, err
 		}
 	case NfsType:
 		klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-		if err := driver.mountNfs(volContext, secrets, mountOptions, target); err != nil {
-			os.Remove(target)
+		if err := driver.mountNfs(volContext, volSecrets, mountOptions, targetPath); err != nil {
+			os.Remove(targetPath)
 			return nil, err
 		}
 	default:
-		os.Remove(target)
+		os.Remove(targetPath)
 		return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
 	}
 
-	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
+	klog.V(5).Infof("NodePublishVolume: %s was mounted", targetPath)
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
+// NodeUnpublishVolume handles persistent volume unpublish event in node service
 func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	klog.V(4).Infof("NodeUnpublishVolume: called with args %+v", req)
+	//klog.V(4).Infof("NodeUnpublishVolume: called with args %+v", req)
+
+	volID := req.GetVolumeId()
+	if len(volID) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	klog.V(4).Infof("NodeUnpublishVolume: volumeId (%#v)", volID)
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
@@ -186,14 +183,17 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
+// NodeGetVolumeStats returns volume stats
 func (driver *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
+// NodeExpandVolume expands volume
 func (driver *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
+// NodeGetCapabilities returns capabilities
 func (driver *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	klog.V(4).Infof("NodeGetCapabilities: called with args %+v", req)
 	var caps []*csi.NodeServiceCapability
@@ -210,6 +210,7 @@ func (driver *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 	return &csi.NodeGetCapabilitiesResponse{Capabilities: caps}, nil
 }
 
+// NodeGetInfo returns node info
 func (driver *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	klog.V(4).Infof("NodeGetInfo: called with args %+v", req)
 
@@ -218,73 +219,26 @@ func (driver *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReque
 	}, nil
 }
 
-func (driver *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
-	hasSupport := func(cap *csi.VolumeCapability) bool {
-		for _, m := range volumeCapAccessModes {
-			if m == cap.AccessMode.GetMode() {
-				return true
-			}
-		}
-		return false
+func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
+	irodsConn, err := ExtractIRODSConnection(volContext, volSecrets)
+	if err != nil {
+		return err
 	}
 
-	foundAll := true
-	for _, c := range volCaps {
-		if !hasSupport(c) {
-			foundAll = false
-		}
-	}
-	return foundAll
-}
-
-func (driver *Driver) mountFuse(volContext map[string]string, secrets map[string]string, mntOptions []string, target string) error {
-	var user, password, host, zone, ticket string
-
-	port := 1247
-	path := "/"
+	ticket := ""
 
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
-		case "driver":
-			// do nothing
-			continue
-		case "client":
-			// do nothing - same as driver
-			continue
-		case "user":
-			user = v
-		case "password":
-			password = v
-		case "host":
-			host = v
-		case "port":
-			p, err := strconv.Atoi(v)
-			if err != nil {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid port number - %s", k, err))
-			}
-			port = p
 		case "ticket":
 			// ticket is optional
 			ticket = v
-		case "zone":
-			zone = v
-		case "path":
-			if !filepath.IsAbs(v) {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
-			}
-			path = v
 		default:
 			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
 		}
 	}
 
-	// read from secrets
-	for k, v := range secrets {
+	for k, v := range volSecrets {
 		switch strings.ToLower(k) {
-		case "user":
-			user = v
-		case "password":
-			password = v
 		case "ticket":
 			// ticket is optional
 			ticket = v
@@ -294,24 +248,8 @@ func (driver *Driver) mountFuse(volContext map[string]string, secrets map[string
 		}
 	}
 
-	if len(user) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("user specified (%s) is invalid", user))
-	}
-
-	if len(password) == 0 {
-		return status.Error(codes.InvalidArgument, "user password specified is invalid")
-	}
-
-	if len(host) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
-	}
-
-	if len(zone) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("zone specified (%s) is invalid", zone))
-	}
-
 	fsType := "irodsfs"
-	source := fmt.Sprintf("irods://%s@%s:%d/%s/%s", user, host, port, zone, path[1:])
+	source := fmt.Sprintf("irods://%s@%s:%d/%s/%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, strings.Trim(irodsConn.Path, "/"))
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
@@ -323,140 +261,24 @@ func (driver *Driver) mountFuse(volContext map[string]string, secrets map[string
 		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket=%s", ticket))
 	}
 
-	stdinArgs = append(stdinArgs, password)
+	stdinArgs = append(stdinArgs, irodsConn.Password)
 
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
-	if err := driver.mounter.MountSensitive2(source, source, target, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, target, err)
+	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
+	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
 
 	return nil
 }
 
-func (driver *Driver) mountWebdav(volContext map[string]string, secrets map[string]string, mntOptions []string, target string) error {
-	var user, password, host, zone, urlprefix string
-
-	protocol := "https"
-	port := 0
-	path := "/"
-
-	for k, v := range volContext {
-		switch strings.ToLower(k) {
-		case "driver":
-			// do nothing
-			continue
-		case "client":
-			// do nothing - same as driver
-			continue
-		case "protocol":
-			switch strings.ToLower(v) {
-			case "http":
-			case "https":
-				protocol = v
-			default:
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid protocol scheme - %s", k, v))
-			}
-		case "user":
-			user = v
-		case "password":
-			password = v
-		case "host":
-			host = v
-		case "urlprefix":
-			urlprefix = v
-		case "rootdir":
-			urlprefix = v
-		case "port":
-			p, err := strconv.Atoi(v)
-			if err != nil {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid port number - %s", k, err))
-			}
-			port = p
-		case "zone":
-			zone = v
-		case "path":
-			if !filepath.IsAbs(v) {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
-			}
-			path = v
-		case "url":
-			u, err := url.Parse(v)
-			if err != nil {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid url - %s", k, err))
-			}
-
-			protocol = strings.ToLower(u.Scheme)
-			if u.User != nil {
-				uUser := u.User.Username()
-				if len(uUser) > 0 {
-					user = uUser
-				}
-
-				uPassword, uSet := u.User.Password()
-				if uSet && len(uPassword) > 0 {
-					password = uPassword
-				}
-			}
-
-			uHost, uPort, _ := net.SplitHostPort(u.Host)
-			if len(uHost) > 0 && len(uPort) > 0 {
-				host = uHost
-
-				p, err := strconv.Atoi(uPort)
-				if err == nil {
-					port = p
-				}
-			} else {
-				host = u.Host
-				port = 0
-			}
-
-			path = u.Path
-			zone = ""
-			urlprefix = ""
-		default:
-			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
-		}
-	}
-
-	// read from secrets
-	for k, v := range secrets {
-		switch strings.ToLower(k) {
-		case "user":
-			user = v
-		case "password":
-			password = v
-		default:
-			// ignore
-			continue
-		}
-	}
-
-	if len(host) == 0 {
-		return status.Error(codes.InvalidArgument, "host specified is empty")
+func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
+	irodsConn, err := ExtractIRODSWebDAVConnection(volContext, volSecrets)
+	if err != nil {
+		return err
 	}
 
 	fsType := "davfs"
-	if len(urlprefix) > 0 {
-		urlprefix = strings.Trim(urlprefix, "/")
-		urlprefix += "/"
-	}
-
-	var source string
-	if len(zone) == 0 && len(urlprefix) == 0 {
-		// via "url"
-		if port > 0 {
-			source = fmt.Sprintf("%s://%s:%d/%s", protocol, host, port, path[1:])
-		} else {
-			source = fmt.Sprintf("%s://%s/%s", protocol, host, path[1:])
-		}
-	} else {
-		if port > 0 {
-			source = fmt.Sprintf("%s://%s:%d/%s%s/%s", protocol, host, port, urlprefix, zone, path[1:])
-		} else {
-			source = fmt.Sprintf("%s://%s/%s%s/%s", protocol, host, urlprefix, zone, path[1:])
-		}
-	}
+	source := irodsConn.URL
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
@@ -464,57 +286,27 @@ func (driver *Driver) mountWebdav(volContext map[string]string, secrets map[stri
 
 	mountOptions = append(mountOptions, mntOptions...)
 
-	if len(user) > 0 && len(password) > 0 {
-		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("username=%s", user))
-		stdinArgs = append(stdinArgs, password)
+	if len(irodsConn.User) > 0 && len(irodsConn.Password) > 0 {
+		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("username=%s", irodsConn.User))
+		stdinArgs = append(stdinArgs, irodsConn.Password)
 	}
 
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
-	if err := driver.mounter.MountSensitive2(source, source, target, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, target, err)
+	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
+	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
 
 	return nil
 }
 
-func (driver *Driver) mountNfs(volContext map[string]string, secrets map[string]string, mntOptions []string, target string) error {
-	var host string
-
-	port := 2049
-	path := "/"
-
-	for k, v := range volContext {
-		switch strings.ToLower(k) {
-		case "driver":
-			// do nothing
-			continue
-		case "client":
-			// do nothing - same as driver
-			continue
-		case "host":
-			host = v
-		case "port":
-			p, err := strconv.Atoi(v)
-			if err != nil {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a valid port number - %s", k, err))
-			}
-			port = p
-		case "path":
-			if !filepath.IsAbs(v) {
-				return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
-			}
-			path = v
-		default:
-			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
-		}
-	}
-
-	if len(host) == 0 {
-		return status.Error(codes.InvalidArgument, fmt.Sprintf("host specified (%s) is invalid", host))
+func (driver *Driver) mountNfs(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
+	irodsConn, err := ExtractIRODSNFSConnection(volContext, volSecrets)
+	if err != nil {
+		return err
 	}
 
 	fsType := "nfs"
-	source := fmt.Sprintf("%s:%s", host, path)
+	source := fmt.Sprintf("%s:%s", irodsConn.Hostname, irodsConn.Path)
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
@@ -522,13 +314,13 @@ func (driver *Driver) mountNfs(volContext map[string]string, secrets map[string]
 
 	mountOptions = append(mountOptions, mntOptions...)
 
-	if port != 2049 {
-		mountOptions = append(mountOptions, fmt.Sprintf("port=%d", port))
+	if irodsConn.Port != 2049 {
+		mountOptions = append(mountOptions, fmt.Sprintf("port=%d", irodsConn.Port))
 	}
 
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, target, mountOptions)
-	if err := driver.mounter.MountSensitive2(source, source, target, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, target, err)
+	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
+	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
 
 	return nil

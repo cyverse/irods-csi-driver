@@ -38,6 +38,7 @@ var (
 	buildDate     string
 )
 
+// VersionInfo object contains version related info
 type VersionInfo struct {
 	DriverVersion string `json:"driverVersion"`
 	GitCommit     string `json:"gitCommit"`
@@ -47,6 +48,7 @@ type VersionInfo struct {
 	Platform      string `json:"platform"`
 }
 
+// GetVersion returns VersionInfo object
 func GetVersion() VersionInfo {
 	return VersionInfo{
 		DriverVersion: driverVersion,
@@ -58,10 +60,12 @@ func GetVersion() VersionInfo {
 	}
 }
 
+// GetDriverVersion returns driver version in string
 func GetDriverVersion() string {
 	return driverVersion
 }
 
+// GetVersionJSON returns VersionInfo object in JSON string
 func GetVersionJSON() (string, error) {
 	info := GetVersion()
 	marshalled, err := json.MarshalIndent(&info, "", "  ")

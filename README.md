@@ -15,11 +15,11 @@ iRODS CSI Driver relies on external iRODS clients for mounting iRODS collections
 | webdav      | DavFS2           | require [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
 | nfs         | NFS (nfs-common) | require [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
 
-Currently, iRODS CSI Driver only supports static provisioning.
+Currently, iRODS CSI Driver supports both static and dynamic provisioning.
 
 ### Volume Mount Parameters
 
-Certain parameters specified in Persistent Volume (PV) are passed to iRODS CSI Driver to be used for volume mounting.
+Parameters specified in Persistent Volume (PV) and Storage Class (SC) are passed to iRODS CSI Driver to mount a volume.
 Depending on driver types, different parameters should be given.
 
 #### iRODS FUSE Driver
@@ -45,15 +45,9 @@ Please check out `examples` for more information.
 | driver (or client) | Driver type | "webdav" |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plane text |
-| protocol | WebDAV protocol | "https" |
-| host | WebDAV hostname | "data.cyverse.org" |
-| port | WebDAV port | Optional |
-| rootdir (or urlprefix) | WebDAV urlprefix, use this to add a directory in front of **zone** | Optional, "dav" |
-| zone | iRODS zone | "iplant" |
-| path | iRODS path to mount | "/home/irods_user" |
-| url | Shorthand form for **protocol**, **host**, **port**, **urlprefix**, **zone** and **path** | "https://data.cyverse.org/dav/iplant/home/irods_user" |
+| url | URL | "https://data.cyverse.org/dav/iplant/home/irods_user" |
 
-Mounts **protocol**://**host**:**port**/**urlprefix**/**zone**/**path**, OR mounts **url**
+Mounts **url**
 
 **user** and **password** can be supplied via secrets (nodePublishSecretRef).
 Please check out `examples` for more information.
@@ -147,15 +141,19 @@ kubectl delete --grace-period=0 --force -f "examples/kubernetes/irodsfuse_static
 
 Following CSI driver implementations were used as references:
 - [AWS EFS CSI Driver](https://github.com/kubernetes-sigs/aws-efs-csi-driver)
+- [AWS FSx CSI Driver](https://github.com/kubernetes-sigs/aws-fsx-csi-driver)
 - [NFS CSI Driver](https://github.com/kubernetes-csi/drivers)
 - [Ceph CSI Driver](https://github.com/ceph/ceph-csi)
 
-Many code parts in the driver are from **AWS EFS CSI Driver**.
+Many code parts in the driver are from **AWS EFS CSI Driver** and **AWS FSx CSI Driver**.
 
 Following resources are helpful to understand the CSI driver implementation:
 - [CSI Specification](https://github.com/container-storage-interface/spec/blob/master/spec.md)
 - [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs/)
 
+Following resources are helpful to configure the CSI driver:
+- [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
+
 ### License
 
-This library is licensed under the Apache 2.0 License.
+This code is licensed under the Apache 2.0 License.

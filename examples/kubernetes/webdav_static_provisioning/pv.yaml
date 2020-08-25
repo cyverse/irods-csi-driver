@@ -14,7 +14,7 @@ spec:
     driver: irods.csi.cyverse.org
     volumeHandle: irods-webdav-vol-id
     volumeAttributes:
-      driver: "webdav"
+      client: "webdav"
       url: "https://data.cyverse.org/dav/iplant/home/iychoi"
       user: "iychoi"
       password: "yourpassword"
