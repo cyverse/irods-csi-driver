@@ -22,7 +22,6 @@ ADD . .
 RUN make irods-csi-driver
 
 
-
 ##############################################
 # Build irods-fuse
 ##############################################
@@ -73,7 +72,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Setup Utility Packages
 RUN apt-get update && \
-    apt-get install -y wget fuse apt-transport-https lsb-release gnupg
+    apt-get install -y wget fuse apt-transport-https lsb-release gnupg python3-pip
 
 # Setup iRODS Packages
 RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | apt-key add -
@@ -90,11 +89,18 @@ RUN mkdir /root/.irods && \
     echo "LD_LIBRARY_PATH=/opt/irods-externals/clang-runtime6.0-0/lib/" > /etc/irodsfs_env && \
     echo "HOME=/root" >> /etc/irodsfs_env
 
+RUN pip3 install -q python-irodsclient
+
 WORKDIR /opt/
 
 # Setup CSI Driver
 COPY --from=csi_driver_builder ${CSI_DRIVER_SRC_DIR}/bin/irods-csi-driver /bin/irods-csi-driver
+# Setup iRODS FUSE
 COPY --from=irods_fuse_builder ${IRODS_FUSE_DIR}/bin/mount.irodsfs /sbin/mount.irodsfs
 COPY --from=irods_fuse_builder ${IRODS_FUSE_DIR}/irodsFs /usr/bin/irodsFs
+# Setup iRODS Python Scripts
+COPY exec/irods_ls.py /usr/local/bin/irods_ls.py
+COPY exec/irods_mkdir.py /usr/local/bin/irods_mkdir.py
+COPY exec/irods_rmdir.py /usr/local/bin/irods_rmdir.py
 
 ENTRYPOINT ["/bin/irods-csi-driver"]

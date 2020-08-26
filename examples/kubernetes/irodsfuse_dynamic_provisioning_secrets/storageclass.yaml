@@ -8,6 +8,6 @@ parameters:
   host: "data.cyverse.org"
   port: "1247"
   zone: "iplant"
-  user: "iychoi"
-  password: "yourpassword"
   volumeRootPath: "/home/iychoi"
+  csi.storage.k8s.io/provisioner-secret-name: "irods-irodsfuse-secret"
+  csi.storage.k8s.io/provisioner-secret-namespace: "default"

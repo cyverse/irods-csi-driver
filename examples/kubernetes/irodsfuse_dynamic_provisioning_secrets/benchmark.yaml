@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: irods-irodsfuse-bench
+spec:
+  containers:
+  - name: app
+    image: pstauffer/iozone
+    command: ["/bin/sh"]
+    args: ["-c", "iozone -R -l 1 -u 1 -r 4k -s 100m -F /data/irodsfuse_bench.tmp -b /data/irodsfuse_bench.xls"]
+    volumeMounts:
+    - name: persistent-storage
+      mountPath: /data
+  restartPolicy: Never
+  volumes:
+  - name: persistent-storage
+    persistentVolumeClaim:
+      claimName: irods-irodsfuse-pvc
