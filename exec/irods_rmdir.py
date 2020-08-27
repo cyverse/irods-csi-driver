@@ -42,8 +42,12 @@ def main(argv):
         host = hostport_vars[0].strip()
         port = int(hostport_vars[1].strip())
 
-    user = input("Username: ")
-    password = getpass.getpass("Password: ")
+    if sys.stdin.isatty():
+        user = input("Username: ")
+        password = getpass.getpass("Password: ")
+    else:
+        user = sys.stdin.readline().rstrip()
+        password = sys.stdin.readline().rstrip()
 
     if not host:
         print("iRODS HOST is not given", file=sys.stderr)
@@ -68,15 +72,19 @@ def main(argv):
         print("iRODS PATH is not given", file=sys.stderr)
         sys.exit(1)
 
+    zonepath = path
+    if not path.startswith("/" + zone + "/"):
+        zonepath = "/" + zone + "/" + path.lstrip("/")
+
     with iRODSSession(host=host, port=port, user=user, password=password, zone=zone) as session:
         try:
             # delete the collection recursively
-            session.collections.remove(path)
-            if session.collections.exists(path):
-                print("Could not delete a path %s" % path, file=sys.stderr)
+            session.collections.remove(zonepath)
+            if session.collections.exists(zonepath):
+                print("Could not delete a path %s" % zonepath, file=sys.stderr)
                 sys.exit(1)
             else:
-                print("Deleted a path %s" % path, file=sys.stdout)
+                print("Deleted a path %s" % zonepath, file=sys.stdout)
                 sys.exit(0)
         except:
             sys.exit(1)
