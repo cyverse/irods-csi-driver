@@ -228,23 +228,16 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	ticket := ""
 
 	for k, v := range volContext {
-		switch strings.ToLower(k) {
-		case "ticket":
+		if strings.ToLower(k) == "ticket" {
 			// ticket is optional
 			ticket = v
-		default:
-			return status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
 		}
 	}
 
 	for k, v := range volSecrets {
-		switch strings.ToLower(k) {
-		case "ticket":
+		if strings.ToLower(k) == "ticket" {
 			// ticket is optional
 			ticket = v
-		default:
-			// ignore
-			continue
 		}
 	}
 
