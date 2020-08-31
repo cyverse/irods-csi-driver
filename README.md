@@ -92,7 +92,7 @@ Uninstall the development driver:
 kubectl delete -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
 
-### Mount
+### Mount Pre-previsioned Persistent Volume using iRODS FUSE
 
 Define Storage Class (SC):
 ```sh
@@ -129,13 +129,12 @@ Execute Application with Volume Mount:
 kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/app.yaml"
 ```
 
-### Unmount
+### Unmount  Pre-previsioned Persistent Volume using iRODS FUSE
 
 Delete Application:
 ```sh
 kubectl delete --grace-period=0 --force -f "examples/kubernetes/irodsfuse_static_provisioning/app.yaml"
 ```
-
 
 ### References
 

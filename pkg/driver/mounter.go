@@ -126,17 +126,20 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 	// Logging with sensitive mount options removed.
 	klog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgsLogStr)
 	command := exec.Command(mountCmd, mountArgs...)
-	stdin, err := command.StdinPipe()
-	if err != nil {
-		klog.Errorf("Accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s\n", err, mountCmd, mountArgsLogStr)
-		return fmt.Errorf("accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s", err, mountCmd, mountArgsLogStr)
-	}
 
-	for _, stdinValue := range stdinValues {
-		io.WriteString(stdin, stdinValue)
-		io.WriteString(stdin, "\n")
+	if stdinValues != nil {
+		stdin, err := command.StdinPipe()
+		if err != nil {
+			klog.Errorf("Accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s\n", err, mountCmd, mountArgsLogStr)
+			return fmt.Errorf("accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s", err, mountCmd, mountArgsLogStr)
+		}
+
+		for _, stdinValue := range stdinValues {
+			io.WriteString(stdin, stdinValue)
+			io.WriteString(stdin, "\n")
+		}
+		stdin.Close()
 	}
-	stdin.Close()
 
 	output, err := command.CombinedOutput()
 	if err != nil {

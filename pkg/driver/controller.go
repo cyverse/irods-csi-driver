@@ -57,6 +57,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	if len(volName) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
+	volID := generateVolumeID(volName)
 
 	klog.V(4).Infof("CreateVolume: volumeName(%#v)", volName)
 
@@ -127,11 +128,11 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	volContext["path"] = volPath
 
 	// create a irods volume and put it to manager
-	irodsVolume := NewIRODSVolume(volName, volName, volRootPath, volPath, irodsConn, volRetain)
+	irodsVolume := NewIRODSVolume(volID, volName, volRootPath, volPath, irodsConn, volRetain)
 	PutIRODSVolume(irodsVolume)
 
 	volume := &csi.Volume{
-		VolumeId:      volName,
+		VolumeId:      volID,
 		CapacityBytes: volCapacity,
 		VolumeContext: volContext,
 	}
@@ -256,4 +257,11 @@ func (driver *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsR
 // ControllerExpandVolume expands a volume
 func (driver *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
+}
+
+// generateVolumeID generates volume id from volume name
+func generateVolumeID(volName string) string {
+	//uuid := uuid.New()
+	//return fmt.Sprintf("volid-%s", uuid.String())
+	return volName
 }

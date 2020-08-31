@@ -20,7 +20,7 @@ var (
 
 // IRODSVolume class
 type IRODSVolume struct {
-	Id         string
+	ID         string
 	Name       string
 	RootPath   string
 	Path       string
@@ -31,7 +31,7 @@ type IRODSVolume struct {
 // NewIRODSVolume returns a new instance of IRODSVolume
 func NewIRODSVolume(id string, name string, rootPath string, path string, conn *IRODSConnection, retainData bool) *IRODSVolume {
 	return &IRODSVolume{
-		Id:         id,
+		ID:         id,
 		Name:       name,
 		RootPath:   rootPath,
 		Path:       path,
@@ -51,7 +51,7 @@ func GetIRODSVolume(id string) *IRODSVolume {
 
 // PutIRODSVolume puts IRODSVolume
 func PutIRODSVolume(volume *IRODSVolume) {
-	irodsVolumes[volume.Id] = volume
+	irodsVolumes[volume.ID] = volume
 }
 
 // PopIRODSVolume returns IRODSVolume with given id and delete
