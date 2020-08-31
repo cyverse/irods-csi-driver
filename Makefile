@@ -14,8 +14,12 @@
 #
 
 PKG=github.com/cyverse/irods-csi-driver
-IMAGE?=cyverse/irods-csi-driver
-DOCKERFILE=deploy/image/Dockerfile
+CSI_DRIVER_BUILD_IMAGE=irods_csi_driver_build
+CSI_DRIVER_BUILD_DOCKERFILE=deploy/image/irods_csi_driver_build.dockerfile
+FUSE_CLIENT_BUILD_IMAGE=irods_fuse_client_build
+FUSE_CLIENT_BUILD_DOCKERFILE=deploy/image/irods_fuse_build.dockerfile
+CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
+CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
 VERSION=v0.2.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -46,18 +50,26 @@ irods-csi-driver:
 #	go get github.com/aws/aws-k8s-tester/e2e/tester/cmd/k8s-e2e-tester@master
 #	TESTCONFIG=./tester/e2e-test-config.yaml ${GOPATH}/bin/k8s-e2e-tester
 
+.PHONY: fuse_build
+fuse_build:
+	docker build -t $(FUSE_CLIENT_BUILD_IMAGE):latest -f $(FUSE_CLIENT_BUILD_DOCKERFILE) .
+
+.PHONY: driver_build
+driver_build:
+	docker build -t $(CSI_DRIVER_BUILD_IMAGE):latest -f $(CSI_DRIVER_BUILD_DOCKERFILE) .
+
 .PHONY: image
-image:
-	docker build -t $(IMAGE):latest -f $(DOCKERFILE) .
+image: fuse_build driver_build
+	docker build -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
 
 .PHONY: push
 push: image
-	docker push $(IMAGE):latest
+	docker push $(CSI_DRIVER_IMAGE):latest
 
 .PHONY: image-release
 image-release:
-	docker build -t $(IMAGE):$(VERSION) -f $(DOCKERFILE) .
+	docker build -t $(CSI_DRIVER_IMAGE):$(VERSION) -f $(CSI_DRIVER_DOCKERFILE) .
 
 .PHONY: push-release
 push-release:
-	docker push $(IMAGE):$(VERSION)
+	docker push $(CSI_DRIVER_IMAGE):$(VERSION)
