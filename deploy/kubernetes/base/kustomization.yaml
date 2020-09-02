@@ -4,5 +4,5 @@ namespace: kube-system
 resources:
   - controller.yaml
   - node.yaml
-  - rbac.yaml
+  - serviceaccount.yaml
   - csidriver.yaml
