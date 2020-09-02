@@ -82,18 +82,44 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	volSecrets := req.GetSecrets()
 	volRootPath := ""
 
-	irodsClient := ExtractIRODSClientType(volParams, FuseType)
+	secrets := make(map[string]string)
+	for k, v := range driver.secrets {
+		secrets[k] = v
+	}
+
+	for k, v := range volSecrets {
+		secrets[k] = v
+	}
+
+	irodsClient := ExtractIRODSClientType(volParams, secrets, FuseType)
 	if irodsClient != FuseType {
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported driver type - %v", irodsClient)
 	}
 
-	irodsConn, err := ExtractIRODSConnection(volParams, volSecrets)
+	irodsConn, err := ExtractIRODSConnection(volParams, secrets)
 	if err != nil {
 		return nil, err
 	}
 
 	volContext := make(map[string]string)
 	volRetain := false
+	for k, v := range secrets {
+		switch strings.ToLower(k) {
+		case "volumerootpath":
+			if !filepath.IsAbs(v) {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume parameter property %q must be an absolute path", k))
+			}
+			volRootPath = strings.TrimRight(v, "/")
+		case "retaindata":
+			retain, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a boolean value - %s", k, err))
+			}
+			volRetain = retain
+		}
+		// do not copy secret params
+	}
+
 	for k, v := range volParams {
 		switch strings.ToLower(k) {
 		case "volumerootpath":

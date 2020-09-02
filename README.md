@@ -9,18 +9,19 @@ iRODS CSI Driver only supports CSI Specification Version v1.2.0 or higher.
 ### Features
 
 iRODS CSI Driver relies on external iRODS clients for mounting iRODS collections.
-| Driver Type | iRODS Client     | Server Requirements             |
-|-------------|------------------|---------------------------------|
-| irodsfuse   | iRODS FUSE       | no                              |
-| webdav      | DavFS2           | require [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
-| nfs         | NFS (nfs-common) | require [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
-
-Currently, iRODS CSI Driver supports both static and dynamic provisioning.
+| Driver Type | iRODS Client     | Volume Provisioning | Server Requirements             |
+|-------------|------------------|---------------------|---------------------------------|
+| irodsfuse   | iRODS FUSE       | Static, Dynamic     | no                              |
+| webdav      | DavFS2           | Static              | require [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
+| nfs         | NFS (nfs-common) | Static              | require [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
 
 ### Volume Mount Parameters
 
 Parameters specified in Persistent Volume (PV) and Storage Class (SC) are passed to iRODS CSI Driver to mount a volume.
 Depending on driver types, different parameters should be given.
+
+For static volume provisioning, parameters are given via Persistent Volume (PV). 
+For dynamic volume provisioning, parameters are given via Storage Class (SC).
 
 #### iRODS FUSE Driver
 | Field | Description | Example |
@@ -28,6 +29,7 @@ Depending on driver types, different parameters should be given.
 | driver (or client) | Driver type | "irodsfuse" |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plane text |
+| clientuser | iRODS client user id (when using proxy auth) | "irods_cilent_user" |
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional, Default "1247" |
 | ticket | Ticket string | Optional |
@@ -67,12 +69,12 @@ Mounts **host**:/**path**
 Deploy the stable driver:
 
 ```sh
-kubectl apply -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+kubectl apply -k "deploy/kubernetes/overlays/stable"
 ```
 
 Deploy the development driver:
 ```sh
-kubectl apply -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
+kubectl apply -k "deploy/kubernetes/overlays/dev"
 ```
 
 Verify the driver installation:
@@ -84,12 +86,12 @@ kubectl get csinodes -o jsonpath='{range .items[*]} {.metadata.name}{": "} {rang
 
 Uninstall the stable driver:
 ```sh
-kubectl delete -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+kubectl delete -k "deploy/kubernetes/overlays/stable"
 ```
 
 Uninstall the development driver:
 ```sh
-kubectl delete -k "github.com/cyverse/irods-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
+kubectl delete -k "deploy/kubernetes/overlays/dev"
 ```
 
 ### Mount Pre-previsioned Persistent Volume using iRODS FUSE

@@ -98,24 +98,33 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	volContext := req.GetVolumeContext()
 	volSecrets := req.GetSecrets()
 
-	irodsClient := ExtractIRODSClientType(volContext, FuseType)
+	secrets := make(map[string]string)
+	for k, v := range driver.secrets {
+		secrets[k] = v
+	}
+
+	for k, v := range volSecrets {
+		secrets[k] = v
+	}
+
+	irodsClient := ExtractIRODSClientType(volContext, secrets, FuseType)
 
 	switch irodsClient {
 	case FuseType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
-		if err := driver.mountFuse(volContext, volSecrets, mountOptions, targetPath); err != nil {
+		if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			return nil, err
 		}
 	case WebdavType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
-		if err := driver.mountWebdav(volContext, volSecrets, mountOptions, targetPath); err != nil {
+		if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			return nil, err
 		}
 	case NfsType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
-		if err := driver.mountNfs(volContext, volSecrets, mountOptions, targetPath); err != nil {
+		if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			return nil, err
 		}
@@ -384,11 +393,14 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	stdinArgs := []string{}
 
 	mountOptions = append(mountOptions, mntOptions...)
-
 	mountOptions = append(mountOptions, "allow_other")
 
 	if len(ticket) > 0 {
 		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket=%s", ticket))
+	}
+
+	if len(irodsConn.ClientUser) > 0 {
+		mountOptions = append(mountOptions, fmt.Sprintf("client_user=%s", irodsConn.ClientUser))
 	}
 
 	stdinArgs = append(stdinArgs, irodsConn.Password)

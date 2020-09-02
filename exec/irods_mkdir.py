@@ -45,9 +45,11 @@ def main(argv):
     if sys.stdin.isatty():
         user = input("Username: ")
         password = getpass.getpass("Password: ")
+        clientUser = input("Client Username: ")
     else:
         user = sys.stdin.readline().rstrip()
         password = sys.stdin.readline().rstrip()
+        clientUser = sys.stdin.readline().rstrip()
 
     if not host:
         print("iRODS HOST is not given", file=sys.stderr)
@@ -76,7 +78,10 @@ def main(argv):
     if not path.startswith("/" + zone + "/"):
         zonepath = "/" + zone + "/" + path.lstrip("/")
 
-    with iRODSSession(host=host, port=port, user=user, password=password, zone=zone) as session:
+    if len(clientUser) == 0:
+        clientUser = None
+
+    with iRODSSession(host=host, port=port, user=user, password=password, zone=zone, client_user=clientUser) as session:
         try:
             coll = session.collections.create(zonepath)
             if coll:
