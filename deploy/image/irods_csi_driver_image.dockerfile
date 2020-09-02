@@ -33,6 +33,7 @@ RUN apt-get install -y nfs-common davfs2
 ENV LD_LIBRARY_PATH /opt/irods-externals/clang-runtime6.0-0/lib/
 
 RUN mkdir /root/.irods && \
+    echo "{}" > /root/.irods/irods_environment.json && \
     echo "LD_LIBRARY_PATH=/opt/irods-externals/clang-runtime6.0-0/lib/" > /etc/irodsfs_env && \
     echo "HOME=/root" >> /etc/irodsfs_env
 
