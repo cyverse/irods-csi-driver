@@ -46,6 +46,7 @@ func main() {
 	// Parse parameters
 	flag.StringVar(&conf.Endpoint, "endpoint", "unix://tmp/csi.sock", "CSI endpoint")
 	flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
+	flag.StringVar(&conf.SecretPath, "secretpath", "/etc/irods-csi-dirver", "Secret mount path")
 
 	flag.BoolVar(&version, "version", false, "Print driver version information")
 

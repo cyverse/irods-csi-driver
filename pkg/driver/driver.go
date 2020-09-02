@@ -53,6 +53,7 @@ type Driver struct {
 
 	server  *grpc.Server
 	mounter Mounter
+	secrets map[string]string
 }
 
 // NewDriver returns new driver
@@ -68,6 +69,16 @@ func (driver *Driver) Run() error {
 	scheme, addr, err := ParseEndpoint(driver.config.Endpoint)
 	if err != nil {
 		return err
+	}
+
+	driver.secrets = make(map[string]string)
+	secrets, err := ReadIRODSSecrets(driver.config.SecretPath)
+	if err == nil {
+		// if there's no secrets, it returns error, so we ignore
+		// otherwise, copy
+		for k, v := range secrets {
+			driver.secrets[k] = v
+		}
 	}
 
 	listener, err := net.Listen(scheme, addr)

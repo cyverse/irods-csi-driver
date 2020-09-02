@@ -37,8 +37,9 @@ import (
 
 // Config holds the parameters list which can be configured
 type Config struct {
-	Endpoint string // CSI endpoint
-	NodeID   string // node ID
+	Endpoint   string // CSI endpoint
+	NodeID     string // node ID
+	SecretPath string // Secret mount path
 }
 
 // ParseEndpoint parses endpoint string (TCP or UNIX)

@@ -6,7 +6,7 @@ images:
 - name: cyverse/irods-csi-driver
   newTag: v0.2.0
 - name: quay.io/k8scsi/csi-provisioner
-  newTag: v1.3.0
+  newTag: v1.6.0
 - name: quay.io/k8scsi/livenessprobe
   newTag: v1.1.0
 - name: quay.io/k8scsi/csi-node-driver-registrar

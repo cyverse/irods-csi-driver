@@ -19,6 +19,6 @@ spec:
       port: "1247"
       zone: "iplant"
       path: "/home/iychoi"
-    nodePublishSecretRef: 
+    nodeStageSecretRef: 
       name: "irods-irodsfuse-secret"
       namespace: "default"

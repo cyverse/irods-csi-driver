@@ -24,6 +24,9 @@ spec:
         - name: irods-plugin
           securityContext:
             privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
           image: cyverse/irods-csi-driver:latest
           args:
             - --endpoint=$(CSI_ENDPOINT)
@@ -38,13 +41,14 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
           volumeMounts:
-            - name: kubelet-dir
-              mountPath: /var/lib/kubelet
-              mountPropagation: "Bidirectional"
+            - name: mountpoint-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: Bidirectional
             - name: plugin-dir
+              mountPath: /var/lib/kubelet/plugins
+              mountPropagation: "Bidirectional"
+            - name: socket-dir
               mountPath: /csi
-            - name: irods-state-dir
-              mountPath: /var/run/irods
           ports:
             - containerPort: 9810
               name: healthz
@@ -73,7 +77,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
           volumeMounts:
-            - name: plugin-dir
+            - name: socket-dir
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
@@ -83,22 +87,23 @@ spec:
             - --csi-address=/csi/csi.sock
             - --health-port=9810
           volumeMounts:
-            - name: plugin-dir
+            - name: socket-dir
               mountPath: /csi
       volumes:
-        - name: kubelet-dir
+        - name: mountpoint-dir
           hostPath:
-            path: /var/lib/kubelet
+            path: /var/lib/kubelet/pods
+            type: DirectoryOrCreate
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins
             type: Directory
         - name: registration-dir
           hostPath:
             path: /var/lib/kubelet/plugins_registry/
             type: Directory
-        - name: plugin-dir
+        - name: socket-dir
           hostPath:
             path: /var/lib/kubelet/plugins/irods.csi.cyverse.org/
             type: DirectoryOrCreate
-        - name: irods-state-dir
-          hostPath:
-            path: /var/run/irods
-            type: DirectoryOrCreate
+          
