@@ -38,7 +38,7 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 
 Mounts **zone**/**path**
 
-**user**, **password** and **ticket** can be supplied via secrets (nodePublishSecretRef).
+**user**, **password** and **ticket** can be supplied via secrets (nodeStageSecretRef).
 Please check out `examples` for more information.
 
 #### WebDAV Driver
