@@ -51,7 +51,7 @@ Please check out `examples` for more information.
 
 Mounts **url**
 
-**user** and **password** can be supplied via secrets (nodePublishSecretRef).
+**user** and **password** can be supplied via secrets (nodeStageSecretRef).
 Please check out `examples` for more information.
 
 #### NFS Driver
