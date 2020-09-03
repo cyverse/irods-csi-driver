@@ -1,15 +1,14 @@
-
 ## iRODS CSI Driver Helm Chart
-For more info view [irods-csi-driver](https://github.com/cyverse/irods-csi-driver)
+This script enables easy installation of iRODS CSI Driver using Helm Chart.
 
 ## Prerequisites
 - Helm 3+
 - Kubernetes > 1.17.x, can be deployed to any namespace.
 - Kubernetes < 1.17.x, namespace **must** be `kube-system`, as `system-cluster-critical` hard coded to this namespace.
 
-## Install chart
+## Install the chart
 ```shell script
-helm install . --name irods-csi-driver
+helm install irods-csi-driver .
 ```
 
 ## Upgrade release
@@ -21,8 +20,7 @@ helm upgrade irods-csi-driver \
     -f values.yaml
 ```
 
-## Uninstalling the Chart
+## Uninstalling the chart
 ```shell script
-helm delete irods-csi-driver --namespace [NAMESPACE]
+helm delete irods-csi-driver
 ```
-
