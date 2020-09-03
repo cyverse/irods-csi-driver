@@ -82,28 +82,30 @@ helm delete irods-csi-driver
 
 Define Storage Class (SC):
 ```shell script
-kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/storageclass.yaml"
+kubectl apply -f "examples/kubernetes/static_volume_provisioning/irodsfuse/storageclass.yaml"
 ```
 
 Define Persistent Volume (PV):
 ```shell script
-kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/pv.yaml"
+kubectl apply -f "examples/kubernetes/static_volume_provisioning/irodsfuse/pv.yaml"
 ```
 
 Claim Persistent Volume (PVC):
 ```shell script
-kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/pvc.yaml"
+kubectl apply -f "examples/kubernetes/static_volume_provisioning/irodsfuse/pvc.yaml"
 ```
 
 Execute Application with Volume Mount:
 ```shell script
-kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/app.yaml"
+kubectl apply -f "examples/kubernetes/static_volume_provisioning/irodsfuse/app.yaml"
 ```
 
 To undeploy, use following command:
 ```shell script
 kubectl delete -f "<YAML file>"
 ```
+
+Please check out [more examples](https://github.com/cyverse/irods-csi-driver/tree/master/examples).
 
 ### References
 
