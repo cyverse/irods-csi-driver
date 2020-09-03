@@ -1,18 +1,21 @@
-# Node Service
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: irods-csi-node
-  namespace: kube-system
+  name: {{ include "helm.fullname" . }}-node
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "helm.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app: irods-csi-node
+      {{- include "helm.selectorLabels" . | nindent 6 }}-node
   template:
     metadata:
       labels:
-        app: irods-csi-node
+        {{- include "helm.selectorLabels" . | nindent 8 }}-node
     spec:
+      securityContext:
+        {{- toYaml .Values.nodeService.podSecurityContext | nindent 8 }}
       hostNetwork: true
       priorityClassName: system-node-critical
       tolerations:
@@ -20,16 +23,13 @@ spec:
       containers:
         - name: irods-plugin
           securityContext:
-            privileged: true
-            capabilities:
-              add: ["SYS_ADMIN"]
-            allowPrivilegeEscalation: true
-          image: cyverse/irods-csi-driver:latest
+            {{- toYaml .Values.nodeService.irodsPlugin.securityContext | nindent 12 }}
+          image: "{{ .Values.nodeService.irodsPlugin.image.repository }}:{{ .Values.nodeService.irodsPlugin.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.irodsPlugin.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
-            - --logtostderr
-            - --v=5
+            {{- toYaml .Values.nodeService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -58,12 +58,17 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 2
             failureThreshold: 5
+          resources:
+            {{- toYaml .Values.nodeService.irodsPlugin.resources | nindent 12 }}
         - name: csi-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+          securityContext:
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.securityContext | nindent 12 }}
+          image: "{{ .Values.nodeService.csiDriverRegistrar.image.repository }}:{{ .Values.nodeService.csiDriverRegistrar.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.csiDriverRegistrar.image.pullPolicy }}
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            - --v=5
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.extraArgs | nindent 12 }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -78,14 +83,19 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          resources:
+            {{- toYaml .Values.nodeService.csiDriverRegistrar.resources | nindent 12 }}
         - name: liveness-probe
-          image: quay.io/k8scsi/livenessprobe:v1.1.0
+          imagePullPolicy: {{ .Values.nodeService.livenessProbe.image.pullPolicy }}
+          image: "{{ .Values.nodeService.livenessProbe.image.repository }}:{{ .Values.nodeService.livenessProbe.image.tag }}"
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9810
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
+          resources:
+            {{- toYaml .Values.nodeService.livenessProbe.resources | nindent 12 }}
       volumes:
         - name: mountpoint-dir
           hostPath:
@@ -103,7 +113,7 @@ spec:
           hostPath:
             path: /var/lib/kubelet/plugins/irods.csi.cyverse.org/
             type: DirectoryOrCreate
+      {{- with .Values.nodeService.nodeSelector }}
       nodeSelector:
-        kubernetes.io/os: linux
-        kubernetes.io/arch: amd64
-          
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

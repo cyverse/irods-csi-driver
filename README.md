@@ -64,78 +64,45 @@ Please check out `examples` for more information.
 
 Mounts **host**:/**path**
 
-### Installation
+### Install & Uninstall
 
-Deploy the stable driver:
+Installation can be done using [Helm Chart](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [manual](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
 
-```sh
-kubectl apply -k "deploy/kubernetes/overlays/stable"
+Install using Helm Chart:
+```shell script
+helm install irods-csi-driver helm
 ```
 
-Deploy the development driver:
-```sh
-kubectl apply -k "deploy/kubernetes/overlays/dev"
+Uninstall using Helm Chart:
+```shell script
+helm delete irods-csi-driver
 ```
 
-Verify the driver installation:
-```sh
-kubectl get csinodes -o jsonpath='{range .items[*]} {.metadata.name}{": "} {range .spec.drivers[*]} {.name}{"\n"} {end}{end}'
-```
-
-### Uninstallation
-
-Uninstall the stable driver:
-```sh
-kubectl delete -k "deploy/kubernetes/overlays/stable"
-```
-
-Uninstall the development driver:
-```sh
-kubectl delete -k "deploy/kubernetes/overlays/dev"
-```
-
-### Mount Pre-previsioned Persistent Volume using iRODS FUSE
+### Example: Pre-previsioned Persistent Volume (static volume provisioning) using iRODS FUSE
 
 Define Storage Class (SC):
-```sh
+```shell script
 kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/storageclass.yaml"
 ```
 
-Verify the Storage Class definition:
-```sh
-kubectl get sc
-```
-
 Define Persistent Volume (PV):
-```sh
+```shell script
 kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/pv.yaml"
 ```
 
-Verify the Persistent Volume definition:
-```sh
-kubectl get pv
-```
-
 Claim Persistent Volume (PVC):
-```sh
+```shell script
 kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/pvc.yaml"
 ```
 
-Verify the Persistent Volume Claim:
-```sh
-kubectl get pvc
-```
-
 Execute Application with Volume Mount:
-```sh
+```shell script
 kubectl apply -f "examples/kubernetes/irodsfuse_static_provisioning/app.yaml"
 ```
 
-### Unmount  Pre-previsioned Persistent Volume using iRODS FUSE
-
-Delete Application:
-```sh
-kubectl delete --grace-period=0 --force -f "examples/kubernetes/irodsfuse_static_provisioning/app.yaml"
+To undeploy, use following command:
+```shell script
+kubectl delete -f "<YAML file>"
 ```
 
 ### References
