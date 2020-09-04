@@ -1,0 +1,10 @@
+globalConfig:
+  secret:
+    stringData:
+      client: "irodsfuse"
+      host: "data.cyverse.org"
+      port: "1247"
+      zone: "iplant"
+      user: "rods"
+      password: "password"
+      retainData: "false"

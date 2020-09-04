@@ -11,6 +11,13 @@ This script enables easy installation of iRODS CSI Driver using Helm Chart.
 helm install irods-csi-driver .
 ```
 
+## Install the chart with global configuration for proxy authentication
+Edit `user_values.yaml` file for configuration.
+
+```shell script
+helm install irods-csi-driver -f user_values.yaml .
+```
+
 ## Upgrade release
 ```shell script
 helm upgrade irods-csi-driver \
