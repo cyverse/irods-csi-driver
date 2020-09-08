@@ -29,6 +29,7 @@ spec:
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
+            - --secretpath=$(SECRET_VOLUME_PATH)
             {{- toYaml .Values.nodeService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
