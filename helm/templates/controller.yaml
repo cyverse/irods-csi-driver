@@ -45,6 +45,8 @@ spec:
           volumeMounts:
             - name: plugin-dir
               mountPath: /var/lib/csi/sockets/pluginproxy
+            - name: secret-volume
+              mountPath: /secrets
           resources:
             {{- toYaml .Values.controllerService.irodsPlugin.resources | nindent 12 }}
         - name: csi-provisioner

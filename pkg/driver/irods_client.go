@@ -204,19 +204,19 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 	}
 
 	if len(user) == 0 {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument user specified (%s) is invalid", user))
+		return nil, status.Error(codes.InvalidArgument, "Argument user is empty")
 	}
 
 	if len(password) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Argument password specified is invalid")
+		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
 	}
 
 	if len(host) == 0 {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument host specified (%s) is invalid", host))
+		return nil, status.Error(codes.InvalidArgument, "Argument host is empty")
 	}
 
 	if len(zone) == 0 {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument zone specified (%s) is invalid", zone))
+		return nil, status.Error(codes.InvalidArgument, "Argument zone is empty")
 	}
 
 	// path is optional
@@ -263,7 +263,7 @@ func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]s
 	// user and password fields are optional
 
 	if len(url) == 0 {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument url specified (%s) is invalid", url))
+		return nil, status.Error(codes.InvalidArgument, "Argument url is empty")
 	}
 
 	conn := NewIRODSWebDAVConnection(url, user, password)
@@ -310,11 +310,11 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 	}
 
 	if len(host) == 0 {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument host specified (%s) is invalid", host))
+		return nil, status.Error(codes.InvalidArgument, "Argument host is empty")
 	}
 
 	if len(path) == 0 {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument path specified (%s) is invalid", path))
+		return nil, status.Error(codes.InvalidArgument, "Argument path is empty")
 	}
 
 	if port <= 0 {
