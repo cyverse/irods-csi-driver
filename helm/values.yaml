@@ -96,4 +96,5 @@ serviceAccount:
   name: irods-csi-controller-sa
 
 globalConfig:
-  secret: {}
+  secret:
+    stringData: {}
