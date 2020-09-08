@@ -94,3 +94,6 @@ serviceAccount:
   create: true
   annotations: {}
   name: irods-csi-controller-sa
+
+globalConfig:
+  secret: {}

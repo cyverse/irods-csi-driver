@@ -28,11 +28,14 @@ spec:
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
+            - --secretpath=$(SECRET_VOLUME_PATH)
             - --logtostderr
             - --v=5
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
+            - name: SECRET_VOLUME_PATH
+              value: /secrets
             - name: NODE_ID
               valueFrom:
                 fieldRef:
@@ -46,6 +49,8 @@ spec:
               mountPropagation: Bidirectional
             - name: socket-dir
               mountPath: /csi
+            - name: secret-volume
+              mountPath: /secrets
           ports:
             - containerPort: 9810
               name: healthz
@@ -97,12 +102,15 @@ spec:
             type: Directory
         - name: registration-dir
           hostPath:
-            path: /var/lib/kubelet/plugins_registry/
+            path: /var/lib/kubelet/plugins_registry
             type: Directory
         - name: socket-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/irods.csi.cyverse.org/
+            path: /var/lib/kubelet/plugins/irods.csi.cyverse.org
             type: DirectoryOrCreate
+        - name: secret-volume
+          secret:
+            secretName: irods-csi-driver-global-secret
       nodeSelector:
         kubernetes.io/os: linux
         kubernetes.io/arch: amd64

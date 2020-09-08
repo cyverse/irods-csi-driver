@@ -31,17 +31,20 @@ spec:
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
+            - --secretpath=$(SECRET_VOLUME_PATH)
             {{- toYaml .Values.controllerService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: SECRET_VOLUME_PATH
+              value: /secrets
             - name: NODE_ID
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
           volumeMounts:
             - name: plugin-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
+              mountPath: /var/lib/csi/sockets/pluginproxy
           resources:
             {{- toYaml .Values.controllerService.irodsPlugin.resources | nindent 12 }}
         - name: csi-provisioner
@@ -54,13 +57,16 @@ spec:
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
           volumeMounts:
             - name: plugin-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
+              mountPath: /var/lib/csi/sockets/pluginproxy
           resources:
             {{- toYaml .Values.controllerService.csiProvisioner.resources | nindent 12 }}
 
       volumes:
         - name: plugin-dir
           emptyDir: {}
+        - name: secret-volume
+          secret:
+            secretName: {{ include "helm.fullname" . }}-global-secret
       {{- with .Values.controllerService.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
