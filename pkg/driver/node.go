@@ -30,6 +30,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -364,9 +365,43 @@ func (driver *Driver) mountBind(sourcePath string, mntOptions []string, targetPa
 }
 
 func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
+	enforceProxyAccess := false
+	proxyUser := ""
+	for k, v := range driver.secrets {
+		if strings.ToLower(k) == "enforceproxyaccess" {
+			enforce, err := strconv.ParseBool(v)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
+			}
+			enforceProxyAccess = enforce
+		}
+
+		if strings.ToLower(k) == "user" {
+			proxyUser = v
+		}
+	}
+
 	irodsConn, err := ExtractIRODSConnection(volContext, volSecrets)
 	if err != nil {
 		return err
+	}
+
+	if enforceProxyAccess {
+		if proxyUser == irodsConn.User {
+			// same proxy user
+			// enforce clientUser
+			if len(irodsConn.ClientUser) == 0 {
+				return status.Error(codes.InvalidArgument, "Argument clientUser must be given")
+			}
+
+			if irodsConn.User == irodsConn.ClientUser {
+				return status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", irodsConn.User, irodsConn.ClientUser)
+			}
+		} else {
+			// replaced user
+			// static volume provisioning takes user argument from pv
+			// this is okay
+		}
 	}
 
 	ticket := ""
@@ -394,6 +429,9 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 
 	mountOptions = append(mountOptions, mntOptions...)
 	mountOptions = append(mountOptions, "allow_other")
+
+	// set metadata cache timeout to 60 seconds
+	mountOptions = append(mountOptions, "metadatacachetimeout=60")
 
 	if len(ticket) > 0 {
 		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket=%s", ticket))

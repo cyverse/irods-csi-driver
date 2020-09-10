@@ -159,14 +159,14 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			port = p
 		case "zone":
 			zone = v
 		case "path":
 			if !filepath.IsAbs(v) {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be an absolute path", k))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
 		default:
@@ -188,14 +188,14 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			port = p
 		case "zone":
 			zone = v
 		case "path":
 			if !filepath.IsAbs(v) {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be an absolute path", k))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
 		default:
@@ -282,7 +282,7 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			port = p
 		case "path":
@@ -299,7 +299,7 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			port = p
 		case "path":

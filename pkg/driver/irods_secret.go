@@ -14,7 +14,6 @@ limitations under the License.
 package driver
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -28,11 +27,11 @@ import (
 func ReadIRODSSecrets(secretPath string) (map[string]string, error) {
 	exist, err := PathExists(secretPath)
 	if err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("Secret path %s does not exist - %s", secretPath, err))
+		return nil, status.Errorf(codes.Internal, "Secret path %s does not exist - %s", secretPath, err)
 	}
 
 	if !exist {
-		return nil, status.Error(codes.NotFound, fmt.Sprintf("Secret path %s does not exist", secretPath))
+		return nil, status.Errorf(codes.NotFound, "Secret path %s does not exist", secretPath)
 	}
 
 	secrets := make(map[string]string)
