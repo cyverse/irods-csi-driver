@@ -35,6 +35,11 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 | ticket | Ticket string | Optional |
 | zone | iRODS zone | "iplant" |
 | path | iRODS path to mount, does not include **zone** in string | "/home/irods_user" |
+| volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. It does not include **zone** in string (only for dynamic volume provisioning) | "/home/irods_user" |
+| retainData | "true" to not clear the volume after use. (only for dynamic volume provisioning) | "false". "false" by default. |
+| noVolumeDir | "true" to not create a subdirectory under `volumeRootPath`. It mounts the `volumeRootPath`. (only for dynamic volume provisioning) | "false". "false" by default. |
+| enforceProxyAccess | "true" to mandate passing `clientUser`, or giving different `user` as in global configuration. | "false". "false" by default. |
+| mountPathWhitelist | a comma-separated list of paths to allow mount. | "/home" |
 
 Mounts **zone**/**path**
 

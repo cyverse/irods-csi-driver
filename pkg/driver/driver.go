@@ -29,6 +29,9 @@ package driver
 import (
 	"context"
 	"net"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"google.golang.org/grpc"
 	"k8s.io/klog"
@@ -132,4 +135,65 @@ func (driver *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability)
 		}
 	}
 	return foundAll
+}
+
+// getDriverConfigEnforceProxyAccess checks if proxy access is enforced via driver config
+func (driver *Driver) getDriverConfigEnforceProxyAccess() bool {
+	for k, v := range driver.secrets {
+		if strings.ToLower(k) == "enforceproxyaccess" {
+			enforce, _ := strconv.ParseBool(v)
+			return enforce
+		}
+	}
+	return false
+}
+
+// getDriverConfigUser returns user in driver config
+func (driver *Driver) getDriverConfigUser() string {
+	for k, v := range driver.secrets {
+		if strings.ToLower(k) == "user" {
+			return v
+		}
+	}
+	return ""
+}
+
+// getDriverConfigMountPathWhitelist returns a whitelist of collections that users can mount
+func (driver *Driver) getDriverConfigMountPathWhitelist() []string {
+	for k, v := range driver.secrets {
+		if strings.ToLower(k) == "mountpathwhitelist" {
+			whitelist := strings.Split(v, ",")
+			for idx := range whitelist {
+				whitelist[idx] = strings.TrimSpace(whitelist[idx])
+			}
+
+			return whitelist
+		}
+	}
+	return []string{}
+}
+
+// isMountPathAllowed checks if given path is allowed to mount
+func (driver *Driver) isMountPathAllowed(path string) bool {
+	whitelist := driver.getDriverConfigMountPathWhitelist()
+
+	for _, item := range whitelist {
+		if checkSubDir(item, path) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func checkSubDir(parent string, sub string) bool {
+	rel, err := filepath.Rel(parent, sub)
+	if err != nil {
+		return false
+	}
+
+	if !strings.HasPrefix(rel, "..") {
+		return true
+	}
+	return false
 }

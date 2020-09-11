@@ -30,7 +30,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -365,21 +364,8 @@ func (driver *Driver) mountBind(sourcePath string, mntOptions []string, targetPa
 }
 
 func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	enforceProxyAccess := false
-	proxyUser := ""
-	for k, v := range driver.secrets {
-		if strings.ToLower(k) == "enforceproxyaccess" {
-			enforce, err := strconv.ParseBool(v)
-			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
-			}
-			enforceProxyAccess = enforce
-		}
-
-		if strings.ToLower(k) == "user" {
-			proxyUser = v
-		}
-	}
+	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
+	proxyUser := driver.getDriverConfigUser()
 
 	irodsConn, err := ExtractIRODSConnection(volContext, volSecrets)
 	if err != nil {
@@ -404,6 +390,13 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		}
 	}
 
+	volPath := strings.Trim(irodsConn.Path, "/")
+
+	// need to check if mount path is in whitelist
+	if !driver.isMountPathAllowed(volPath) {
+		return status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volPath)
+	}
+
 	ticket := ""
 
 	for k, v := range volContext {
@@ -421,7 +414,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	}
 
 	fsType := "irodsfs"
-	source := fmt.Sprintf("irods://%s@%s:%d/%s/%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, strings.Trim(irodsConn.Path, "/"))
+	source := fmt.Sprintf("irods://%s@%s:%d/%s/%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, volPath)
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}

@@ -97,21 +97,8 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	}
 
 	// check security flags
-	enforceProxyAccess := false
-	proxyUser := ""
-	for k, v := range driver.secrets {
-		if strings.ToLower(k) == "enforceproxyaccess" {
-			enforce, err := strconv.ParseBool(v)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
-			}
-			enforceProxyAccess = enforce
-		}
-
-		if strings.ToLower(k) == "user" {
-			proxyUser = v
-		}
-	}
+	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
+	proxyUser := driver.getDriverConfigUser()
 
 	irodsConn, err := ExtractIRODSConnection(volParams, secrets)
 	if err != nil {
@@ -189,6 +176,11 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 
 	if len(volRootPath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Argument volumeRootPath is not provided")
+	}
+
+	// need to check if mount path is in whitelist
+	if !driver.isMountPathAllowed(volRootPath) {
+		return nil, status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volRootPath)
 	}
 
 	// generate path
