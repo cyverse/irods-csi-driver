@@ -133,7 +133,11 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
-			volRootPath = strings.TrimRight(v, "/")
+			if v == "/" {
+				volRootPath = v
+			} else {
+				volRootPath = strings.TrimRight(v, "/")
+			}
 		case "retaindata":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
@@ -156,7 +160,11 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
-			volRootPath = strings.TrimRight(v, "/")
+			if v == "/" {
+				volRootPath = v
+			} else {
+				volRootPath = strings.TrimRight(v, "/")
+			}
 		case "retaindata":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {

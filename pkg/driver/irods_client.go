@@ -105,14 +105,14 @@ func NewIRODSNFSConnection(hostname string, port int, path string) *IRODSNFSConn
 // ExtractIRODSClientType extracts iRODS Client value from param map
 func ExtractIRODSClientType(params map[string]string, secrets map[string]string, defaultClient string) string {
 	irodsClient := ""
-	for k, v := range params {
+	for k, v := range secrets {
 		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
 			irodsClient = v
 			break
 		}
 	}
 
-	for k, v := range secrets {
+	for k, v := range params {
 		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
 			irodsClient = v
 			break
@@ -145,7 +145,7 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 	var user, password, clientUser, host, zone, path string
 	port := 0
 
-	for k, v := range params {
+	for k, v := range secrets {
 		switch strings.ToLower(k) {
 		case "user":
 			user = v
@@ -174,7 +174,7 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 		}
 	}
 
-	for k, v := range secrets {
+	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "user":
 			user = v
@@ -234,7 +234,7 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]string) (*IRODSWebDAVConnection, error) {
 	var user, password, url string
 
-	for k, v := range params {
+	for k, v := range secrets {
 		switch strings.ToLower(k) {
 		case "user":
 			user = v
@@ -247,7 +247,7 @@ func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]s
 		}
 	}
 
-	for k, v := range secrets {
+	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "user":
 			user = v
@@ -275,7 +275,7 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 	var host, path string
 	port := 0
 
-	for k, v := range params {
+	for k, v := range secrets {
 		switch strings.ToLower(k) {
 		case "host":
 			host = v
@@ -292,7 +292,7 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 		}
 	}
 
-	for k, v := range secrets {
+	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "host":
 			host = v

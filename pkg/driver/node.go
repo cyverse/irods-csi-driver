@@ -390,7 +390,12 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		}
 	}
 
-	volPath := strings.Trim(irodsConn.Path, "/")
+	volPath := ""
+	if irodsConn.Path == "/" {
+		volPath = irodsConn.Path
+	} else {
+		volPath = strings.TrimRight(irodsConn.Path, "/")
+	}
 
 	// need to check if mount path is in whitelist
 	if !driver.isMountPathAllowed(volPath) {
@@ -414,7 +419,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	}
 
 	fsType := "irodsfs"
-	source := fmt.Sprintf("irods://%s@%s:%d/%s/%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, volPath)
+	source := fmt.Sprintf("irods://%s@%s:%d/%s%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, volPath)
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
