@@ -364,9 +364,42 @@ func (driver *Driver) mountBind(sourcePath string, mntOptions []string, targetPa
 }
 
 func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
+	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
+	proxyUser := driver.getDriverConfigUser()
+
 	irodsConn, err := ExtractIRODSConnection(volContext, volSecrets)
 	if err != nil {
 		return err
+	}
+
+	if enforceProxyAccess {
+		if proxyUser == irodsConn.User {
+			// same proxy user
+			// enforce clientUser
+			if len(irodsConn.ClientUser) == 0 {
+				return status.Error(codes.InvalidArgument, "Argument clientUser must be given")
+			}
+
+			if irodsConn.User == irodsConn.ClientUser {
+				return status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", irodsConn.User, irodsConn.ClientUser)
+			}
+		} else {
+			// replaced user
+			// static volume provisioning takes user argument from pv
+			// this is okay
+		}
+	}
+
+	volPath := ""
+	if irodsConn.Path == "/" {
+		volPath = irodsConn.Path
+	} else {
+		volPath = strings.TrimRight(irodsConn.Path, "/")
+	}
+
+	// need to check if mount path is in whitelist
+	if !driver.isMountPathAllowed(volPath) {
+		return status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volPath)
 	}
 
 	ticket := ""
@@ -386,7 +419,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	}
 
 	fsType := "irodsfs"
-	source := fmt.Sprintf("irods://%s@%s:%d/%s/%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, strings.Trim(irodsConn.Path, "/"))
+	source := fmt.Sprintf("irods://%s@%s:%d/%s%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, volPath)
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
@@ -394,6 +427,9 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 
 	mountOptions = append(mountOptions, mntOptions...)
 	mountOptions = append(mountOptions, "allow_other")
+
+	// set metadata cache timeout to 60 seconds
+	mountOptions = append(mountOptions, "metadatacachetimeout=60")
 
 	if len(ticket) > 0 {
 		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket=%s", ticket))

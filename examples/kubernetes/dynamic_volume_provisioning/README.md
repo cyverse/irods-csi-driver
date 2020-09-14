@@ -16,16 +16,18 @@ Following iRODS clients can be used for the dynamic volume provisioning.
 #### iRODS FUSE Client
 | Field | Description | Example |
 | --- | --- | --- |
-| client (or driver) | Client type | "irodsfuse" |
+| client (or driver) | Client type | "irodsfuse". "irodsfuse" by default. |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plane text |
 | clientUser | iRODS client user id (when using proxy auth) | "irods_client_user" or leave empty |
 | host | iRODS hostname | "data.cyverse.org" |
-| port | iRODS port | Optional, Default "1247" |
+| port | iRODS port | Optional. "1247" by default. |
 | ticket | Ticket string | Optional |
 | zone | iRODS zone | "iplant" |
-| path | iRODS path to mount, does not include **zone** in string | "/home/irods_user" |
-| retainData | "true" to not clear the volume after use | "false" |
+| volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. It does not include **zone** in string | "/home/irods_user" |
+| retainData | "true" to not clear the volume after use. | "false". "false" by default. |
+| noVolumeDir | "true" to not create a subdirectory under `volumeRootPath`. It mounts the `volumeRootPath`. | "false". "false" by default. |
+| enforceProxyAccess | "true" to mandate passing `clientUser`, or giving different `user` as in global configuration. | "false". "false" by default. |
 
 Mounts **zone**/**path**
 

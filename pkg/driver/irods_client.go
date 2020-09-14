@@ -105,14 +105,14 @@ func NewIRODSNFSConnection(hostname string, port int, path string) *IRODSNFSConn
 // ExtractIRODSClientType extracts iRODS Client value from param map
 func ExtractIRODSClientType(params map[string]string, secrets map[string]string, defaultClient string) string {
 	irodsClient := ""
-	for k, v := range params {
+	for k, v := range secrets {
 		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
 			irodsClient = v
 			break
 		}
 	}
 
-	for k, v := range secrets {
+	for k, v := range params {
 		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
 			irodsClient = v
 			break
@@ -145,35 +145,6 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 	var user, password, clientUser, host, zone, path string
 	port := 0
 
-	for k, v := range params {
-		switch strings.ToLower(k) {
-		case "user":
-			user = v
-		case "password":
-			password = v
-		case "clientuser":
-			// for proxy
-			clientUser = v
-		case "host":
-			host = v
-		case "port":
-			p, err := strconv.Atoi(v)
-			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
-			}
-			port = p
-		case "zone":
-			zone = v
-		case "path":
-			if !filepath.IsAbs(v) {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be an absolute path", k))
-			}
-			path = v
-		default:
-			// ignore
-		}
-	}
-
 	for k, v := range secrets {
 		switch strings.ToLower(k) {
 		case "user":
@@ -188,14 +159,43 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			port = p
 		case "zone":
 			zone = v
 		case "path":
 			if !filepath.IsAbs(v) {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be an absolute path", k))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
+			}
+			path = v
+		default:
+			// ignore
+		}
+	}
+
+	for k, v := range params {
+		switch strings.ToLower(k) {
+		case "user":
+			user = v
+		case "password":
+			password = v
+		case "clientuser":
+			// for proxy
+			clientUser = v
+		case "host":
+			host = v
+		case "port":
+			p, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
+			}
+			port = p
+		case "zone":
+			zone = v
+		case "path":
+			if !filepath.IsAbs(v) {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
 		default:
@@ -234,7 +234,7 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]string) (*IRODSWebDAVConnection, error) {
 	var user, password, url string
 
-	for k, v := range params {
+	for k, v := range secrets {
 		switch strings.ToLower(k) {
 		case "user":
 			user = v
@@ -247,7 +247,7 @@ func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]s
 		}
 	}
 
-	for k, v := range secrets {
+	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "user":
 			user = v
@@ -275,14 +275,14 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 	var host, path string
 	port := 0
 
-	for k, v := range params {
+	for k, v := range secrets {
 		switch strings.ToLower(k) {
 		case "host":
 			host = v
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			port = p
 		case "path":
@@ -292,14 +292,14 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 		}
 	}
 
-	for k, v := range secrets {
+	for k, v := range params {
 		switch strings.ToLower(k) {
 		case "host":
 			host = v
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a valid port number - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			port = p
 		case "path":

@@ -8,3 +8,5 @@ globalConfig:
       user: "rods"
       password: "password"
       retainData: "false"
+      enforceProxyAccess: "true"
+      mountPathWhitelist: "/home,/shared"

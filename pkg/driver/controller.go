@@ -96,26 +96,60 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported driver type - %v", irodsClient)
 	}
 
+	// check security flags
+	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
+	proxyUser := driver.getDriverConfigUser()
+
 	irodsConn, err := ExtractIRODSConnection(volParams, secrets)
 	if err != nil {
 		return nil, err
 	}
 
+	if enforceProxyAccess {
+		if proxyUser == irodsConn.User {
+			// same proxy user
+			// enforce clientUser
+			if len(irodsConn.ClientUser) == 0 {
+				return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be given")
+			}
+
+			if irodsConn.User == irodsConn.ClientUser {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", irodsConn.User, irodsConn.ClientUser)
+			}
+		} else {
+			// replaced user
+			// static volume provisioning takes user argument from pv
+			// this is okay
+		}
+	}
+
 	volContext := make(map[string]string)
 	volRetain := false
+	volCreate := true
+	volPath := ""
 	for k, v := range secrets {
 		switch strings.ToLower(k) {
 		case "volumerootpath":
 			if !filepath.IsAbs(v) {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume parameter property %q must be an absolute path", k))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
-			volRootPath = strings.TrimRight(v, "/")
+			if v == "/" {
+				volRootPath = v
+			} else {
+				volRootPath = strings.TrimRight(v, "/")
+			}
 		case "retaindata":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a boolean value - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
 			}
 			volRetain = retain
+		case "novolumedir":
+			novolumedir, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
+			}
+			volCreate = !novolumedir
 		}
 		// do not copy secret params
 	}
@@ -124,31 +158,53 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		switch strings.ToLower(k) {
 		case "volumerootpath":
 			if !filepath.IsAbs(v) {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume parameter property %q must be an absolute path", k))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
-			volRootPath = strings.TrimRight(v, "/")
+			if v == "/" {
+				volRootPath = v
+			} else {
+				volRootPath = strings.TrimRight(v, "/")
+			}
 		case "retaindata":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Argument %q must be a boolean value - %s", k, err))
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
 			}
 			volRetain = retain
+		case "novolumedir":
+			novolumedir, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
+			}
+			volCreate = !novolumedir
 		}
 		// copy all params
 		volContext[k] = v
 	}
 
 	if len(volRootPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume parameter 'volumeRootPath' not provided")
+		return nil, status.Error(codes.InvalidArgument, "Argument volumeRootPath is not provided")
+	}
+
+	// need to check if mount path is in whitelist
+	if !driver.isMountPathAllowed(volRootPath) {
+		return nil, status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volRootPath)
 	}
 
 	// generate path
-	volPath := fmt.Sprintf("%s/%s", volRootPath, volName)
+	if volCreate {
+		volPath = fmt.Sprintf("%s/%s", volRootPath, volName)
 
-	klog.V(5).Infof("Creating a volume dir %s", volPath)
-	err = IRODSMkdir(irodsConn, volPath)
-	if err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("Could not create a volume dir %s : %v", volPath, err))
+		klog.V(5).Infof("Creating a volume dir %s", volPath)
+		err = IRODSMkdir(irodsConn, volPath)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %s : %v", volPath, err)
+		}
+	} else {
+		volPath = volRootPath
+		// in this case, we should retain data because the mounted path may have files
+		// we should not delete these old files when the pvc is deleted
+		volRetain = true
 	}
 
 	volContext["path"] = volPath
@@ -189,7 +245,7 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 		klog.V(5).Infof("Deleting a volume dir %s", irodsVolume.Path)
 		err := IRODSRmdir(irodsVolume.Connection, irodsVolume.Path)
 		if err != nil {
-			return nil, status.Error(codes.Internal, fmt.Sprintf("Could not delete a volume dir %s : %v", irodsVolume.Path, err))
+			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %s : %v", irodsVolume.Path, err)
 		}
 	}
 
