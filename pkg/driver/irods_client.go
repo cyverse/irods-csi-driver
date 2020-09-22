@@ -204,10 +204,11 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 	}
 
 	if len(user) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Argument user is empty")
+		user = "anonymous"
 	}
 
-	if len(password) == 0 {
+	// password can be empty for anonymous access
+	if len(password) == 0 && user != "anonymous" {
 		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
 	}
 
@@ -261,6 +262,15 @@ func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]s
 	}
 
 	// user and password fields are optional
+	// if user is not given, it is regarded as anonymous user
+	if len(user) == 0 {
+		user = "anonymous"
+	}
+
+	// password can be empty for anonymous access
+	if len(password) == 0 && user != "anonymous" {
+		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
+	}
 
 	if len(url) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Argument url is empty")

@@ -123,6 +123,15 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		}
 	}
 
+	// do not allow anonymous access
+	if irodsConn.User == "anonymous" {
+		return nil, status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
+	}
+
+	if irodsConn.ClientUser == "anonymous" {
+		return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
+	}
+
 	volContext := make(map[string]string)
 	volRetain := false
 	volCreate := true
