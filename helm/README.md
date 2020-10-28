@@ -8,22 +8,37 @@ This script enables easy installation of iRODS CSI Driver using Helm Chart.
 
 ### Install
 #### Install with default configuration
+
+Kubernetes > 1.17.x
 ```shell script
 helm install irods-csi-driver .
 ```
 
+Kubernetes < 1.17.x
+```shell script
+helm install irods-csi-driver --namespace kube-system .
+```
+
+
+
 #### Install with global configuration for proxy authentication
 Edit `user_values.yaml` file for configuration.
 
+Kubernetes > 1.17.x
 ```shell script
 helm install irods-csi-driver -f user_values.yaml .
+```
+
+Kubernetes < 1.17.x
+```shell script
+helm install irods-csi-driver -f user_values.yaml --namespace kube-system .
 ```
 
 ### Upgrade
 ```shell script
 helm upgrade irods-csi-driver \
     --install . \
-    --version 0.2.1 \
+    --version 0.2.2 \
     --namespace kube-system \
     -f values.yaml
 ```
@@ -32,3 +47,4 @@ helm upgrade irods-csi-driver \
 ```shell script
 helm delete irods-csi-driver
 ```
+

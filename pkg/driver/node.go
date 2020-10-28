@@ -387,7 +387,16 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 			// replaced user
 			// static volume provisioning takes user argument from pv
 			// this is okay
+
+			// do not allow anonymous access
+			if irodsConn.User == "anonymous" {
+				return status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
+			}
 		}
+	}
+
+	if irodsConn.ClientUser == "anonymous" {
+		return status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
 	}
 
 	volPath := ""
@@ -464,7 +473,8 @@ func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[s
 
 	mountOptions = append(mountOptions, mntOptions...)
 
-	if len(irodsConn.User) > 0 && len(irodsConn.Password) > 0 {
+	// if user == anonymous, password is empty, and doesn't need to pass user/password as arguments
+	if len(irodsConn.User) > 0 && irodsConn.User != "anonymous" && len(irodsConn.Password) > 0 {
 		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("username=%s", irodsConn.User))
 		stdinArgs = append(stdinArgs, irodsConn.Password)
 	}

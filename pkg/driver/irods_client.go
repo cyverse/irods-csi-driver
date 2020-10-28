@@ -23,14 +23,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// ClientType is a mount client type
+type ClientType string
+
 // mount driver (iRODS Client) types
 const (
 	// FuseType is for iRODS FUSE
-	FuseType = "irodsfuse"
+	FuseType ClientType = "irodsfuse"
 	// WebdavType is for WebDav client (Davfs2)
-	WebdavType = "webdav"
+	WebdavType ClientType = "webdav"
 	// NfsType is for NFS client
-	NfsType = "nfs"
+	NfsType ClientType = "nfs"
 )
 
 // IRODSConnection class
@@ -103,7 +106,7 @@ func NewIRODSNFSConnection(hostname string, port int, path string) *IRODSNFSConn
 }
 
 // ExtractIRODSClientType extracts iRODS Client value from param map
-func ExtractIRODSClientType(params map[string]string, secrets map[string]string, defaultClient string) string {
+func ExtractIRODSClientType(params map[string]string, secrets map[string]string, defaultClient ClientType) ClientType {
 	irodsClient := ""
 	for k, v := range secrets {
 		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
@@ -119,24 +122,34 @@ func ExtractIRODSClientType(params map[string]string, secrets map[string]string,
 		}
 	}
 
-	if IsValidIRODSClientType(irodsClient) {
-		return irodsClient
-	}
-
-	return defaultClient
+	return GetValidiRODSClientType(irodsClient, defaultClient)
 }
 
 // IsValidIRODSClientType checks if given client string is valid
 func IsValidIRODSClientType(client string) bool {
 	switch client {
-	case FuseType:
+	case string(FuseType):
 		return true
-	case WebdavType:
+	case string(WebdavType):
 		return true
-	case NfsType:
+	case string(NfsType):
 		return true
 	default:
 		return false
+	}
+}
+
+// GetValidiRODSClientType checks if given client string is valid
+func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType {
+	switch client {
+	case string(FuseType):
+		return FuseType
+	case string(WebdavType):
+		return WebdavType
+	case string(NfsType):
+		return NfsType
+	default:
+		return defaultClient
 	}
 }
 
@@ -204,10 +217,11 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 	}
 
 	if len(user) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Argument user is empty")
+		user = "anonymous"
 	}
 
-	if len(password) == 0 {
+	// password can be empty for anonymous access
+	if len(password) == 0 && user != "anonymous" {
 		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
 	}
 
@@ -261,6 +275,15 @@ func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]s
 	}
 
 	// user and password fields are optional
+	// if user is not given, it is regarded as anonymous user
+	if len(user) == 0 {
+		user = "anonymous"
+	}
+
+	// password can be empty for anonymous access
+	if len(password) == 0 && user != "anonymous" {
+		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
+	}
 
 	if len(url) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Argument url is empty")
