@@ -170,7 +170,7 @@ func (driver *Driver) getDriverConfigMountPathWhitelist() []string {
 			return whitelist
 		}
 	}
-	return []string{}
+	return []string{"/"}
 }
 
 // isMountPathAllowed checks if given path is allowed to mount
