@@ -131,4 +131,23 @@ Following resources are helpful to configure the CSI driver:
 
 ### License
 
-This code is licensed under the Apache 2.0 License.
+Copyright (c) 2010-2020, The Arizona Board of Regents on behalf of The University of Arizona
+
+All rights reserved.
+
+Developed by: CyVerse as a collaboration between participants at BIO5 at The University of Arizona (the primary hosting institution), Cold Spring Harbor Laboratory, The University of Texas at Austin, and individual contributors. Find out more at http://www.cyverse.org/.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+ * Neither the name of CyVerse, BIO5, The University of Arizona, Cold Spring Harbor Laboratory, The University of Texas at Austin, nor the names of other contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+
+Please check [LICENSE](https://github.com/cyverse/irods-csi-driver/tree/master/LICENSE) file.
+
+#### Code Parts Under Different Licenses
+
+The driver contains open-source code parts under Apache License v2.0.
+The code files containing the open-source code parts have the Apache license header in front and which parts are from which code.
+Please check [LICENSE.APL2](https://github.com/cyverse/irods-csi-driver/tree/master/LICENSE.APL2) file for the details of Apache License v2.0.
