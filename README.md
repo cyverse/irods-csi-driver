@@ -51,7 +51,7 @@ Please check out `examples` for more information.
 | --- | --- | --- |
 | driver (or client) | Driver type | "webdav" |
 | user | iRODS user id | "irods_user" |
-| password | iRODS user password | "password" in plane text |
+| password | iRODS user password | "password" in plain text |
 | url | URL | "https://data.cyverse.org/dav/iplant/home/irods_user" |
 
 Mounts **url**
