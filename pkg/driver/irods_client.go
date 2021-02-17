@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -59,19 +58,6 @@ func NewIRODSConnection(hostname string, port int, zone string, user string, pas
 		ClientUser: clientUser,
 		Path:       path,
 	}
-}
-
-// GetHostArgs returns host arguments
-func (conn *IRODSConnection) GetHostArgs() []string {
-	hostport := fmt.Sprintf("%s:%d", conn.Hostname, conn.Port)
-	args := []string{hostport, conn.Zone}
-	return args
-}
-
-// GetLoginInfoArgs returns login arguments
-func (conn *IRODSConnection) GetLoginInfoArgs() []string {
-	stdinValues := []string{conn.User, conn.Password, conn.ClientUser}
-	return stdinValues
 }
 
 // NewIRODSWebDAVConnection returns a new instance of IRODSWebDAVConnection
