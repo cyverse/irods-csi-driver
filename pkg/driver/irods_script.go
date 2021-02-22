@@ -2,85 +2,57 @@ package driver
 
 import (
 	"fmt"
-	"io"
-	"os/exec"
 	"strings"
 
-	"k8s.io/klog"
+	"github.com/cyverse/go-irodsclient/fs"
+	"github.com/cyverse/go-irodsclient/irods/types"
 )
 
-// python scripts for irods
 const (
-	irodsLsBin    = "irods_ls.py"
-	irodsMkdirBin = "irods_mkdir.py"
-	irodsRmdirBin = "irods_rmdir.py"
+	applicationName string = "irods-csi-driver"
 )
+
+func makeIRODSZonePath(zone string, path string) string {
+	// argument path may not start with zone
+	inputPath := path
+	zonePath := fmt.Sprintf("/%s/", zone)
+
+	if !strings.HasPrefix(path, zonePath) {
+		if strings.HasPrefix(path, "/") {
+			inputPath = fmt.Sprintf("/%s%s", zone, path)
+		} else {
+			inputPath = fmt.Sprintf("/%s/%s", zone, path)
+		}
+	}
+	return inputPath
+}
 
 // IRODSMkdir creates a new directory
 func IRODSMkdir(conn *IRODSConnection, path string) error {
-	connectionArgs := conn.GetHostArgs()
-	stdinValues := conn.GetLoginInfoArgs()
-	safePath := strings.TrimRight(path, "/")
-	args := []string{safePath}
+	inputPath := makeIRODSZonePath(conn.Zone, path)
 
-	_, err := executeScript(irodsMkdirBin, connectionArgs, args, stdinValues)
-	return err
+	account, err := types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, types.AuthSchemeNative, conn.Password)
+	if err != nil {
+		return err
+	}
+
+	filesystem := fs.NewFileSystemWithDefault(account, applicationName)
+	defer filesystem.Release()
+
+	return filesystem.MakeDir(inputPath, true)
 }
 
 // IRODSRmdir deletes a directory
 func IRODSRmdir(conn *IRODSConnection, path string) error {
-	connectionArgs := conn.GetHostArgs()
-	stdinValues := conn.GetLoginInfoArgs()
-	safePath := strings.TrimRight(path, "/")
-	args := []string{safePath}
+	inputPath := makeIRODSZonePath(conn.Zone, path)
 
-	_, err := executeScript(irodsRmdirBin, connectionArgs, args, stdinValues)
-	return err
-}
-
-// IRODSLs lists entries in a directory
-func IRODSLs(conn *IRODSConnection, path string) ([]string, error) {
-	connectionArgs := conn.GetHostArgs()
-	stdinValues := conn.GetLoginInfoArgs()
-	safePath := strings.TrimRight(path, "/")
-	args := []string{safePath}
-
-	output, err := executeScript(irodsLsBin, connectionArgs, args, stdinValues)
+	account, err := types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, types.AuthSchemeNative, conn.Password)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	outputString := string(output)
-	outputStringArr := strings.Split(outputString, "\n")
+	filesystem := fs.NewFileSystemWithDefault(account, applicationName)
+	defer filesystem.Release()
 
-	return outputStringArr, nil
-}
-
-// executeScript runs external iRODS Exec scripts
-func executeScript(bin string, connectionArgs []string, extraArgs []string, stdinValues []string) ([]byte, error) {
-	args := []string{}
-
-	args = append(args, connectionArgs...)
-	args = append(args, extraArgs...)
-
-	klog.V(4).Infof("Executing iRODS Exec (%s) with arguments (%v)", bin, args)
-	command := exec.Command(bin, args...)
-	stdin, err := command.StdinPipe()
-	if err != nil {
-		klog.Errorf("Accessing stdin failed: %v\niRODS command: %s\n Arguments: %v\n", err, bin, args)
-		return nil, fmt.Errorf("accessing stdin failed: %v\niRODS command: %s\nArguments: %v", err, bin, args)
-	}
-
-	for _, stdinValue := range stdinValues {
-		io.WriteString(stdin, stdinValue)
-		io.WriteString(stdin, "\n")
-	}
-	stdin.Close()
-
-	output, err := command.CombinedOutput()
-	if err != nil {
-		klog.Errorf("iRODS Exec failed: %v\niRODS command: %s\nArguments: %s\nOutput: %s\n", err, bin, args, string(output))
-		return nil, fmt.Errorf("iRODS Exec failed: %v\niRODS command: %s\nArguments: %s\nOutput: %s", err, bin, args, string(output))
-	}
-	return output, err
+	return filesystem.RemoveDir(inputPath, true, true)
 }

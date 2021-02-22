@@ -61,3 +61,14 @@ Create the name of the service account to use
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Return the appropriate apiVersion for CSIDriver.
+*/}}
+{{- define "csidriver.apiVersion" -}}
+{{- if semverCompare ">=1.18-0" .Capabilities.KubeVersion.Version }}
+{{- print "storage.k8s.io/v1" -}}
+{{- else -}}
+{{- print "storage.k8s.io/v1beta1" -}}
+{{- end -}}
+{{- end -}}
