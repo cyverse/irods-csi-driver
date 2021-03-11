@@ -28,7 +28,7 @@ func makeIRODSZonePath(zone string, path string) string {
 }
 
 // IRODSMkdir creates a new directory
-func IRODSMkdir(conn *IRODSConnection, path string) error {
+func IRODSMkdir(conn *IRODSConnectionInfo, path string) error {
 	inputPath := makeIRODSZonePath(conn.Zone, path)
 
 	account, err := types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, types.AuthSchemeNative, conn.Password)
@@ -43,7 +43,7 @@ func IRODSMkdir(conn *IRODSConnection, path string) error {
 }
 
 // IRODSRmdir deletes a directory
-func IRODSRmdir(conn *IRODSConnection, path string) error {
+func IRODSRmdir(conn *IRODSConnectionInfo, path string) error {
 	inputPath := makeIRODSZonePath(conn.Zone, path)
 
 	account, err := types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, types.AuthSchemeNative, conn.Password)

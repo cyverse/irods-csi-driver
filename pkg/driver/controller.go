@@ -96,7 +96,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
 	proxyUser := driver.getDriverConfigUser()
 
-	irodsConn, err := ExtractIRODSConnection(volParams, secrets)
+	irodsConn, err := ExtractIRODSConnectionInfo(volParams, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 
 	if !irodsVolume.RetainData {
 		klog.V(5).Infof("Deleting a volume dir %s", irodsVolume.Path)
-		err := IRODSRmdir(irodsVolume.Connection, irodsVolume.Path)
+		err := IRODSRmdir(irodsVolume.ConnectionInfo, irodsVolume.Path)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %s : %v", irodsVolume.Path, err)
 		}

@@ -366,7 +366,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
 	proxyUser := driver.getDriverConfigUser()
 
-	irodsConn, err := ExtractIRODSConnection(volContext, volSecrets)
+	irodsConn, err := ExtractIRODSConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}
@@ -458,7 +458,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 }
 
 func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := ExtractIRODSWebDAVConnection(volContext, volSecrets)
+	irodsConn, err := ExtractIRODSWebDAVConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}
@@ -487,7 +487,7 @@ func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[s
 }
 
 func (driver *Driver) mountNfs(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := ExtractIRODSNFSConnection(volContext, volSecrets)
+	irodsConn, err := ExtractIRODSNFSConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}

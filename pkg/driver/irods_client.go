@@ -22,8 +22,8 @@ const (
 	NfsType ClientType = "nfs"
 )
 
-// IRODSConnection class
-type IRODSConnection struct {
+// IRODSConnectionInfo class
+type IRODSConnectionInfo struct {
 	Hostname   string
 	Port       int
 	Zone       string
@@ -33,23 +33,23 @@ type IRODSConnection struct {
 	Path       string
 }
 
-// IRODSWebDAVConnection class
-type IRODSWebDAVConnection struct {
+// IRODSWebDAVConnectionInfo class
+type IRODSWebDAVConnectionInfo struct {
 	URL      string
 	User     string
 	Password string
 }
 
-// IRODSNFSConnection class
-type IRODSNFSConnection struct {
+// IRODSNFSConnectionInfo class
+type IRODSNFSConnectionInfo struct {
 	Hostname string
 	Port     int
 	Path     string
 }
 
-// NewIRODSConnection returns a new instance of IRODSConnection
-func NewIRODSConnection(hostname string, port int, zone string, user string, password string, clientUser string, path string) *IRODSConnection {
-	return &IRODSConnection{
+// NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, path string) *IRODSConnectionInfo {
+	return &IRODSConnectionInfo{
 		Hostname:   hostname,
 		Port:       port,
 		Zone:       zone,
@@ -60,18 +60,18 @@ func NewIRODSConnection(hostname string, port int, zone string, user string, pas
 	}
 }
 
-// NewIRODSWebDAVConnection returns a new instance of IRODSWebDAVConnection
-func NewIRODSWebDAVConnection(url string, user string, password string) *IRODSWebDAVConnection {
-	return &IRODSWebDAVConnection{
+// NewIRODSWebDAVConnectionInfo returns a new instance of IRODSWebDAVConnectionInfo
+func NewIRODSWebDAVConnectionInfo(url string, user string, password string) *IRODSWebDAVConnectionInfo {
+	return &IRODSWebDAVConnectionInfo{
 		URL:      url,
 		User:     user,
 		Password: password,
 	}
 }
 
-// NewIRODSNFSConnection returns a new instance of IRODSNFSConnection
-func NewIRODSNFSConnection(hostname string, port int, path string) *IRODSNFSConnection {
-	return &IRODSNFSConnection{
+// NewIRODSNFSConnectionInfo returns a new instance of IRODSNFSConnectionInfo
+func NewIRODSNFSConnectionInfo(hostname string, port int, path string) *IRODSNFSConnectionInfo {
+	return &IRODSNFSConnectionInfo{
 		Hostname: hostname,
 		Port:     port,
 		Path:     path,
@@ -126,8 +126,8 @@ func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType
 	}
 }
 
-// ExtractIRODSConnection extracts IRODSConnection value from param map
-func ExtractIRODSConnection(params map[string]string, secrets map[string]string) (*IRODSConnection, error) {
+// ExtractIRODSConnectionInfo extracts IRODSConnectionInfo value from param map
+func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
 	var user, password, clientUser, host, zone, path string
 	port := 0
 
@@ -213,12 +213,12 @@ func ExtractIRODSConnection(params map[string]string, secrets map[string]string)
 		port = 1247
 	}
 
-	conn := NewIRODSConnection(host, port, zone, user, password, clientUser, path)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, path)
 	return conn, nil
 }
 
-// ExtractIRODSWebDAVConnection extracts IRODSWebDAVConnection value from param map
-func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]string) (*IRODSWebDAVConnection, error) {
+// ExtractIRODSWebDAVConnectionInfo extracts IRODSWebDAVConnectionInfo value from param map
+func ExtractIRODSWebDAVConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSWebDAVConnectionInfo, error) {
 	var user, password, url string
 
 	for k, v := range secrets {
@@ -262,12 +262,12 @@ func ExtractIRODSWebDAVConnection(params map[string]string, secrets map[string]s
 		return nil, status.Error(codes.InvalidArgument, "Argument url is empty")
 	}
 
-	conn := NewIRODSWebDAVConnection(url, user, password)
+	conn := NewIRODSWebDAVConnectionInfo(url, user, password)
 	return conn, nil
 }
 
-// ExtractIRODSNFSConnection extracts IRODSNFSConnection value from param map
-func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]string) (*IRODSNFSConnection, error) {
+// ExtractIRODSNFSConnectionInfo extracts IRODSNFSConnectionInfo value from param map
+func ExtractIRODSNFSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSNFSConnectionInfo, error) {
 	var host, path string
 	port := 0
 
@@ -318,6 +318,6 @@ func ExtractIRODSNFSConnection(params map[string]string, secrets map[string]stri
 		port = 2049
 	}
 
-	conn := NewIRODSNFSConnection(host, port, path)
+	conn := NewIRODSNFSConnectionInfo(host, port, path)
 	return conn, nil
 }

@@ -7,23 +7,23 @@ var (
 
 // IRODSVolume class
 type IRODSVolume struct {
-	ID         string
-	Name       string
-	RootPath   string
-	Path       string
-	Connection *IRODSConnection
-	RetainData bool
+	ID             string
+	Name           string
+	RootPath       string
+	Path           string
+	ConnectionInfo *IRODSConnectionInfo
+	RetainData     bool
 }
 
 // NewIRODSVolume returns a new instance of IRODSVolume
-func NewIRODSVolume(id string, name string, rootPath string, path string, conn *IRODSConnection, retainData bool) *IRODSVolume {
+func NewIRODSVolume(id string, name string, rootPath string, path string, connInfo *IRODSConnectionInfo, retainData bool) *IRODSVolume {
 	return &IRODSVolume{
-		ID:         id,
-		Name:       name,
-		RootPath:   rootPath,
-		Path:       path,
-		Connection: conn,
-		RetainData: retainData,
+		ID:             id,
+		Name:           name,
+		RootPath:       rootPath,
+		Path:           path,
+		ConnectionInfo: connInfo,
+		RetainData:     retainData,
 	}
 }
 
