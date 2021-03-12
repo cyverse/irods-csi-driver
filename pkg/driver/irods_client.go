@@ -206,8 +206,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		return nil, status.Error(codes.InvalidArgument, "Argument zone is empty")
 	}
 
-	// path is optional
-
+	// port is optional
 	if port <= 0 {
 		// default
 		port = 1247

@@ -22,7 +22,6 @@ Following iRODS clients can be used for the dynamic volume provisioning.
 | clientUser | iRODS client user id (when using proxy auth) | "irods_client_user" or leave empty |
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional. "1247" by default. |
-| ticket | Ticket string | Optional |
 | zone | iRODS zone | "iplant" |
 | volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. It does not include **zone** in string | "/home/irods_user" |
 | retainData | "true" to not clear the volume after use. | "false". "false" by default. |

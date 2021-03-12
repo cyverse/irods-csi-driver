@@ -30,10 +30,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gopkg.in/yaml.v2"
 	"k8s.io/klog"
 )
 
@@ -410,44 +412,43 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		return status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volPath)
 	}
 
-	ticket := ""
-
-	for k, v := range volContext {
-		if strings.ToLower(k) == "ticket" {
-			// ticket is optional
-			ticket = v
-		}
-	}
-
-	for k, v := range volSecrets {
-		if strings.ToLower(k) == "ticket" {
-			// ticket is optional
-			ticket = v
-		}
-	}
-
 	fsType := "irodsfs"
-	source := fmt.Sprintf("irods://%s@%s:%d/%s%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, volPath)
+	source := "irodsfs" // device name -- this parameter is actually required but ignored
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
 	stdinArgs := []string{}
 
+	irodsFsConfig := &IRODSFSConfig{
+		Host:       irodsConn.Hostname,
+		Port:       irodsConn.Port,
+		ProxyUser:  irodsConn.User,
+		ClientUser: irodsConn.ClientUser,
+		Zone:       irodsConn.Zone,
+		Password:   irodsConn.Password,
+		PathMappings: []IRODSFSPathMapping{
+			{
+				IRODSPath:    fmt.Sprintf("%s%s", irodsConn.Zone, volPath),
+				MappingPath:  "/",
+				ResourceType: "dir",
+			},
+		},
+		AllowOther: true,
+
+		CacheTimeout:     1 * time.Minute,
+		CacheCleanupTime: 1 * time.Minute,
+	}
+
+	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Could not serialize configuration: %v", volPath, err)
+	}
+
 	mountOptions = append(mountOptions, mntOptions...)
-	mountOptions = append(mountOptions, "allow_other")
+	mountOptions = append(mountOptions, "config=-") // read configuration yaml via STDIN
 
-	// set metadata cache timeout to 60 seconds
-	mountOptions = append(mountOptions, "metadatacachetimeout=60")
-
-	if len(ticket) > 0 {
-		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket=%s", ticket))
-	}
-
-	if len(irodsConn.ClientUser) > 0 {
-		mountOptions = append(mountOptions, fmt.Sprintf("client_user=%s", irodsConn.ClientUser))
-	}
-
-	stdinArgs = append(stdinArgs, irodsConn.Password)
+	// passing configuration yaml via STDIN
+	stdinArgs = append(stdinArgs, string(irodsFsConfigBytes))
 
 	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
 	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {

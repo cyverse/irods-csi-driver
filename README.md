@@ -32,7 +32,6 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 | clientuser | iRODS client user id (when using proxy auth) | "irods_cilent_user" |
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional, Default "1247" |
-| ticket | Ticket string | Optional |
 | zone | iRODS zone | "iplant" |
 | path | iRODS path to mount, does not include **zone** in string | "/home/irods_user" |
 | volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. It does not include **zone** in string (only for dynamic volume provisioning) | "/home/irods_user" |
@@ -43,7 +42,7 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 
 Mounts **zone**/**path**
 
-**user**, **password** and **ticket** can be supplied via secrets (nodeStageSecretRef).
+**user** and **password** can be supplied via secrets (nodeStageSecretRef).
 Please check out `examples` for more information.
 
 #### WebDAV Driver

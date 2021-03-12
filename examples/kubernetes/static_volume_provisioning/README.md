@@ -23,7 +23,6 @@ Following iRODS clients can be used for the static volume provisioning.
 | password | iRODS user password | "password" in plane text |
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional, Default "1247" |
-| ticket | Ticket string | Optional |
 | zone | iRODS zone | "iplant" |
 | path | iRODS path to mount, does not include **zone** in string | "/home/irods_user" |
 
