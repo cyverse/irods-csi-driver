@@ -1,6 +1,8 @@
 package driver
 
 import (
+	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,13 +26,13 @@ const (
 
 // IRODSConnectionInfo class
 type IRODSConnectionInfo struct {
-	Hostname   string
-	Port       int
-	Zone       string
-	User       string
-	Password   string
-	ClientUser string // if this field has a value, user and password fields have proxy user info
-	Path       string
+	Hostname     string
+	Port         int
+	Zone         string
+	User         string
+	Password     string
+	ClientUser   string // if this field has a value, user and password fields have proxy user info
+	PathMappings []IRODSFSPathMapping
 }
 
 // IRODSWebDAVConnectionInfo class
@@ -48,15 +50,15 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, path string) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, pathMappings []IRODSFSPathMapping) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
-		Hostname:   hostname,
-		Port:       port,
-		Zone:       zone,
-		User:       user,
-		Password:   password,
-		ClientUser: clientUser,
-		Path:       path,
+		Hostname:     hostname,
+		Port:         port,
+		Zone:         zone,
+		User:         user,
+		Password:     password,
+		ClientUser:   clientUser,
+		PathMappings: pathMappings,
 	}
 }
 
@@ -128,7 +130,9 @@ func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType
 
 // ExtractIRODSConnectionInfo extracts IRODSConnectionInfo value from param map
 func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
-	var user, password, clientUser, host, zone, path string
+	var user, password, clientUser, host, zone string
+	path := ""
+	pathMappings := []IRODSFSPathMapping{}
 	port := 0
 
 	for k, v := range secrets {
@@ -155,6 +159,11 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
+		case "path_mapping_json":
+			err := json.Unmarshal([]byte(v), &pathMappings)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
+			}
 		default:
 			// ignore
 		}
@@ -184,6 +193,11 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
+		case "path_mapping_json":
+			err := json.Unmarshal([]byte(v), &pathMappings)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
+			}
 		default:
 			// ignore
 		}
@@ -212,7 +226,20 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		port = 1247
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, path)
+	if len(path) > 0 {
+		// mount a single collection
+		pathMappings = append(pathMappings, IRODSFSPathMapping{
+			IRODSPath:    fmt.Sprintf("%s%s", zone, path),
+			MappingPath:  "/",
+			ResourceType: "dir",
+		})
+	}
+
+	if len(pathMappings) < 1 {
+		return nil, status.Error(codes.InvalidArgument, "Argument path and path_mappings are empty")
+	}
+
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, pathMappings)
 	return conn, nil
 }
 

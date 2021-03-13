@@ -4,9 +4,9 @@ import "time"
 
 // PathMapping ...
 type IRODSFSPathMapping struct {
-	IRODSPath    string `yaml:"irods_path"`
-	MappingPath  string `yaml:"mapping_path"`
-	ResourceType string `yaml:"resource_type"` // file or dir
+	IRODSPath    string `yaml:"irods_path" json:"irods_path"`
+	MappingPath  string `yaml:"mapping_path" json:"mapping_path"`
+	ResourceType string `yaml:"resource_type" json:"resource_type"` // file or dir
 }
 
 type IRODSFSConfig struct {

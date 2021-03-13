@@ -29,7 +29,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -400,16 +399,11 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		return status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
 	}
 
-	volPath := ""
-	if irodsConn.Path == "/" {
-		volPath = irodsConn.Path
-	} else {
-		volPath = strings.TrimRight(irodsConn.Path, "/")
-	}
-
 	// need to check if mount path is in whitelist
-	if !driver.isMountPathAllowed(volPath) {
-		return status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volPath)
+	for _, mapping := range irodsConn.PathMappings {
+		if !driver.isMountPathAllowed(mapping.IRODSPath) {
+			return status.Errorf(codes.InvalidArgument, "Argument mount path %s is not allowed to mount", mapping.IRODSPath)
+		}
 	}
 
 	fsType := "irodsfs"
@@ -420,20 +414,14 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	stdinArgs := []string{}
 
 	irodsFsConfig := &IRODSFSConfig{
-		Host:       irodsConn.Hostname,
-		Port:       irodsConn.Port,
-		ProxyUser:  irodsConn.User,
-		ClientUser: irodsConn.ClientUser,
-		Zone:       irodsConn.Zone,
-		Password:   irodsConn.Password,
-		PathMappings: []IRODSFSPathMapping{
-			{
-				IRODSPath:    fmt.Sprintf("%s%s", irodsConn.Zone, volPath),
-				MappingPath:  "/",
-				ResourceType: "dir",
-			},
-		},
-		AllowOther: true,
+		Host:         irodsConn.Hostname,
+		Port:         irodsConn.Port,
+		ProxyUser:    irodsConn.User,
+		ClientUser:   irodsConn.ClientUser,
+		Zone:         irodsConn.Zone,
+		Password:     irodsConn.Password,
+		PathMappings: irodsConn.PathMappings,
+		AllowOther:   true,
 
 		CacheTimeout:     1 * time.Minute,
 		CacheCleanupTime: 1 * time.Minute,
@@ -441,7 +429,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 
 	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
 	if err != nil {
-		return status.Errorf(codes.Internal, "Could not serialize configuration: %v", volPath, err)
+		return status.Errorf(codes.Internal, "Could not serialize configuration: %v", err)
 	}
 
 	mountOptions = append(mountOptions, mntOptions...)
