@@ -229,7 +229,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 	if len(path) > 0 {
 		// mount a single collection
 		pathMappings = append(pathMappings, IRODSFSPathMapping{
-			IRODSPath:    fmt.Sprintf("%s%s", zone, path),
+			IRODSPath:    fmt.Sprintf("/%s%s", zone, path),
 			MappingPath:  "/",
 			ResourceType: "dir",
 		})
