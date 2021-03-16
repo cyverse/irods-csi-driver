@@ -212,6 +212,10 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
 	}
 
+	if len(clientUser) == 0 {
+		clientUser = user
+	}
+
 	if len(host) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Argument host is empty")
 	}
