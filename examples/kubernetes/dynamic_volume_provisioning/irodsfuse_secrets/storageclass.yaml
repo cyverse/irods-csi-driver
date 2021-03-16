@@ -8,7 +8,7 @@ parameters:
   host: "data.cyverse.org"
   port: "1247"
   zone: "iplant"
-  volumeRootPath: "/home/iychoi"
+  volumeRootPath: "/iplant/home/iychoi"
   retainData: "false"
   csiProvisionerSecretName: "irods-irodsfuse-secret"
   csiProvisionerSecretNamespace: "default"

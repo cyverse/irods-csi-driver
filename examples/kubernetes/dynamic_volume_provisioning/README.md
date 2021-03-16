@@ -23,12 +23,12 @@ Following iRODS clients can be used for the dynamic volume provisioning.
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional. "1247" by default. |
 | zone | iRODS zone | "iplant" |
-| volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. It does not include **zone** in string | "/home/irods_user" |
+| volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. Path starts with **zone** in string | "/iplant/home/irods_user" |
 | retainData | "true" to not clear the volume after use. | "false". "false" by default. |
 | noVolumeDir | "true" to not create a subdirectory under `volumeRootPath`. It mounts the `volumeRootPath`. | "false". "false" by default. |
 | enforceProxyAccess | "true" to mandate passing `clientUser`, or giving different `user` as in global configuration. | "false". "false" by default. |
 
-Mounts **zone**/**path**
+Mounts **path**
 
 ### Kubernetes Secrets
 

@@ -9,4 +9,4 @@ globalConfig:
       password: "password"
       retainData: "false"
       enforceProxyAccess: "true"
-      mountPathWhitelist: "/home"
+      mountPathWhitelist: "/iplant/home"

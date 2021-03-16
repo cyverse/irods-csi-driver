@@ -413,19 +413,18 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	mountSensitiveOptions := []string{}
 	stdinArgs := []string{}
 
-	irodsFsConfig := &IRODSFSConfig{
-		Host:         irodsConn.Hostname,
-		Port:         irodsConn.Port,
-		ProxyUser:    irodsConn.User,
-		ClientUser:   irodsConn.ClientUser,
-		Zone:         irodsConn.Zone,
-		Password:     irodsConn.Password,
-		PathMappings: irodsConn.PathMappings,
-		AllowOther:   true,
+	irodsFsConfig := NewDefaultIRODSFSConfig()
 
-		CacheTimeout:     1 * time.Minute,
-		CacheCleanupTime: 1 * time.Minute,
-	}
+	irodsFsConfig.Host = irodsConn.Hostname
+	irodsFsConfig.Port = irodsConn.Port
+	irodsFsConfig.ProxyUser = irodsConn.User
+	irodsFsConfig.ClientUser = irodsConn.ClientUser
+	irodsFsConfig.Zone = irodsConn.Zone
+	irodsFsConfig.Password = irodsConn.Password
+	irodsFsConfig.PathMappings = irodsConn.PathMappings
+
+	irodsFsConfig.CacheTimeout = 1 * time.Minute
+	irodsFsConfig.CacheCleanupTime = 1 * time.Minute
 
 	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
 	if err != nil {

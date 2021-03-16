@@ -20,4 +20,4 @@ spec:
       zone: "iplant"
       user: "iychoi"
       password: "yourpassword"
-      path: "/home/iychoi"
+      path: "/iplant/home/iychoi"
