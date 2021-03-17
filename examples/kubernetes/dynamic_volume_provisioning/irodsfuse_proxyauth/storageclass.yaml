@@ -5,4 +5,4 @@ metadata:
 provisioner: irods.csi.cyverse.org
 parameters:
   clientUser: "iychoi"
-  volumeRootPath: "/home/iychoi"
+  volumeRootPath: "/iplant/home/iychoi"

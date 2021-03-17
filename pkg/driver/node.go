@@ -29,11 +29,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gopkg.in/yaml.v2"
 	"k8s.io/klog"
 )
 
@@ -366,7 +367,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
 	proxyUser := driver.getDriverConfigUser()
 
-	irodsConn, err := ExtractIRODSConnection(volContext, volSecrets)
+	irodsConn, err := ExtractIRODSConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}
@@ -398,56 +399,47 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		return status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
 	}
 
-	volPath := ""
-	if irodsConn.Path == "/" {
-		volPath = irodsConn.Path
-	} else {
-		volPath = strings.TrimRight(irodsConn.Path, "/")
+	if len(irodsConn.PathMappings) < 1 {
+		return status.Error(codes.InvalidArgument, "Argument path and path_mappings are empty, one must be given")
 	}
 
 	// need to check if mount path is in whitelist
-	if !driver.isMountPathAllowed(volPath) {
-		return status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volPath)
-	}
-
-	ticket := ""
-
-	for k, v := range volContext {
-		if strings.ToLower(k) == "ticket" {
-			// ticket is optional
-			ticket = v
-		}
-	}
-
-	for k, v := range volSecrets {
-		if strings.ToLower(k) == "ticket" {
-			// ticket is optional
-			ticket = v
+	for _, mapping := range irodsConn.PathMappings {
+		if !driver.isMountPathAllowed(mapping.IRODSPath) {
+			return status.Errorf(codes.InvalidArgument, "Argument mount path %s is not allowed to mount", mapping.IRODSPath)
 		}
 	}
 
 	fsType := "irodsfs"
-	source := fmt.Sprintf("irods://%s@%s:%d/%s%s", irodsConn.User, irodsConn.Hostname, irodsConn.Port, irodsConn.Zone, volPath)
+	source := "irodsfs" // device name -- this parameter is actually required but ignored
 
 	mountOptions := []string{}
 	mountSensitiveOptions := []string{}
 	stdinArgs := []string{}
 
+	irodsFsConfig := NewDefaultIRODSFSConfig()
+
+	irodsFsConfig.Host = irodsConn.Hostname
+	irodsFsConfig.Port = irodsConn.Port
+	irodsFsConfig.ProxyUser = irodsConn.User
+	irodsFsConfig.ClientUser = irodsConn.ClientUser
+	irodsFsConfig.Zone = irodsConn.Zone
+	irodsFsConfig.Password = irodsConn.Password
+	irodsFsConfig.PathMappings = irodsConn.PathMappings
+
+	irodsFsConfig.CacheTimeout = 1 * time.Minute
+	irodsFsConfig.CacheCleanupTime = 1 * time.Minute
+
+	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Could not serialize configuration: %v", err)
+	}
+
 	mountOptions = append(mountOptions, mntOptions...)
-	mountOptions = append(mountOptions, "allow_other")
+	mountOptions = append(mountOptions, "config=-") // read configuration yaml via STDIN
 
-	// set metadata cache timeout to 60 seconds
-	mountOptions = append(mountOptions, "metadatacachetimeout=60")
-
-	if len(ticket) > 0 {
-		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("ticket=%s", ticket))
-	}
-
-	if len(irodsConn.ClientUser) > 0 {
-		mountOptions = append(mountOptions, fmt.Sprintf("client_user=%s", irodsConn.ClientUser))
-	}
-
-	stdinArgs = append(stdinArgs, irodsConn.Password)
+	// passing configuration yaml via STDIN
+	stdinArgs = append(stdinArgs, string(irodsFsConfigBytes))
 
 	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
 	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
@@ -458,7 +450,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 }
 
 func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := ExtractIRODSWebDAVConnection(volContext, volSecrets)
+	irodsConn, err := ExtractIRODSWebDAVConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}
@@ -487,7 +479,7 @@ func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[s
 }
 
 func (driver *Driver) mountNfs(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := ExtractIRODSNFSConnection(volContext, volSecrets)
+	irodsConn, err := ExtractIRODSNFSConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}

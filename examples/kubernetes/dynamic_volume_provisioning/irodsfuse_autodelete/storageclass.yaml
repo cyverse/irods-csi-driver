@@ -10,5 +10,5 @@ parameters:
   zone: "iplant"
   user: "iychoi"
   password: "yourpassword"
-  volumeRootPath: "/home/iychoi"
+  volumeRootPath: "/iplant/home/iychoi"
   retainData: "false"

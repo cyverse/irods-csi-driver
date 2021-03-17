@@ -32,18 +32,17 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 | clientuser | iRODS client user id (when using proxy auth) | "irods_cilent_user" |
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional, Default "1247" |
-| ticket | Ticket string | Optional |
 | zone | iRODS zone | "iplant" |
-| path | iRODS path to mount, does not include **zone** in string | "/home/irods_user" |
-| volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. It does not include **zone** in string (only for dynamic volume provisioning) | "/home/irods_user" |
+| path | iRODS path to mount, starts with **zone** in string | "/iplant/home/irods_user" |
+| volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. (only for dynamic volume provisioning) | "/iplant/home/irods_user" |
 | retainData | "true" to not clear the volume after use. (only for dynamic volume provisioning) | "false". "false" by default. |
 | noVolumeDir | "true" to not create a subdirectory under `volumeRootPath`. It mounts the `volumeRootPath`. (only for dynamic volume provisioning) | "false". "false" by default. |
 | enforceProxyAccess | "true" to mandate passing `clientUser`, or giving different `user` as in global configuration. | "false". "false" by default. |
-| mountPathWhitelist | a comma-separated list of paths to allow mount. | "/home" |
+| mountPathWhitelist | a comma-separated list of paths to allow mount. | "/iplant/home" |
 
-Mounts **zone**/**path**
+Mounts **path**
 
-**user**, **password** and **ticket** can be supplied via secrets (nodeStageSecretRef).
+**user** and **password** can be supplied via secrets (nodeStageSecretRef).
 Please check out `examples` for more information.
 
 #### WebDAV Driver
@@ -71,9 +70,11 @@ Mounts **host**:/**path**
 
 ### Install & Uninstall
 
+Be aware that the Master branch is not stable! Please use recently released version of code. 
+
 Installation can be done using [Helm Chart](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [manual](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
 
-Install using Helm Chart:
+Install using Helm Chart with default configuration:
 ```shell script
 helm install irods-csi-driver helm
 ```
@@ -81,6 +82,13 @@ helm install irods-csi-driver helm
 Uninstall using Helm Chart:
 ```shell script
 helm delete irods-csi-driver
+```
+
+Install using Helm Chart with custom configuration:
+Edit `helm/user_values.yaml` file. You can set global configuration using the file.
+
+```shell script
+helm install irods-csi-driver -f helm/user_values.yaml helm
 ```
 
 ### Example: Pre-previsioned Persistent Volume (static volume provisioning) using iRODS FUSE

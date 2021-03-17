@@ -18,7 +18,7 @@ spec:
       host: "data.cyverse.org"
       port: "1247"
       zone: "iplant"
-      path: "/home/iychoi"
+      path: "/iplant/home/iychoi"
     nodeStageSecretRef: 
       name: "irods-irodsfuse-secret"
       namespace: "default"

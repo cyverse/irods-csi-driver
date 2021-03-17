@@ -45,6 +45,6 @@ helm upgrade irods-csi-driver \
 
 ### Uninstall
 ```shell script
-helm delete irods-csi-driver
+helm uninstall irods-csi-driver
 ```
 
