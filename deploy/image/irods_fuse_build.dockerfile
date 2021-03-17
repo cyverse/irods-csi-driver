@@ -15,7 +15,7 @@ LABEL description="iRODSFS (FUSE Client) Build Image"
 WORKDIR /opt/
 RUN git clone https://github.com/cyverse/irodsfs.git
 WORKDIR /opt/irodsfs
-RUN git checkout tags/v0.2.1
+RUN git checkout tags/v0.2.2
 
 # Build
 RUN make build

@@ -410,6 +410,12 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		}
 	}
 
+	// test connection creation to check account info is correct
+	err = IRODSTestConnection(irodsConn)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "Could not create iRODS Conenction with given access parameters - %s", err.Error())
+	}
+
 	fsType := "irodsfs"
 	source := "irodsfs" // device name -- this parameter is actually required but ignored
 
