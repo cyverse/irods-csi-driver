@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: irods-irodsfuse-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: irods-sc
+  csi:
+    driver: irods.csi.cyverse.org
+    volumeHandle: irods-irodsfuse-vol-id
+    volumeAttributes:
+      client: "irodsfuse"
+      host: "data.cyverse.org"
+      port: "1247"
+      zone: "iplant"
+      user: "iychoi"
+      password: "yourpassword"
+      path_mapping_json: '[{"irods_path": "/iplant/home/iychoi/datasets/MSSA_MRSA/500k_MSSA_MRSA_1.fa", "mapping_path": "/input/mrsa_mssa.fa", "resource_type": "file"},{"irods_path": "/iplant/home/iychoi/datasets/POV/POV_L.Spr.C.1000m_reads.fa", "mapping_path": "/input/pov.fa", "resource_type": "file"},{"irods_path": "/iplant/home/iychoi", "mapping_path": "/output", "resource_type": "dir"}]'
