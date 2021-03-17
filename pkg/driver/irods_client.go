@@ -238,10 +238,6 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		})
 	}
 
-	if len(pathMappings) < 1 {
-		return nil, status.Error(codes.InvalidArgument, "Argument path and path_mappings are empty")
-	}
-
 	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, pathMappings)
 	return conn, nil
 }

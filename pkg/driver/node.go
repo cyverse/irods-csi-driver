@@ -399,6 +399,10 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		return status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
 	}
 
+	if len(irodsConn.PathMappings) < 1 {
+		return status.Error(codes.InvalidArgument, "Argument path and path_mappings are empty, one must be given")
+	}
+
 	// need to check if mount path is in whitelist
 	for _, mapping := range irodsConn.PathMappings {
 		if !driver.isMountPathAllowed(mapping.IRODSPath) {
