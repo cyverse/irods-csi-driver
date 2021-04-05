@@ -1,8 +1,8 @@
 apiVersion: v2
-appVersion: "0.3.0"
+appVersion: "0.3.1"
 name: irods-csi-driver
 description: A Helm chart for iRODS CSI Driver
-version: 0.3.0
+version: 0.3.1
 kubeVersion: ">=1.14.0-0"
 home: https://github.com/cyverse/irods-csi-driver
 sources:
