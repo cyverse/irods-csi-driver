@@ -14,9 +14,11 @@ const (
 
 // PathMapping ...
 type IRODSFSPathMapping struct {
-	IRODSPath    string `yaml:"irods_path" json:"irods_path"`
-	MappingPath  string `yaml:"mapping_path" json:"mapping_path"`
-	ResourceType string `yaml:"resource_type" json:"resource_type"` // file or dir
+	IRODSPath      string `yaml:"irods_path" json:"irods_path"`
+	MappingPath    string `yaml:"mapping_path" json:"mapping_path"`
+	ResourceType   string `yaml:"resource_type" json:"resource_type"` // file or dir
+	CreateDir      bool   `yaml:"create_dir" json:"create_dir"`
+	IgnoreNotExist bool   `yaml:"ignore_not_exist" json:"ignore_not_exist"`
 }
 
 type IRODSFSConfig struct {
