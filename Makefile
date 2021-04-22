@@ -43,3 +43,7 @@ image-release:
 .PHONY: push-release
 push-release:
 	docker push $(CSI_DRIVER_IMAGE):$(VERSION)
+
+.PHONY: helm
+helm:
+	helm lint helm && helm package helm

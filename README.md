@@ -72,16 +72,17 @@ Mounts **host**:/**path**
 
 Be aware that the Master branch is not stable! Please use recently released version of code. 
 
-Installation can be done using [Helm Chart](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [manual](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
+Installation can be done using [Helm Chart Repository](https://cyverse.github.io/irods-csi-driver-helm/), [Helm Chart (manual)](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [Manual Deployment](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
+
+Install using Helm Chart Repository with default configuration:
+```shell script
+helm repo add irods-csi-driver-repo https://cyverse.github.io/irods-csi-driver-helm/
+helm install irods-csi-driver irods-csi-driver-repo/irods-csi-driver
+```
 
 Install using Helm Chart with default configuration:
 ```shell script
 helm install irods-csi-driver helm
-```
-
-Uninstall using Helm Chart:
-```shell script
-helm delete irods-csi-driver
 ```
 
 Install using Helm Chart with custom configuration:
@@ -89,6 +90,11 @@ Edit `helm/user_values.yaml` file. You can set global configuration using the fi
 
 ```shell script
 helm install irods-csi-driver -f helm/user_values.yaml helm
+```
+
+Uninstall using Helm Chart:
+```shell script
+helm delete irods-csi-driver
 ```
 
 ### Example: Pre-previsioned Persistent Volume (static volume provisioning) using iRODS FUSE
