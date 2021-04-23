@@ -26,7 +26,7 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 #### iRODS FUSE Driver
 | Field | Description | Example |
 | --- | --- | --- |
-| driver (or client) | Driver type | "irodsfuse" |
+| client | Driver type | "irodsfuse" |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plane text |
 | clientuser | iRODS client user id (when using proxy auth) | "irods_cilent_user" |
@@ -48,7 +48,7 @@ Please check out `examples` for more information.
 #### WebDAV Driver
 | Field | Description | Example |
 | --- | --- | --- |
-| driver (or client) | Driver type | "webdav" |
+| client | Driver type | "webdav" |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plane text |
 | url | URL | "https://data.cyverse.org/dav/iplant/home/irods_user" |
@@ -61,7 +61,7 @@ Please check out `examples` for more information.
 #### NFS Driver
 | Field | Description | Example |
 | --- | --- | --- |
-| driver (or client) | Driver type | "nfs" |
+| client | Driver type | "nfs" |
 | host | WebDAV hostname | "data.cyverse.org" |
 | port | WebDAV port | Optional |
 | path | iRODS path to mount | "/home/irods_user" |
