@@ -9,13 +9,13 @@
 FROM golang:1.14.4-stretch
 LABEL maintainer="Illyoung Choi <iychoi@email.arizona.edu>"
 LABEL version="0.1"
-LABEL description="iRODSFS (FUSE Client) Build Image"
+LABEL description="iRODS FUSE Lite Build Image"
 
 # Download github.com/cyverse/irodsfs
 WORKDIR /opt/
 RUN git clone https://github.com/cyverse/irodsfs.git
 WORKDIR /opt/irodsfs
-RUN git checkout tags/v0.2.3
+RUN git checkout tags/v0.3.0
 
 # Build
 RUN make build
