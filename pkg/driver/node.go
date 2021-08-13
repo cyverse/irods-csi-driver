@@ -29,7 +29,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -431,10 +430,8 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	irodsFsConfig.ClientUser = irodsConn.ClientUser
 	irodsFsConfig.Zone = irodsConn.Zone
 	irodsFsConfig.Password = irodsConn.Password
+	irodsFsConfig.MonitorURL = irodsConn.MonitorURL
 	irodsFsConfig.PathMappings = irodsConn.PathMappings
-
-	irodsFsConfig.CacheTimeout = 1 * time.Minute
-	irodsFsConfig.CacheCleanupTime = 1 * time.Minute
 
 	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
 	if err != nil {
