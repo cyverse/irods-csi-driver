@@ -134,7 +134,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	volPath := ""
 	for k, v := range secrets {
 		switch strings.ToLower(k) {
-		case "volumerootpath":
+		case "volumerootpath", "volume_root_path":
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
@@ -143,13 +143,13 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 			} else {
 				volRootPath = strings.TrimRight(v, "/")
 			}
-		case "retaindata":
+		case "retaindata", "retain_data":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
 			}
 			volRetain = retain
-		case "novolumedir":
+		case "novolumedir", "no_volume_dir":
 			novolumedir, err := strconv.ParseBool(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
@@ -161,7 +161,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 
 	for k, v := range volParams {
 		switch strings.ToLower(k) {
-		case "volumerootpath":
+		case "volumerootpath", "volume_root_path":
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
@@ -170,13 +170,13 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 			} else {
 				volRootPath = strings.TrimRight(v, "/")
 			}
-		case "retaindata":
+		case "retaindata", "retain_data":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
 			}
 			volRetain = retain
-		case "novolumedir":
+		case "novolumedir", "no_volume_dir":
 			novolumedir, err := strconv.ParseBool(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)

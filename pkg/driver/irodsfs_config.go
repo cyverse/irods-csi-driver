@@ -29,6 +29,7 @@ type IRODSFSConfig struct {
 	Zone         string               `yaml:"zone"`
 	Password     string               `yaml:"password"`
 	PathMappings []IRODSFSPathMapping `yaml:"path_mappings"`
+	MonitorURL   string               `yaml:"monitor_url"`
 
 	PerFileBlockCacheMax  int           `yaml:"per_file_block_cache_max"`
 	OperationTimeout      time.Duration `yaml:"operation_timeout"`
@@ -46,6 +47,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 	return &IRODSFSConfig{
 		Port:         PortDefault,
 		PathMappings: []IRODSFSPathMapping{},
+		MonitorURL:   "",
 
 		PerFileBlockCacheMax:  PerFileBlockCacheMaxDefault,
 		OperationTimeout:      OperationTimeoutDefault,

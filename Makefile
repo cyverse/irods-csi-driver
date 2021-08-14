@@ -5,7 +5,7 @@ FUSE_CLIENT_BUILD_IMAGE=irods_fuse_client_build
 FUSE_CLIENT_BUILD_DOCKERFILE=deploy/image/irods_fuse_build.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
-VERSION=v0.3.1
+VERSION=v0.4.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
@@ -43,3 +43,7 @@ image-release:
 .PHONY: push-release
 push-release:
 	docker push $(CSI_DRIVER_IMAGE):$(VERSION)
+
+.PHONY: helm
+helm:
+	helm lint helm && helm package helm

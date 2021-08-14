@@ -31,6 +31,7 @@ type IRODSConnectionInfo struct {
 	User         string
 	Password     string
 	ClientUser   string // if this field has a value, user and password fields have proxy user info
+	MonitorURL   string
 	PathMappings []IRODSFSPathMapping
 }
 
@@ -49,7 +50,7 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, pathMappings []IRODSFSPathMapping) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, monitorUrl string, pathMappings []IRODSFSPathMapping) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
 		Hostname:     hostname,
 		Port:         port,
@@ -57,6 +58,7 @@ func NewIRODSConnectionInfo(hostname string, port int, zone string, user string,
 		User:         user,
 		Password:     password,
 		ClientUser:   clientUser,
+		MonitorURL:   monitorUrl,
 		PathMappings: pathMappings,
 	}
 }
@@ -129,7 +131,7 @@ func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType
 
 // ExtractIRODSConnectionInfo extracts IRODSConnectionInfo value from param map
 func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
-	var user, password, clientUser, host, zone string
+	var user, password, clientUser, host, zone, monitorUrl string
 	path := ""
 	pathMappings := []IRODSFSPathMapping{}
 	port := 0
@@ -158,7 +160,9 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
-		case "path_mapping_json":
+		case "monitorurl", "monitor_url":
+			monitorUrl = v
+		case "path_mapping_json", "pathmappingjson":
 			err := json.Unmarshal([]byte(v), &pathMappings)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
@@ -192,7 +196,9 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
-		case "path_mapping_json":
+		case "monitorurl", "monitor_url":
+			monitorUrl = v
+		case "path_mapping_json", "pathmappingjson":
 			err := json.Unmarshal([]byte(v), &pathMappings)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
@@ -238,7 +244,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		})
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, pathMappings)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, monitorUrl, pathMappings)
 	return conn, nil
 }
 

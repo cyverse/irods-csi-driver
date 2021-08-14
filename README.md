@@ -26,7 +26,7 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 #### iRODS FUSE Driver
 | Field | Description | Example |
 | --- | --- | --- |
-| driver (or client) | Driver type | "irodsfuse" |
+| client | Driver type | "irodsfuse" |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plane text |
 | clientuser | iRODS client user id (when using proxy auth) | "irods_cilent_user" |
@@ -34,11 +34,14 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 | port | iRODS port | Optional, Default "1247" |
 | zone | iRODS zone | "iplant" |
 | path | iRODS path to mount, starts with **zone** in string | "/iplant/home/irods_user" |
+| monitorURL | URL to irodsfs monitor service | "http://monitor.abc.com" |
+| pathMappingJSON | JSON string for custom path mappings | "{}" |
 | volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. (only for dynamic volume provisioning) | "/iplant/home/irods_user" |
 | retainData | "true" to not clear the volume after use. (only for dynamic volume provisioning) | "false". "false" by default. |
 | noVolumeDir | "true" to not create a subdirectory under `volumeRootPath`. It mounts the `volumeRootPath`. (only for dynamic volume provisioning) | "false". "false" by default. |
 | enforceProxyAccess | "true" to mandate passing `clientUser`, or giving different `user` as in global configuration. | "false". "false" by default. |
 | mountPathWhitelist | a comma-separated list of paths to allow mount. | "/iplant/home" |
+
 
 Mounts **path**
 
@@ -48,7 +51,7 @@ Please check out `examples` for more information.
 #### WebDAV Driver
 | Field | Description | Example |
 | --- | --- | --- |
-| driver (or client) | Driver type | "webdav" |
+| client | Driver type | "webdav" |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plain text |
 | url | URL | "https://data.cyverse.org/dav/iplant/home/irods_user" |
@@ -61,7 +64,7 @@ Please check out `examples` for more information.
 #### NFS Driver
 | Field | Description | Example |
 | --- | --- | --- |
-| driver (or client) | Driver type | "nfs" |
+| client | Driver type | "nfs" |
 | host | WebDAV hostname | "data.cyverse.org" |
 | port | WebDAV port | Optional |
 | path | iRODS path to mount | "/home/irods_user" |
@@ -72,16 +75,17 @@ Mounts **host**:/**path**
 
 Be aware that the Master branch is not stable! Please use recently released version of code. 
 
-Installation can be done using [Helm Chart](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [manual](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
+Installation can be done using [Helm Chart Repository](https://cyverse.github.io/irods-csi-driver-helm/), [Helm Chart (manual)](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [Manual Deployment](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
+
+Install using Helm Chart Repository with default configuration:
+```shell script
+helm repo add irods-csi-driver-repo https://cyverse.github.io/irods-csi-driver-helm/
+helm install irods-csi-driver irods-csi-driver-repo/irods-csi-driver
+```
 
 Install using Helm Chart with default configuration:
 ```shell script
 helm install irods-csi-driver helm
-```
-
-Uninstall using Helm Chart:
-```shell script
-helm delete irods-csi-driver
 ```
 
 Install using Helm Chart with custom configuration:
@@ -89,6 +93,11 @@ Edit `helm/user_values.yaml` file. You can set global configuration using the fi
 
 ```shell script
 helm install irods-csi-driver -f helm/user_values.yaml helm
+```
+
+Uninstall using Helm Chart:
+```shell script
+helm delete irods-csi-driver
 ```
 
 ### Example: Pre-previsioned Persistent Volume (static volume provisioning) using iRODS FUSE
