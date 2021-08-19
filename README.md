@@ -36,6 +36,8 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 | path | iRODS path to mount, starts with **zone** in string | "/iplant/home/irods_user" |
 | monitorURL | URL to irodsfs monitor service | "http://monitor.abc.com" |
 | pathMappingJSON | JSON string for custom path mappings | "{}" |
+| uid | host system UID to map owner | -1 (executor's UID, mostly UID of root, 0) |
+| gid | host system GID to map owner | -1 (executor's UID, mostly GID of root, 0) |
 | volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. (only for dynamic volume provisioning) | "/iplant/home/irods_user" |
 | retainData | "true" to not clear the volume after use. (only for dynamic volume provisioning) | "false". "false" by default. |
 | noVolumeDir | "true" to not create a subdirectory under `volumeRootPath`. It mounts the `volumeRootPath`. (only for dynamic volume provisioning) | "false". "false" by default. |

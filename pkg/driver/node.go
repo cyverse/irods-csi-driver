@@ -28,6 +28,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -409,6 +410,14 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		}
 	}
 
+	if len(irodsConn.MonitorURL) > 0 {
+		// check
+		_, err := url.ParseRequestURI(irodsConn.MonitorURL)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "Invalid monitor URL - %s", irodsConn.MonitorURL)
+		}
+	}
+
 	// test connection creation to check account info is correct
 	err = IRODSTestConnection(irodsConn)
 	if err != nil {
@@ -432,6 +441,8 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	irodsFsConfig.Password = irodsConn.Password
 	irodsFsConfig.MonitorURL = irodsConn.MonitorURL
 	irodsFsConfig.PathMappings = irodsConn.PathMappings
+	irodsFsConfig.UID = irodsConn.UID
+	irodsFsConfig.GID = irodsConn.GID
 
 	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
 	if err != nil {

@@ -2,6 +2,7 @@ package driver
 
 import (
 	"encoding/json"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -33,6 +34,8 @@ type IRODSConnectionInfo struct {
 	ClientUser   string // if this field has a value, user and password fields have proxy user info
 	MonitorURL   string
 	PathMappings []IRODSFSPathMapping
+	UID          int
+	GID          int
 }
 
 // IRODSWebDAVConnectionInfo class
@@ -50,7 +53,7 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, monitorUrl string, pathMappings []IRODSFSPathMapping) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, monitorUrl string, pathMappings []IRODSFSPathMapping, uid int, gid int) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
 		Hostname:     hostname,
 		Port:         port,
@@ -60,6 +63,8 @@ func NewIRODSConnectionInfo(hostname string, port int, zone string, user string,
 		ClientUser:   clientUser,
 		MonitorURL:   monitorUrl,
 		PathMappings: pathMappings,
+		UID:          uid,
+		GID:          gid,
 	}
 }
 
@@ -135,6 +140,8 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 	path := ""
 	pathMappings := []IRODSFSPathMapping{}
 	port := 0
+	uid := -1
+	gid := -1
 
 	for k, v := range secrets {
 		switch strings.ToLower(k) {
@@ -167,6 +174,18 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
 			}
+		case "uid":
+			u, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid uid number - %s", k, err)
+			}
+			uid = u
+		case "gid":
+			g, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %s", k, err)
+			}
+			gid = g
 		default:
 			// ignore
 		}
@@ -203,6 +222,18 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
 			}
+		case "uid":
+			u, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid uid number - %s", k, err)
+			}
+			uid = u
+		case "gid":
+			g, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %s", k, err)
+			}
+			gid = g
 		default:
 			// ignore
 		}
@@ -244,7 +275,15 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		})
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, monitorUrl, pathMappings)
+	if len(monitorUrl) > 0 {
+		// check
+		_, err := url.ParseRequestURI(monitorUrl)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Invalid monitor URL - %s", monitorUrl)
+		}
+	}
+
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, monitorUrl, pathMappings, uid, gid)
 	return conn, nil
 }
 
