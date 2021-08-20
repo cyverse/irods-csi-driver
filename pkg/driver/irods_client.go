@@ -36,6 +36,7 @@ type IRODSConnectionInfo struct {
 	PathMappings []IRODSFSPathMapping
 	UID          int
 	GID          int
+	SystemUser   string
 }
 
 // IRODSWebDAVConnectionInfo class
@@ -53,7 +54,7 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, monitorUrl string, pathMappings []IRODSFSPathMapping, uid int, gid int) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, monitorUrl string, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
 		Hostname:     hostname,
 		Port:         port,
@@ -65,6 +66,7 @@ func NewIRODSConnectionInfo(hostname string, port int, zone string, user string,
 		PathMappings: pathMappings,
 		UID:          uid,
 		GID:          gid,
+		SystemUser:   systemUser,
 	}
 }
 
@@ -142,6 +144,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 	port := 0
 	uid := -1
 	gid := -1
+	sysuser := ""
 
 	for k, v := range secrets {
 		switch strings.ToLower(k) {
@@ -186,6 +189,8 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %s", k, err)
 			}
 			gid = g
+		case "system_user", "systemuser", "sys_user", "sysuser":
+			sysuser = v
 		default:
 			// ignore
 		}
@@ -234,6 +239,8 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %s", k, err)
 			}
 			gid = g
+		case "system_user", "systemuser", "sys_user", "sysuser":
+			sysuser = v
 		default:
 			// ignore
 		}
@@ -283,7 +290,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		}
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, monitorUrl, pathMappings, uid, gid)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, monitorUrl, pathMappings, uid, gid, sysuser)
 	return conn, nil
 }
 

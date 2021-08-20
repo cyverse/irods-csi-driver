@@ -33,6 +33,7 @@ type IRODSFSConfig struct {
 	PathMappings []IRODSFSPathMapping `yaml:"path_mappings"`
 	UID          int                  `yaml:"uid"`
 	GID          int                  `yaml:"gid"`
+	SystemUser   string               `yaml:"system_user"`
 
 	ReadAheadMax             int           `yaml:"read_ahead_max"`
 	OperationTimeout         time.Duration `yaml:"operation_timeout"`
@@ -55,6 +56,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		PathMappings: []IRODSFSPathMapping{},
 		UID:          -1,
 		GID:          -1,
+		SystemUser:   "",
 
 		ReadAheadMax:             ReadAheadMaxDefault,
 		OperationTimeout:         OperationTimeoutDefault,
