@@ -5,7 +5,7 @@ FUSE_CLIENT_BUILD_IMAGE=irods_fuse_client_build
 FUSE_CLIENT_BUILD_DOCKERFILE=deploy/image/irods_fuse_build.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
-VERSION=v0.4.2
+VERSION=v0.4.3
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
