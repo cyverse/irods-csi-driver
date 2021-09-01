@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/container-storage-interface/spec v1.2.0
-	github.com/cyverse/go-irodsclient v0.5.3
+	github.com/cyverse/go-irodsclient v0.5.4
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
