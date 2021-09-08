@@ -451,6 +451,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	}
 
 	mountOptions = append(mountOptions, mntOptions...)
+	mountOptions = append(mountOptions, fmt.Sprintf("mounttimeout=%d", irodsConn.MountTimeout))
 	mountOptions = append(mountOptions, "config=-") // read configuration yaml via STDIN
 
 	// passing configuration yaml via STDIN
