@@ -444,6 +444,8 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	irodsFsConfig.UID = irodsConn.UID
 	irodsFsConfig.GID = irodsConn.GID
 	irodsFsConfig.SystemUser = irodsConn.SystemUser
+	irodsFsConfig.ProxyHost = irodsConn.ProxyHostname
+	irodsFsConfig.ProxyPort = irodsConn.ProxyPort
 
 	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
 	if err != nil {

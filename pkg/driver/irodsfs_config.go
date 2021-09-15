@@ -36,6 +36,9 @@ type IRODSFSConfig struct {
 	GID          int                  `yaml:"gid"`
 	SystemUser   string               `yaml:"system_user"`
 
+	ProxyHost string `yaml:"proxy_host,omitempty"`
+	ProxyPort int    `yaml:"proxy_port,omitempty"`
+
 	ReadAheadMax             int           `yaml:"read_ahead_max"`
 	OperationTimeout         time.Duration `yaml:"operation_timeout"`
 	ConnectionIdleTimeout    time.Duration `yaml:"connection_idle_timeout"`
@@ -58,6 +61,9 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		UID:          -1,
 		GID:          -1,
 		SystemUser:   "",
+
+		ProxyHost: "",
+		ProxyPort: 0,
 
 		ReadAheadMax:             ReadAheadMaxDefault,
 		OperationTimeout:         OperationTimeoutDefault,
