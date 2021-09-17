@@ -26,20 +26,20 @@ const (
 
 // IRODSConnectionInfo class
 type IRODSConnectionInfo struct {
-	Hostname      string
-	Port          int
-	Zone          string
-	User          string
-	Password      string
-	ClientUser    string // if this field has a value, user and password fields have proxy user info
-	ProxyHostname string
-	ProxyPort     int
-	MonitorURL    string
-	PathMappings  []IRODSFSPathMapping
-	UID           int
-	GID           int
-	SystemUser    string
-	MountTimeout  int
+	Hostname     string
+	Port         int
+	Zone         string
+	User         string
+	Password     string
+	ClientUser   string // if this field has a value, user and password fields have proxy user info
+	PoolHostname string
+	PoolPort     int
+	MonitorURL   string
+	PathMappings []IRODSFSPathMapping
+	UID          int
+	GID          int
+	SystemUser   string
+	MountTimeout int
 }
 
 // IRODSWebDAVConnectionInfo class
@@ -57,22 +57,22 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, proxyHost string, proxyPort int, monitorUrl string, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, poolHost string, poolPort int, monitorUrl string, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
-		Hostname:      hostname,
-		Port:          port,
-		Zone:          zone,
-		User:          user,
-		Password:      password,
-		ClientUser:    clientUser,
-		ProxyHostname: proxyHost,
-		ProxyPort:     proxyPort,
-		MonitorURL:    monitorUrl,
-		PathMappings:  pathMappings,
-		UID:           uid,
-		GID:           gid,
-		SystemUser:    systemUser,
-		MountTimeout:  mountTimeout,
+		Hostname:     hostname,
+		Port:         port,
+		Zone:         zone,
+		User:         user,
+		Password:     password,
+		ClientUser:   clientUser,
+		PoolHostname: poolHost,
+		PoolPort:     poolPort,
+		MonitorURL:   monitorUrl,
+		PathMappings: pathMappings,
+		UID:          uid,
+		GID:          gid,
+		SystemUser:   systemUser,
+		MountTimeout: mountTimeout,
 	}
 }
 
@@ -144,11 +144,11 @@ func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType
 
 // ExtractIRODSConnectionInfo extracts IRODSConnectionInfo value from param map
 func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
-	var user, password, clientUser, host, zone, proxyHost, monitorUrl string
+	var user, password, clientUser, host, zone, poolHost, monitorUrl string
 	path := ""
 	pathMappings := []IRODSFSPathMapping{}
 	port := 0
-	proxyPort := 0
+	poolPort := 0
 	uid := -1
 	gid := -1
 	sysuser := ""
@@ -178,14 +178,14 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
-		case "proxy_host", "proxyhost":
-			proxyHost = v
-		case "proxy_port", "proxyport":
+		case "pool_host", "poolhost":
+			poolHost = v
+		case "pool_port", "poolport":
 			p, err := strconv.Atoi(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
-			proxyPort = p
+			poolPort = p
 		case "monitorurl", "monitor_url":
 			monitorUrl = v
 		case "path_mapping_json", "pathmappingjson":
@@ -242,14 +242,14 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
-		case "proxy_host", "proxyhost":
-			proxyHost = v
-		case "proxy_port", "proxyport":
+		case "pool_host", "poolhost":
+			poolHost = v
+		case "pool_port", "poolport":
 			p, err := strconv.Atoi(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
-			proxyPort = p
+			poolPort = p
 		case "monitorurl", "monitor_url":
 			monitorUrl = v
 		case "path_mapping_json", "pathmappingjson":
@@ -330,7 +330,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		mountTimeout = 300
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, proxyHost, proxyPort, monitorUrl, pathMappings, uid, gid, sysuser, mountTimeout)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, poolHost, poolPort, monitorUrl, pathMappings, uid, gid, sysuser, mountTimeout)
 	return conn, nil
 }
 

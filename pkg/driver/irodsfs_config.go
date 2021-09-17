@@ -10,8 +10,7 @@ const (
 	ConnectionIdleTimeoutDefault    time.Duration = 5 * time.Minute
 	MetadataCacheTimeoutDefault     time.Duration = 5 * time.Minute
 	MetadataCacheCleanupTimeDefault time.Duration = 5 * time.Minute
-	FileBufferStoragePathDefault    string        = "/tmp/irodsfs"
-	FileBufferSizeMaxDefault        int64         = 1024 * 1024 * 1024 // 1GB
+	BufferSizeMaxDefault            int64         = 1024 * 1024 * 64 // 64MB
 )
 
 // PathMapping ...
@@ -36,8 +35,8 @@ type IRODSFSConfig struct {
 	GID          int                  `yaml:"gid"`
 	SystemUser   string               `yaml:"system_user"`
 
-	ProxyHost string `yaml:"proxy_host,omitempty"`
-	ProxyPort int    `yaml:"proxy_port,omitempty"`
+	PoolHost string `yaml:"pool_host,omitempty"`
+	PoolPort int    `yaml:"pool_port,omitempty"`
 
 	ReadAheadMax             int           `yaml:"read_ahead_max"`
 	OperationTimeout         time.Duration `yaml:"operation_timeout"`
@@ -45,8 +44,7 @@ type IRODSFSConfig struct {
 	ConnectionMax            int           `yaml:"connection_max"`
 	MetadataCacheTimeout     time.Duration `yaml:"metadata_cache_timeout"`
 	MetadataCacheCleanupTime time.Duration `yaml:"metadata_cache_cleanup_time"`
-	FileBufferStoragePath    string        `yaml:"file_buffer_storage_path"`
-	FileBufferSizeMax        int64         `yaml:"file_buffer_size_max"`
+	BufferSizeMax            int64         `yaml:"buffer_size_max"`
 
 	LogPath    string `yaml:"log_path,omitempty"`
 	MonitorURL string `yaml:"monitor_url,omitempty"`
@@ -62,8 +60,8 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		GID:          -1,
 		SystemUser:   "",
 
-		ProxyHost: "",
-		ProxyPort: 0,
+		PoolHost: "",
+		PoolPort: 0,
 
 		ReadAheadMax:             ReadAheadMaxDefault,
 		OperationTimeout:         OperationTimeoutDefault,
@@ -71,8 +69,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		ConnectionMax:            ConnectionMaxDefault,
 		MetadataCacheTimeout:     MetadataCacheTimeoutDefault,
 		MetadataCacheCleanupTime: MetadataCacheCleanupTimeDefault,
-		FileBufferStoragePath:    FileBufferStoragePathDefault,
-		FileBufferSizeMax:        FileBufferSizeMaxDefault,
+		BufferSizeMax:            BufferSizeMaxDefault,
 
 		LogPath:    "",
 		MonitorURL: "",
