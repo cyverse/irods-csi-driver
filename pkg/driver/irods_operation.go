@@ -3,8 +3,8 @@ package driver
 import (
 	"time"
 
-	"github.com/cyverse/go-irodsclient/fs"
-	"github.com/cyverse/go-irodsclient/irods/types"
+	irodsclient_fs "github.com/cyverse/go-irodsclient/fs"
+	irodsclient_types "github.com/cyverse/go-irodsclient/irods/types"
 )
 
 const (
@@ -13,12 +13,12 @@ const (
 
 // IRODSMkdir creates a new directory
 func IRODSMkdir(conn *IRODSConnectionInfo, path string) error {
-	account, err := types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, types.AuthSchemeNative, conn.Password)
+	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password)
 	if err != nil {
 		return err
 	}
 
-	filesystem, err := fs.NewFileSystemWithDefault(account, applicationName)
+	filesystem, err := irodsclient_fs.NewFileSystemWithDefault(account, applicationName)
 	if err != nil {
 		return err
 	}
@@ -30,12 +30,12 @@ func IRODSMkdir(conn *IRODSConnectionInfo, path string) error {
 
 // IRODSRmdir deletes a directory
 func IRODSRmdir(conn *IRODSConnectionInfo, path string) error {
-	account, err := types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, types.AuthSchemeNative, conn.Password)
+	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password)
 	if err != nil {
 		return err
 	}
 
-	filesystem, err := fs.NewFileSystemWithDefault(account, applicationName)
+	filesystem, err := irodsclient_fs.NewFileSystemWithDefault(account, applicationName)
 	if err != nil {
 		return err
 	}
@@ -47,14 +47,14 @@ func IRODSRmdir(conn *IRODSConnectionInfo, path string) error {
 
 // IRODSTestConnection just test connection creation
 func IRODSTestConnection(conn *IRODSConnectionInfo) error {
-	account, err := types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, types.AuthSchemeNative, conn.Password)
+	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password)
 	if err != nil {
 		return err
 	}
 
 	oneMin := 1 * time.Minute
-	fsConfig := fs.NewFileSystemConfig(applicationName, oneMin, oneMin, 1, oneMin, oneMin, true)
-	filesystem, err := fs.NewFileSystem(account, fsConfig)
+	fsConfig := irodsclient_fs.NewFileSystemConfig(applicationName, oneMin, oneMin, 1, oneMin, oneMin, true)
+	filesystem, err := irodsclient_fs.NewFileSystem(account, fsConfig)
 	if err != nil {
 		return err
 	}
