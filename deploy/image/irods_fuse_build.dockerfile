@@ -6,7 +6,7 @@
 ##############################################
 # Build irodsfs
 ##############################################
-FROM golang:1.14.4-stretch
+FROM golang:1.16.8-stretch
 LABEL maintainer="Illyoung Choi <iychoi@email.arizona.edu>"
 LABEL version="0.1"
 LABEL description="iRODS FUSE Lite Build Image"
