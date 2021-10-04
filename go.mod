@@ -7,6 +7,7 @@ require (
 	github.com/cyverse/go-irodsclient v0.5.5
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/rs/xid v1.3.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/text v0.3.3 // indirect
 	google.golang.org/grpc v1.27.0

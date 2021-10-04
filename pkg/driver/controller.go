@@ -30,6 +30,7 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/rs/xid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -53,7 +54,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	if len(volName) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
-	volID := generateVolumeID(volName)
+	volID := driver.generateVolumeID(volName)
 
 	klog.V(4).Infof("CreateVolume: volumeName(%#v)", volName)
 
@@ -102,20 +103,17 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	}
 
 	if enforceProxyAccess {
-		if proxyUser == irodsConn.User {
-			// same proxy user
-			// enforce clientUser
-			if len(irodsConn.ClientUser) == 0 {
-				return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be given")
-			}
+		if proxyUser != irodsConn.User {
+			// different proxy user
+			return nil, status.Error(codes.InvalidArgument, "cannot use change proxy user account from pre-configued one")
+		}
 
-			if irodsConn.User == irodsConn.ClientUser {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", irodsConn.User, irodsConn.ClientUser)
-			}
-		} else {
-			// replaced user
-			// static volume provisioning takes user argument from pv
-			// this is okay
+		if len(irodsConn.ClientUser) == 0 {
+			return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be given")
+		}
+
+		if irodsConn.User == irodsConn.ClientUser {
+			return nil, status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", irodsConn.User, irodsConn.ClientUser)
 		}
 	}
 
@@ -213,6 +211,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	}
 
 	volContext["path"] = volPath
+	volContext["provisioning_mode"] = "dynamic"
 
 	// create a irods volume and put it to manager
 	irodsVolume := NewIRODSVolume(volID, volName, volRootPath, volPath, irodsConn, volRetain)
@@ -347,8 +346,6 @@ func (driver *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Contr
 }
 
 // generateVolumeID generates volume id from volume name
-func generateVolumeID(volName string) string {
-	//uuid := uuid.New()
-	//return fmt.Sprintf("volid-%s", uuid.String())
-	return volName
+func (driver *Driver) generateVolumeID(volName string) string {
+	return fmt.Sprintf("volid-%s-%s", volName, xid.New().String())
 }

@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -42,10 +43,6 @@ var (
 	nodeCaps = []csi.NodeServiceCapability_RPC_Type{csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME}
 )
 
-const (
-	sensitiveArgsRemoved = "<masked>"
-)
-
 // NodeStageVolume handles persistent volume stage event in node service
 func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	volID := req.GetVolumeId()
@@ -55,6 +52,12 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	klog.V(4).Infof("NodeStageVolume: volumeId (%#v)", volID)
 
+	if !driver.isDynamicVolumeProvisioningMode(req.VolumeContext) {
+		// static volume provisioning
+		return &csi.NodeStageVolumeResponse{}, nil
+	}
+
+	// only for dynamic volume provisioning mode
 	targetPath := req.GetStagingTargetPath()
 	if len(targetPath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
@@ -83,6 +86,18 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 			if !hasOption(mountOptions, f) {
 				mountOptions = append(mountOptions, f)
 			}
+		}
+	}
+
+	pathExist, pathExistErr := PathExists(targetPath)
+	if pathExistErr != nil {
+		return nil, status.Error(codes.Internal, pathExistErr.Error())
+	}
+
+	if !pathExist {
+		klog.V(5).Infof("NodeStageVolume: creating dir %s", targetPath)
+		if err := MakeDir(targetPath); err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 		}
 	}
 
@@ -138,8 +153,6 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 // NodePublishVolume handles persistent volume publish event in node service
 func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	//klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
-
 	volID := req.GetVolumeId()
 	if len(volID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -203,27 +216,66 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted", targetPath)
 	}
 
-	// bind mount
-	stagingTargetPath := req.GetStagingTargetPath()
-	if len(stagingTargetPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
-	}
+	if driver.isDynamicVolumeProvisioningMode(req.VolumeContext) {
+		// dynamic volume provisioning
+		// bind mount
+		stagingTargetPath := req.GetStagingTargetPath()
+		if len(stagingTargetPath) == 0 {
+			return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
+		}
 
-	klog.V(5).Infof("NodePublishVolume: mounting %s", "bind")
-	if err := driver.mountBind(stagingTargetPath, mountOptions, targetPath); err != nil {
-		os.Remove(targetPath)
-		return nil, err
+		klog.V(5).Infof("NodePublishVolume: mounting %s", "bind")
+		if err := driver.mountBind(stagingTargetPath, mountOptions, targetPath); err != nil {
+			os.Remove(targetPath)
+			return nil, err
+		}
+	} else {
+		// static volume provisioning
+		// mount volume
+		volContext := req.GetVolumeContext()
+		volSecrets := req.GetSecrets()
+
+		secrets := make(map[string]string)
+		for k, v := range driver.secrets {
+			secrets[k] = v
+		}
+
+		for k, v := range volSecrets {
+			secrets[k] = v
+		}
+
+		irodsClient := ExtractIRODSClientType(volContext, secrets, FuseType)
+
+		switch irodsClient {
+		case FuseType:
+			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
+			if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
+				os.Remove(targetPath)
+				return nil, err
+			}
+		case WebdavType:
+			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
+			if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
+				os.Remove(targetPath)
+				return nil, err
+			}
+		case NfsType:
+			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
+			if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
+				os.Remove(targetPath)
+				return nil, err
+			}
+		default:
+			return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
+		}
 	}
 
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", targetPath)
-
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
 // NodeUnpublishVolume handles persistent volume unpublish event in node service
 func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	//klog.V(4).Infof("NodeUnpublishVolume: called with args %+v", req)
-
 	volID := req.GetVolumeId()
 	if len(volID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -521,4 +573,16 @@ func (driver *Driver) mountNfs(volContext map[string]string, volSecrets map[stri
 	}
 
 	return nil
+}
+
+func (driver *Driver) isDynamicVolumeProvisioningMode(volContext map[string]string) bool {
+	for k, v := range volContext {
+		if strings.ToLower(k) == "provisioning_mode" {
+			if strings.ToLower(v) == "dynamic" {
+				return true
+			}
+		}
+	}
+
+	return false
 }
