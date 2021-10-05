@@ -3,9 +3,11 @@ CSI_DRIVER_BUILD_IMAGE=irods_csi_driver_build
 CSI_DRIVER_BUILD_DOCKERFILE=deploy/image/irods_csi_driver_build.dockerfile
 FUSE_CLIENT_BUILD_IMAGE=irods_fuse_client_build
 FUSE_CLIENT_BUILD_DOCKERFILE=deploy/image/irods_fuse_build.dockerfile
+FUSE_POOL_SERVER_BUILD_IMAGE=irods_fuse_pool_server_build
+FUSE_POOL_SERVER_BUILD_DOCKERFILE=deploy/image/irods_fuse_pool_server_build.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
-VERSION=v0.4.5
+VERSION=v0.4.6
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
@@ -24,12 +26,16 @@ irods-csi-driver:
 fuse_build:
 	docker build -t $(FUSE_CLIENT_BUILD_IMAGE):latest -f $(FUSE_CLIENT_BUILD_DOCKERFILE) .
 
+.PHONY: fuse_pool_server_build
+fuse_pool_server_build:
+	docker build -t $(FUSE_POOL_SERVER_BUILD_IMAGE):latest -f $(FUSE_POOL_SERVER_BUILD_DOCKERFILE) .
+
 .PHONY: driver_build
 driver_build:
 	docker build -t $(CSI_DRIVER_BUILD_IMAGE):latest -f $(CSI_DRIVER_BUILD_DOCKERFILE) .
 
 .PHONY: image
-image: fuse_build driver_build
+image: fuse_build fuse_pool_server_build driver_build
 	docker build -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
 
 .PHONY: push
