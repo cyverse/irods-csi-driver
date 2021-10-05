@@ -35,7 +35,7 @@ COPY --from=irods_fuse_client_build:latest ${IRODS_FUSE_DIR}/bin/irodsfs /usr/bi
 # Setup iRODS FUSE Lite Pool Server
 COPY --from=irods_fuse_pool_server_build:latest ${IRODS_FUSE_POOL_SERVER_DIR}/bin/irodsfs-pool /usr/bin/irodsfs-pool
 
-COPY start.sh /usr/bin/start.sh
+COPY deploy/image/start.sh /usr/bin/start.sh
 RUN chmod 755 /usr/bin/start.sh
 
 ENTRYPOINT ["/usr/bin/start.sh"]
