@@ -144,11 +144,12 @@ func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType
 
 // ExtractIRODSConnectionInfo extracts IRODSConnectionInfo value from param map
 func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
-	var user, password, clientUser, host, zone, poolHost, monitorUrl string
+	var user, password, clientUser, host, zone, monitorUrl string
 	path := ""
 	pathMappings := []IRODSFSPathMapping{}
 	port := 0
-	poolPort := 0
+	poolHost := "localhost"
+	poolPort := 12020
 	uid := -1
 	gid := -1
 	sysuser := ""
