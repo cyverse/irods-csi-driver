@@ -4,8 +4,8 @@ github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/container-storage-interface/spec v1.2.0 h1:bD9KIVgaVKKkQ/UbVUY9kCaH/CJbhNxe0eeB4JeJV2s=
 github.com/container-storage-interface/spec v1.2.0/go.mod h1:6URME8mwIBbpVyZV93Ce5St17xBiQJQY67NDsuohiy4=
-github.com/cyverse/go-irodsclient v0.5.5 h1:lIwPMXGnW3jv72AldhTtME9npJtxVeV97qwvOiA88Qo=
-github.com/cyverse/go-irodsclient v0.5.5/go.mod h1:PVmKLbP3uBZZw9ihroy1RdnY2vNCkwXGYeDtPgVle30=
+github.com/cyverse/go-irodsclient v0.5.6 h1:Mo5pGfOAA1Ge09h45SWXAdXTKKKo96hjOiNxI9xdJHQ=
+github.com/cyverse/go-irodsclient v0.5.6/go.mod h1:PVmKLbP3uBZZw9ihroy1RdnY2vNCkwXGYeDtPgVle30=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
