@@ -30,6 +30,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 	"k8s.io/klog"
@@ -55,6 +56,10 @@ type Driver struct {
 	server  *grpc.Server
 	mounter Mounter
 	secrets map[string]string
+
+	controllerVolumes map[string]*ControllerVolume
+	nodeVolumes       map[string]*NodeVolume
+	volumeLock        sync.Mutex
 }
 
 // NewDriver returns new driver
@@ -62,6 +67,11 @@ func NewDriver(conf *Config) *Driver {
 	return &Driver{
 		config:  conf,
 		mounter: newNodeMounter(),
+		secrets: make(map[string]string),
+
+		controllerVolumes: make(map[string]*ControllerVolume),
+		nodeVolumes:       make(map[string]*NodeVolume),
+		volumeLock:        sync.Mutex{},
 	}
 }
 

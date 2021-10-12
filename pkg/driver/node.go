@@ -54,6 +54,15 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	if !driver.isDynamicVolumeProvisioningMode(req.VolumeContext) {
 		// static volume provisioning
+		nodeVolume := &NodeVolume{
+			ID:                        volID,
+			StagingMountPath:          "",
+			MountPath:                 "",
+			DynamicVolumeProvisioning: false,
+			StageVolume:               true,
+		}
+		driver.PutNodeVolume(nodeVolume)
+
 		return &csi.NodeStageVolumeResponse{}, nil
 	}
 
@@ -148,6 +157,16 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	}
 
 	klog.V(5).Infof("NodeStageVolume: %s was mounted", targetPath)
+
+	nodeVolume := &NodeVolume{
+		ID:                        volID,
+		StagingMountPath:          targetPath,
+		MountPath:                 "",
+		DynamicVolumeProvisioning: true,
+		StageVolume:               true,
+	}
+	driver.PutNodeVolume(nodeVolume)
+
 	return &csi.NodeStageVolumeResponse{}, nil
 }
 
@@ -229,6 +248,15 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			os.Remove(targetPath)
 			return nil, err
 		}
+
+		// update node volume info
+		nodeVolume := driver.PopNodeVolume(volID)
+		if nodeVolume == nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Unable to find node volume %s", volID)
+		}
+
+		nodeVolume.MountPath = targetPath
+		driver.PutNodeVolume(nodeVolume)
 	} else {
 		// static volume provisioning
 		// mount volume
@@ -268,9 +296,26 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		default:
 			return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
 		}
+
+		// update node volume info if exists
+		nodeVolume := driver.PopNodeVolume(volID)
+		if nodeVolume == nil {
+			nodeVolume = &NodeVolume{
+				ID:                        volID,
+				StagingMountPath:          "",
+				MountPath:                 targetPath,
+				DynamicVolumeProvisioning: false,
+				StageVolume:               false,
+			}
+		} else {
+			nodeVolume.MountPath = targetPath
+		}
+
+		driver.PutNodeVolume(nodeVolume)
 	}
 
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", targetPath)
+
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
@@ -282,6 +327,16 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	}
 
 	klog.V(4).Infof("NodeUnpublishVolume: volumeId (%#v)", volID)
+
+	nodeVolume := driver.GetNodeVolume(volID)
+	if nodeVolume == nil {
+		klog.V(5).Infof("Unable to find node volume %s", volID)
+	} else {
+		if !nodeVolume.StageVolume {
+			// delete here
+			driver.PopNodeVolume(volID)
+		}
+	}
 
 	targetPath := req.GetTargetPath()
 	if len(targetPath) == 0 {
@@ -329,6 +384,19 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	}
 
 	klog.V(4).Infof("NodeUnstageVolume: volumeId (%#v)", volID)
+
+	nodeVolume := driver.GetNodeVolume(volID)
+	if nodeVolume == nil {
+		klog.V(5).Infof("Unable to find node volume %s", volID)
+	} else {
+		// delete here
+		driver.PopNodeVolume(volID)
+
+		if !nodeVolume.DynamicVolumeProvisioning {
+			// nothing to do for StaticCVolumeProvisioning
+			return &csi.NodeUnstageVolumeResponse{}, nil
+		}
+	}
 
 	targetPath := req.GetStagingTargetPath()
 	if len(targetPath) == 0 {

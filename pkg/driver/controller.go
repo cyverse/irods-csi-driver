@@ -211,11 +211,20 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	}
 
 	volContext["path"] = volPath
+
+	// tell this volume is created via dynamic volume provisioning
 	volContext["provisioning_mode"] = "dynamic"
 
-	// create a irods volume and put it to manager
-	irodsVolume := NewIRODSVolume(volID, volName, volRootPath, volPath, irodsConn, volRetain)
-	PutIRODSVolume(irodsVolume)
+	// create a controller volume (for dynamic volume provisioning)
+	controllerVolume := &ControllerVolume{
+		ID:             volID,
+		Name:           volName,
+		RootPath:       volRootPath,
+		Path:           volPath,
+		ConnectionInfo: irodsConn,
+		RetainData:     volRetain,
+	}
+	driver.PutControllerVolume(controllerVolume)
 
 	volume := &csi.Volume{
 		VolumeId:      volID,
@@ -237,19 +246,19 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 
 	klog.V(4).Infof("DeleteVolume: volumeId (%#v)", volID)
 
-	irodsVolume := PopIRODSVolume(volID)
-	if irodsVolume == nil {
+	controllerVolume := driver.PopControllerVolume(volID)
+	if controllerVolume == nil {
 		// orphant
 		klog.V(4).Infof("DeleteVolume: cannot find a volume with id (%v)", volID)
 		// ignore this error
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
-	if !irodsVolume.RetainData {
-		klog.V(5).Infof("Deleting a volume dir %s", irodsVolume.Path)
-		err := IRODSRmdir(irodsVolume.ConnectionInfo, irodsVolume.Path)
+	if !controllerVolume.RetainData {
+		klog.V(5).Infof("Deleting a volume dir %s", controllerVolume.Path)
+		err := IRODSRmdir(controllerVolume.ConnectionInfo, controllerVolume.Path)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %s : %v", irodsVolume.Path, err)
+			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %s : %v", controllerVolume.Path, err)
 		}
 	}
 
