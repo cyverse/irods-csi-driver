@@ -10,3 +10,8 @@ globalConfig:
       retainData: "false"
       enforceProxyAccess: "true"
       mountPathWhitelist: "/iplant/home"
+
+nodeService:
+  irodsPool:
+    extraArgs:
+      - --cache_size_max=21474836480

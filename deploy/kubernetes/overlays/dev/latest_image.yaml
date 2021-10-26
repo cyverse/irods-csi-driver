@@ -10,3 +10,6 @@ spec:
         - name: irods-plugin
           image: cyverse/irods-csi-driver:latest
           imagePullPolicy: Always
+        - name: irods-pool
+          image: cyverse/irods-csi-driver-pool:latest
+          imagePullPolicy: Always

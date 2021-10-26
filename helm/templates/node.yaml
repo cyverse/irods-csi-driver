@@ -65,6 +65,19 @@ spec:
             failureThreshold: 5
           resources:
             {{- toYaml .Values.nodeService.irodsPlugin.resources | nindent 12 }}
+        - name: irods-pool
+          securityContext:
+            {{- toYaml .Values.nodeService.irodsPool.securityContext | nindent 12 }}
+          image: "{{ .Values.nodeService.irodsPool.image.repository }}:{{ .Values.nodeService.irodsPool.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeService.irodsPool.image.pullPolicy }}
+          args:
+            {{- toYaml .Values.nodeService.irodsPool.extraArgs | nindent 12 }}
+          ports:
+            - containerPort: 12020
+              name: pool-grpc
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.nodeService.irodsPool.resources | nindent 12 }}
         - name: csi-driver-registrar
           securityContext:
             {{- toYaml .Values.nodeService.csiDriverRegistrar.securityContext | nindent 12 }}

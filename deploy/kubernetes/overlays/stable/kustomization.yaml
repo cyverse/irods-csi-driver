@@ -5,6 +5,8 @@ bases:
 images:
 - name: cyverse/irods-csi-driver
   newTag: v0.4.10
+- name: cyverse/irods-csi-driver-pool
+  newTag: v0.4.10
 - name: quay.io/k8scsi/csi-provisioner
   newTag: v1.6.0
 - name: quay.io/k8scsi/livenessprobe

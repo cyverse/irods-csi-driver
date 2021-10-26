@@ -65,6 +65,18 @@ nodeService:
 
     resources: {}
 
+  irodsPool:
+    image:
+      repository: cyverse/irods-csi-driver-pool
+      tag: v0.4.10
+      pullPolicy: IfNotPresent
+
+    extraArgs: []
+
+    securityContext: {}
+
+    resources: {}
+
   csiDriverRegistrar:
     image:
       repository: quay.io/k8scsi/csi-node-driver-registrar
@@ -98,3 +110,4 @@ serviceAccount:
 globalConfig:
   secret:
     stringData: {}
+    

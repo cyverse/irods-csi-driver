@@ -63,6 +63,17 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 2
             failureThreshold: 5
+        - name: irods-pool
+          image: cyverse/irods-csi-driver-pool:latest
+          args:
+            - --cache_size_max=$(CACHE_SIZE_MAX)
+          env:
+            - name: CACHE_SIZE_MAX
+              value: "21474836480"
+          ports:
+            - containerPort: 12020
+              name: pool-grpc
+              protocol: TCP
         - name: csi-driver-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           args:

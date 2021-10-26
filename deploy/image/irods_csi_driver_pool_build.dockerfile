@@ -4,7 +4,7 @@
 
 
 ##############################################
-# Build irodsfs
+# Build irodsfs-pool
 ##############################################
 FROM golang:1.16.8-stretch
 LABEL maintainer="Illyoung Choi <iychoi@email.arizona.edu>"
