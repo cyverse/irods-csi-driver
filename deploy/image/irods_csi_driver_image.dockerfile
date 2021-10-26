@@ -24,6 +24,11 @@ RUN apt-get update && \
 # Setup NFS Client and WebDAV Client
 RUN apt-get install -y nfs-common davfs2
 
+### Install dumb-init
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
+  /usr/bin/dumb-init
+RUN chmod +x /usr/bin/dumb-init
+
 WORKDIR /opt/
 
 # Setup CSI Driver
@@ -32,4 +37,4 @@ COPY --from=irods_csi_driver_build:latest ${CSI_DRIVER_SRC_DIR}/bin/irods-csi-dr
 COPY --from=irods_fuse_client_build:latest ${IRODS_FUSE_DIR}/mount_exec/mount.irodsfs /sbin/mount.irodsfs
 COPY --from=irods_fuse_client_build:latest ${IRODS_FUSE_DIR}/bin/irodsfs /usr/bin/irodsfs
 
-ENTRYPOINT ["/usr/bin/irods-csi-driver"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/bin/irods-csi-driver"]

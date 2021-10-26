@@ -361,7 +361,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	}
 
 	klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", targetPath)
-	// unmount bind mount
+	// unmount
 	err = driver.mounter.Unmount(targetPath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
