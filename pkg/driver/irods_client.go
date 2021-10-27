@@ -40,6 +40,8 @@ type IRODSConnectionInfo struct {
 	GID          int
 	SystemUser   string
 	MountTimeout int
+	Profile      bool
+	ProfilePort  int
 }
 
 // IRODSWebDAVConnectionInfo class
@@ -57,7 +59,7 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, poolHost string, poolPort int, monitorUrl string, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, poolHost string, poolPort int, monitorUrl string, profile bool, profilePort int, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
 		Hostname:     hostname,
 		Port:         port,
@@ -73,6 +75,8 @@ func NewIRODSConnectionInfo(hostname string, port int, zone string, user string,
 		GID:          gid,
 		SystemUser:   systemUser,
 		MountTimeout: mountTimeout,
+		Profile:      profile,
+		ProfilePort:  profilePort,
 	}
 }
 
@@ -154,6 +158,8 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 	gid := -1
 	sysuser := ""
 	mountTimeout := 300
+	profile := false
+	profilePort := 11021
 
 	for k, v := range secrets {
 		switch strings.ToLower(k) {
@@ -187,6 +193,18 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			poolPort = p
+		case "profile":
+			pb, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
+			}
+			profile = pb
+		case "profile_port", "profileport":
+			p, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
+			}
+			profilePort = p
 		case "monitorurl", "monitor_url":
 			monitorUrl = v
 		case "path_mapping_json", "pathmappingjson":
@@ -251,6 +269,18 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			poolPort = p
+		case "profile":
+			pb, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
+			}
+			profile = pb
+		case "profile_port", "profileport":
+			p, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
+			}
+			profilePort = p
 		case "monitorurl", "monitor_url":
 			monitorUrl = v
 		case "path_mapping_json", "pathmappingjson":
@@ -331,7 +361,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		mountTimeout = 300
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, poolHost, poolPort, monitorUrl, pathMappings, uid, gid, sysuser, mountTimeout)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, poolHost, poolPort, monitorUrl, profile, profilePort, pathMappings, uid, gid, sysuser, mountTimeout)
 	return conn, nil
 }
 

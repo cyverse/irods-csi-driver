@@ -566,6 +566,8 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	irodsFsConfig.SystemUser = irodsConn.SystemUser
 	irodsFsConfig.PoolHost = irodsConn.PoolHostname
 	irodsFsConfig.PoolPort = irodsConn.PoolPort
+	irodsFsConfig.Profile = irodsConn.Profile
+	irodsFsConfig.ProfileServicePort = irodsConn.ProfilePort
 
 	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
 	if err != nil {

@@ -46,9 +46,11 @@ type IRODSFSConfig struct {
 	MetadataCacheCleanupTime time.Duration `yaml:"metadata_cache_cleanup_time"`
 	BufferSizeMax            int64         `yaml:"buffer_size_max"`
 
-	LogPath    string `yaml:"log_path,omitempty"`
-	MonitorURL string `yaml:"monitor_url,omitempty"`
-	AllowOther bool   `yaml:"allow_other,omitempty"`
+	LogPath            string `yaml:"log_path,omitempty"`
+	MonitorURL         string `yaml:"monitor_url,omitempty"`
+	Profile            bool   `yaml:"profile,omitempty"`
+	ProfileServicePort int    `yaml:"profile_service_port,omitempty"`
+	AllowOther         bool   `yaml:"allow_other,omitempty"`
 }
 
 // NewDefaultIRODSFSConfig creates default IRODSFSConfig
@@ -71,8 +73,10 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		MetadataCacheCleanupTime: MetadataCacheCleanupTimeDefault,
 		BufferSizeMax:            BufferSizeMaxDefault,
 
-		LogPath:    "",
-		MonitorURL: "",
-		AllowOther: true,
+		LogPath:            "",
+		MonitorURL:         "",
+		Profile:            false,
+		ProfileServicePort: 0,
+		AllowOther:         true,
 	}
 }
