@@ -243,7 +243,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 			user = v
 		case "password":
 			password = v
-		case "clientuser":
+		case "client_user", "clientuser":
 			// for proxy
 			clientUser = v
 		case "host":
