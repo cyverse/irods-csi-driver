@@ -14,7 +14,7 @@ controllerService:
     image:
       repository: cyverse/irods-csi-driver
       tag: v0.4.10
-      pullPolicy: IfNotPresent
+      pullPolicy: Always
 
     extraArgs:
       - --logtostderr
@@ -54,7 +54,7 @@ nodeService:
     image:
       repository: cyverse/irods-csi-driver
       tag: v0.4.10
-      pullPolicy: IfNotPresent
+      pullPolicy: Always
 
     extraArgs:
       - --logtostderr
@@ -69,7 +69,7 @@ nodeService:
     image:
       repository: cyverse/irods-csi-driver-pool
       tag: v0.4.10
-      pullPolicy: IfNotPresent
+      pullPolicy: Always
 
     extraArgs: []
 
