@@ -69,6 +69,7 @@ type Mounter interface {
 	mount.Interface
 	GetDeviceName(mountPath string) (string, int, error)
 	MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string, stdinValues []string) error
+	UnmountForcefully(target string) error
 }
 
 type NodeMounter struct {
@@ -218,6 +219,32 @@ func (mounter *NodeMounter) Unmount(target string) error {
 	command := exec.Command("umount", target)
 	output, err := command.CombinedOutput()
 	if err != nil {
+		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))
+	}
+	return nil
+}
+
+// Unmount unmounts the target forcefully after initial try of unmount.
+func (mounter *NodeMounter) UnmountForcefully(target string) error {
+	klog.V(4).Infof("Unmounting %s", target)
+	command := exec.Command("umount", target)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() == 32 {
+				// BUSY
+				klog.V(4).Infof("Target mount %s is busy, try unmounting forcefully", target)
+				commandForce := exec.Command("umount", "-f", target)
+				outputForce, errForce := commandForce.CombinedOutput()
+				if errForce != nil {
+					return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(outputForce))
+				}
+				return nil
+			}
+
+			// if the mount is not busy but failed -> fall below
+		}
+
 		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))
 	}
 	return nil

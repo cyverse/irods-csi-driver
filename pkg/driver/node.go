@@ -362,7 +362,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", targetPath)
 	// unmount
-	err = driver.mounter.Unmount(targetPath)
+	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
 	}
@@ -421,7 +421,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	}
 
 	klog.V(5).Infof("NodeUnstageVolume: unmounting %s", targetPath)
-	err = driver.mounter.Unmount(targetPath)
+	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
 	}
