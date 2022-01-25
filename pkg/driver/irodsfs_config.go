@@ -7,6 +7,7 @@ const (
 	ReadAheadMaxDefault             int           = 1024 * 64 // 64KB
 	ConnectionMaxDefault            int           = 10
 	OperationTimeoutDefault         time.Duration = 5 * time.Minute
+	ConnectionLifespanDefault       time.Duration = 1 * time.Hour
 	ConnectionIdleTimeoutDefault    time.Duration = 5 * time.Minute
 	MetadataCacheTimeoutDefault     time.Duration = 5 * time.Minute
 	MetadataCacheCleanupTimeDefault time.Duration = 5 * time.Minute
@@ -38,8 +39,10 @@ type IRODSFSConfig struct {
 	PoolHost string `yaml:"pool_host,omitempty"`
 	PoolPort int    `yaml:"pool_port,omitempty"`
 
-	ReadAheadMax             int           `yaml:"read_ahead_max"`
-	OperationTimeout         time.Duration `yaml:"operation_timeout"`
+	ReadAheadMax     int           `yaml:"read_ahead_max"`
+	OperationTimeout time.Duration `yaml:"operation_timeout"`
+
+	ConnectionLifespan       time.Duration `yaml:"connection_lifespan"`
 	ConnectionIdleTimeout    time.Duration `yaml:"connection_idle_timeout"`
 	ConnectionMax            int           `yaml:"connection_max"`
 	MetadataCacheTimeout     time.Duration `yaml:"metadata_cache_timeout"`
@@ -67,6 +70,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 
 		ReadAheadMax:             ReadAheadMaxDefault,
 		OperationTimeout:         OperationTimeoutDefault,
+		ConnectionLifespan:       ConnectionLifespanDefault,
 		ConnectionIdleTimeout:    ConnectionIdleTimeoutDefault,
 		ConnectionMax:            ConnectionMaxDefault,
 		MetadataCacheTimeout:     MetadataCacheTimeoutDefault,

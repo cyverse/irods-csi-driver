@@ -53,7 +53,8 @@ func IRODSTestConnection(conn *IRODSConnectionInfo) error {
 	}
 
 	oneMin := 1 * time.Minute
-	fsConfig := irodsclient_fs.NewFileSystemConfig(applicationName, oneMin, oneMin, 1, oneMin, oneMin, true)
+	oneHour := 1 * time.Hour
+	fsConfig := irodsclient_fs.NewFileSystemConfig(applicationName, oneHour, oneMin, oneMin, 1, oneMin, oneMin, nil, true)
 	filesystem, err := irodsclient_fs.NewFileSystem(account, fsConfig)
 	if err != nil {
 		return err
