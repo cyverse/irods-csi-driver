@@ -15,7 +15,7 @@ LABEL description="iRODS FUSE Lite Build Image"
 WORKDIR /opt/
 RUN git clone https://github.com/cyverse/irodsfs.git
 WORKDIR /opt/irodsfs
-RUN git checkout tags/v0.4.4
+RUN git checkout tags/v0.5.0
 
 # Build
 RUN make build
