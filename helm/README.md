@@ -38,7 +38,7 @@ helm install irods-csi-driver -f user_values.yaml --namespace kube-system .
 ```shell script
 helm upgrade irods-csi-driver \
     --install . \
-    --version 0.6.1 \
+    --version 0.6.2 \
     --namespace kube-system \
     -f values.yaml
 ```
