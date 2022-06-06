@@ -31,10 +31,13 @@ type IRODSFSConfig struct {
 	ClientUser   string               `yaml:"client_user"`
 	Zone         string               `yaml:"zone"`
 	Password     string               `yaml:"password"`
+	Resource     string               `yaml:"resource,omitempty"`
 	PathMappings []IRODSFSPathMapping `yaml:"path_mappings"`
 	UID          int                  `yaml:"uid"`
 	GID          int                  `yaml:"gid"`
 	SystemUser   string               `yaml:"system_user"`
+
+	TempRootPath string `yaml:"temp_root_path,omitempty"`
 
 	PoolHost string `yaml:"pool_host,omitempty"`
 	PoolPort int    `yaml:"pool_port,omitempty"`
@@ -47,13 +50,14 @@ type IRODSFSConfig struct {
 	ConnectionMax            int           `yaml:"connection_max"`
 	MetadataCacheTimeout     time.Duration `yaml:"metadata_cache_timeout"`
 	MetadataCacheCleanupTime time.Duration `yaml:"metadata_cache_cleanup_time"`
-	BufferSizeMax            int64         `yaml:"buffer_size_max"`
 
-	LogPath            string `yaml:"log_path,omitempty"`
-	MonitorURL         string `yaml:"monitor_url,omitempty"`
-	Profile            bool   `yaml:"profile,omitempty"`
-	ProfileServicePort int    `yaml:"profile_service_port,omitempty"`
-	AllowOther         bool   `yaml:"allow_other,omitempty"`
+	LogPath    string `yaml:"log_path,omitempty"`
+	MonitorURL string `yaml:"monitor_url,omitempty"`
+
+	Profile            bool `yaml:"profile,omitempty"`
+	ProfileServicePort int  `yaml:"profile_service_port,omitempty"`
+
+	AllowOther bool `yaml:"allow_other,omitempty"`
 }
 
 // NewDefaultIRODSFSConfig creates default IRODSFSConfig
@@ -65,6 +69,8 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		GID:          -1,
 		SystemUser:   "",
 
+		TempRootPath: "",
+
 		PoolHost: "",
 		PoolPort: 0,
 
@@ -75,7 +81,6 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		ConnectionMax:            ConnectionMaxDefault,
 		MetadataCacheTimeout:     MetadataCacheTimeoutDefault,
 		MetadataCacheCleanupTime: MetadataCacheCleanupTimeDefault,
-		BufferSizeMax:            BufferSizeMaxDefault,
 
 		LogPath:            "",
 		MonitorURL:         "",

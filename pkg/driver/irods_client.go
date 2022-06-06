@@ -32,6 +32,7 @@ type IRODSConnectionInfo struct {
 	User         string
 	Password     string
 	ClientUser   string // if this field has a value, user and password fields have proxy user info
+	Resource     string
 	PoolHostname string
 	PoolPort     int
 	MonitorURL   string
@@ -59,7 +60,7 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, poolHost string, poolPort int, monitorUrl string, profile bool, profilePort int, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, resource string, poolHost string, poolPort int, monitorUrl string, profile bool, profilePort int, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
 		Hostname:     hostname,
 		Port:         port,
@@ -67,6 +68,7 @@ func NewIRODSConnectionInfo(hostname string, port int, zone string, user string,
 		User:         user,
 		Password:     password,
 		ClientUser:   clientUser,
+		Resource:     resource,
 		PoolHostname: poolHost,
 		PoolPort:     poolPort,
 		MonitorURL:   monitorUrl,
@@ -148,7 +150,7 @@ func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType
 
 // ExtractIRODSConnectionInfo extracts IRODSConnectionInfo value from param map
 func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
-	var user, password, clientUser, host, zone, monitorUrl string
+	var user, password, clientUser, host, zone, resource, monitorUrl string
 	path := ""
 	pathMappings := []IRODSFSPathMapping{}
 	port := 0
@@ -180,6 +182,8 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 			port = p
 		case "zone":
 			zone = v
+		case "resource":
+			resource = v
 		case "path":
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
@@ -256,6 +260,8 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 			port = p
 		case "zone":
 			zone = v
+		case "resource":
+			resource = v
 		case "path":
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
@@ -361,7 +367,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		mountTimeout = 300
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, poolHost, poolPort, monitorUrl, profile, profilePort, pathMappings, uid, gid, sysuser, mountTimeout)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, resource, poolHost, poolPort, monitorUrl, profile, profilePort, pathMappings, uid, gid, sysuser, mountTimeout)
 	return conn, nil
 }
 

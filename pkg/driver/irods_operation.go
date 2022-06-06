@@ -13,7 +13,7 @@ const (
 
 // IRODSMkdir creates a new directory
 func IRODSMkdir(conn *IRODSConnectionInfo, path string) error {
-	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, "")
+	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, conn.Resource)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func IRODSMkdir(conn *IRODSConnectionInfo, path string) error {
 
 // IRODSRmdir deletes a directory
 func IRODSRmdir(conn *IRODSConnectionInfo, path string) error {
-	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, "")
+	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, conn.Resource)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func IRODSRmdir(conn *IRODSConnectionInfo, path string) error {
 
 // IRODSTestConnection just test connection creation
 func IRODSTestConnection(conn *IRODSConnectionInfo) error {
-	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, "")
+	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, conn.Resource)
 	if err != nil {
 		return err
 	}

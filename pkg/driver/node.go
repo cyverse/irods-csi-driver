@@ -559,6 +559,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	irodsFsConfig.ClientUser = irodsConn.ClientUser
 	irodsFsConfig.Zone = irodsConn.Zone
 	irodsFsConfig.Password = irodsConn.Password
+	irodsFsConfig.Resource = irodsConn.Resource
 	irodsFsConfig.MonitorURL = irodsConn.MonitorURL
 	irodsFsConfig.PathMappings = irodsConn.PathMappings
 	irodsFsConfig.UID = irodsConn.UID
