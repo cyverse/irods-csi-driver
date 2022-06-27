@@ -33,8 +33,7 @@ type IRODSConnectionInfo struct {
 	Password     string
 	ClientUser   string // if this field has a value, user and password fields have proxy user info
 	Resource     string
-	PoolHostname string
-	PoolPort     int
+	PoolEndpoint string
 	MonitorURL   string
 	PathMappings []IRODSFSPathMapping
 	UID          int
@@ -60,7 +59,7 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, resource string, poolHost string, poolPort int, monitorUrl string, profile bool, profilePort int, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, resource string, poolEndpoint string, monitorUrl string, profile bool, profilePort int, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
 		Hostname:     hostname,
 		Port:         port,
@@ -69,8 +68,7 @@ func NewIRODSConnectionInfo(hostname string, port int, zone string, user string,
 		Password:     password,
 		ClientUser:   clientUser,
 		Resource:     resource,
-		PoolHostname: poolHost,
-		PoolPort:     poolPort,
+		PoolEndpoint: poolEndpoint,
 		MonitorURL:   monitorUrl,
 		PathMappings: pathMappings,
 		UID:          uid,
@@ -149,13 +147,11 @@ func GetValidiRODSClientType(client string, defaultClient ClientType) ClientType
 }
 
 // ExtractIRODSConnectionInfo extracts IRODSConnectionInfo value from param map
-func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
+func ExtractIRODSConnectionInfo(poolEndpoint string, params map[string]string, secrets map[string]string) (*IRODSConnectionInfo, error) {
 	var user, password, clientUser, host, zone, resource, monitorUrl string
 	path := ""
 	pathMappings := []IRODSFSPathMapping{}
 	port := 0
-	poolHost := "localhost"
-	poolPort := 12020
 	uid := -1
 	gid := -1
 	sysuser := ""
@@ -189,14 +185,13 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
-		case "pool_host", "poolhost":
-			poolHost = v
-		case "pool_port", "poolport":
-			p, err := strconv.Atoi(v)
+		case "pool_endpoint", "poolendpoint":
+			pe, err := ParsePoolServiceEndpoint(v)
 			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid pool endpoint - %s", k, err)
 			}
-			poolPort = p
+
+			poolEndpoint = pe
 		case "profile":
 			pb, err := strconv.ParseBool(v)
 			if err != nil {
@@ -267,14 +262,13 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
 			path = v
-		case "pool_host", "poolhost":
-			poolHost = v
-		case "pool_port", "poolport":
-			p, err := strconv.Atoi(v)
+		case "pool_endpoint", "poolendpoint":
+			pe, err := ParsePoolServiceEndpoint(v)
 			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid pool endpoint - %s", k, err)
 			}
-			poolPort = p
+
+			poolEndpoint = pe
 		case "profile":
 			pb, err := strconv.ParseBool(v)
 			if err != nil {
@@ -367,7 +361,7 @@ func ExtractIRODSConnectionInfo(params map[string]string, secrets map[string]str
 		mountTimeout = 300
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, resource, poolHost, poolPort, monitorUrl, profile, profilePort, pathMappings, uid, gid, sysuser, mountTimeout)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, resource, poolEndpoint, monitorUrl, profile, profilePort, pathMappings, uid, gid, sysuser, mountTimeout)
 	return conn, nil
 }
 

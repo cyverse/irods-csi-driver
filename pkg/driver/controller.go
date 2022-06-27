@@ -97,7 +97,17 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
 	proxyUser := driver.getDriverConfigUser()
 
-	irodsConn, err := ExtractIRODSConnectionInfo(volParams, secrets)
+	irodsfsPoolEndpoint := ""
+	if len(driver.config.PoolServiceEndpoint) > 0 {
+		endpoint, err := ParsePoolServiceEndpoint(driver.config.PoolServiceEndpoint)
+		if err != nil {
+			return nil, err
+		}
+
+		irodsfsPoolEndpoint = endpoint
+	}
+
+	irodsConn, err := ExtractIRODSConnectionInfo(irodsfsPoolEndpoint, volParams, secrets)
 	if err != nil {
 		return nil, err
 	}

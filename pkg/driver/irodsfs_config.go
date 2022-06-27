@@ -16,12 +16,12 @@ const (
 
 // PathMapping ...
 type IRODSFSPathMapping struct {
-	IRODSPath      string `yaml:"irods_path" json:"irods_path"`
-	MappingPath    string `yaml:"mapping_path" json:"mapping_path"`
-	ResourceType   string `yaml:"resource_type" json:"resource_type"` // file or dir
-	ReadOnly       bool   `yaml:"read_only" json:"read_only"`
-	CreateDir      bool   `yaml:"create_dir" json:"create_dir"`
-	IgnoreNotExist bool   `yaml:"ignore_not_exist" json:"ignore_not_exist"`
+	IRODSPath           string `yaml:"irods_path" json:"irods_path"`
+	MappingPath         string `yaml:"mapping_path" json:"mapping_path"`
+	ResourceType        string `yaml:"resource_type" json:"resource_type"` // file or dir
+	ReadOnly            bool   `yaml:"read_only" json:"read_only"`
+	CreateDir           bool   `yaml:"create_dir" json:"create_dir"`
+	IgnoreNotExistError bool   `yaml:"ignore_not_exist_error" json:"ignore_not_exist_error"`
 }
 
 type IRODSFSConfig struct {
@@ -39,8 +39,7 @@ type IRODSFSConfig struct {
 
 	TempRootPath string `yaml:"temp_root_path,omitempty"`
 
-	PoolHost string `yaml:"pool_host,omitempty"`
-	PoolPort int    `yaml:"pool_port,omitempty"`
+	PoolEndpoint string `yaml:"pool_endpoint,omitempty"`
 
 	ReadAheadMax     int           `yaml:"read_ahead_max"`
 	OperationTimeout time.Duration `yaml:"operation_timeout"`
@@ -71,8 +70,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 
 		TempRootPath: "",
 
-		PoolHost: "",
-		PoolPort: 0,
+		PoolEndpoint: "",
 
 		ReadAheadMax:             ReadAheadMaxDefault,
 		OperationTimeout:         OperationTimeoutDefault,

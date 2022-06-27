@@ -487,7 +487,17 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
 	proxyUser := driver.getDriverConfigUser()
 
-	irodsConn, err := ExtractIRODSConnectionInfo(volContext, volSecrets)
+	irodsfsPoolEndpoint := ""
+	if len(driver.config.PoolServiceEndpoint) > 0 {
+		endpoint, err := ParsePoolServiceEndpoint(driver.config.PoolServiceEndpoint)
+		if err != nil {
+			return err
+		}
+
+		irodsfsPoolEndpoint = endpoint
+	}
+
+	irodsConn, err := ExtractIRODSConnectionInfo(irodsfsPoolEndpoint, volContext, volSecrets)
 	if err != nil {
 		return err
 	}
@@ -565,8 +575,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	irodsFsConfig.UID = irodsConn.UID
 	irodsFsConfig.GID = irodsConn.GID
 	irodsFsConfig.SystemUser = irodsConn.SystemUser
-	irodsFsConfig.PoolHost = irodsConn.PoolHostname
-	irodsFsConfig.PoolPort = irodsConn.PoolPort
+	irodsFsConfig.PoolEndpoint = irodsConn.PoolEndpoint
 	irodsFsConfig.Profile = irodsConn.Profile
 	irodsFsConfig.ProfileServicePort = irodsConn.ProfilePort
 

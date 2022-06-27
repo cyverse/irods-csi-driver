@@ -29,11 +29,14 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
             - --secretpath=$(SECRET_VOLUME_PATH)
+            - --poolservice=$(IRODSFS_POOL_ENDPOINT)
             - --logtostderr
             - --v=5
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
+            - name: IRODSFS_POOL_ENDPOINT
+              value: unix:/csi/pool.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
             - name: NODE_ID
@@ -67,13 +70,17 @@ spec:
           image: cyverse/irods-csi-driver-pool:latest
           args:
             - --cache_size_max=$(CACHE_SIZE_MAX)
+            - --cache_root=/irodsfs_pool_cache
+            - --temp_root=/tmp/irodsfs_pool_temp
+            - --endpoint=$(IRODSFS_POOL_ENDPOINT)
           env:
             - name: CACHE_SIZE_MAX
               value: "21474836480"
-          ports:
-            - containerPort: 12020
-              name: pool-grpc
-              protocol: TCP
+            - name: IRODSFS_POOL_ENDPOINT
+              value: unix:///csi/pool.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
         - name: csi-driver-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           args:

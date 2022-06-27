@@ -29,9 +29,10 @@ import (
 
 // Config holds the parameters list which can be configured
 type Config struct {
-	Endpoint   string // CSI endpoint
-	NodeID     string // node ID
-	SecretPath string // Secret mount path
+	Endpoint            string // CSI endpoint
+	NodeID              string // node ID
+	SecretPath          string // Secret mount path
+	PoolServiceEndpoint string // iRODS FS Pool Service endpoint
 }
 
 // ParseEndpoint parses endpoint string (TCP or UNIX)
@@ -57,4 +58,28 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	}
 
 	return scheme, addr, nil
+}
+
+// ParsePoolServiceEndpoint parses endpoint string
+func ParsePoolServiceEndpoint(endpoint string) (string, error) {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("could not parse endpoint: %v", err)
+	}
+
+	scheme := strings.ToLower(u.Scheme)
+	switch scheme {
+	case "tcp":
+		return u.Host, nil
+	case "unix":
+		path := path.Join("/", u.Path)
+		return "unix://" + path, nil
+	case "":
+		if len(u.Host) > 0 {
+			return u.Host, nil
+		}
+		return "", fmt.Errorf("unknown host: %s", u.Host)
+	default:
+		return "", fmt.Errorf("unsupported protocol: %s", scheme)
+	}
 }
