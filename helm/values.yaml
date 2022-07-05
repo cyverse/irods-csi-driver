@@ -71,7 +71,8 @@ nodeService:
       tag: v0.8.1
       pullPolicy: Always
 
-    extraArgs: []
+    extraArgs:
+      - --cache_size_max=32212254720
 
     securityContext: {}
 
