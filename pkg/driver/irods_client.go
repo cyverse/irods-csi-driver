@@ -26,22 +26,23 @@ const (
 
 // IRODSConnectionInfo class
 type IRODSConnectionInfo struct {
-	Hostname     string
-	Port         int
-	Zone         string
-	User         string
-	Password     string
-	ClientUser   string // if this field has a value, user and password fields have proxy user info
-	Resource     string
-	PoolEndpoint string
-	MonitorURL   string
-	PathMappings []IRODSFSPathMapping
-	UID          int
-	GID          int
-	SystemUser   string
-	MountTimeout int
-	Profile      bool
-	ProfilePort  int
+	Hostname          string
+	Port              int
+	Zone              string
+	User              string
+	Password          string
+	ClientUser        string // if this field has a value, user and password fields have proxy user info
+	Resource          string
+	PoolEndpoint      string
+	MonitorURL        string
+	PathMappings      []IRODSFSPathMapping
+	NoPermissionCheck bool
+	UID               int
+	GID               int
+	SystemUser        string
+	MountTimeout      int
+	Profile           bool
+	ProfilePort       int
 }
 
 // IRODSWebDAVConnectionInfo class
@@ -59,24 +60,25 @@ type IRODSNFSConnectionInfo struct {
 }
 
 // NewIRODSConnectionInfo returns a new instance of IRODSConnectionInfo
-func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, resource string, poolEndpoint string, monitorUrl string, profile bool, profilePort int, pathMappings []IRODSFSPathMapping, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
+func NewIRODSConnectionInfo(hostname string, port int, zone string, user string, password string, clientUser string, resource string, poolEndpoint string, monitorUrl string, profile bool, profilePort int, pathMappings []IRODSFSPathMapping, noPermissionCheck bool, uid int, gid int, systemUser string, mountTimeout int) *IRODSConnectionInfo {
 	return &IRODSConnectionInfo{
-		Hostname:     hostname,
-		Port:         port,
-		Zone:         zone,
-		User:         user,
-		Password:     password,
-		ClientUser:   clientUser,
-		Resource:     resource,
-		PoolEndpoint: poolEndpoint,
-		MonitorURL:   monitorUrl,
-		PathMappings: pathMappings,
-		UID:          uid,
-		GID:          gid,
-		SystemUser:   systemUser,
-		MountTimeout: mountTimeout,
-		Profile:      profile,
-		ProfilePort:  profilePort,
+		Hostname:          hostname,
+		Port:              port,
+		Zone:              zone,
+		User:              user,
+		Password:          password,
+		ClientUser:        clientUser,
+		Resource:          resource,
+		PoolEndpoint:      poolEndpoint,
+		MonitorURL:        monitorUrl,
+		PathMappings:      pathMappings,
+		NoPermissionCheck: noPermissionCheck,
+		UID:               uid,
+		GID:               gid,
+		SystemUser:        systemUser,
+		MountTimeout:      mountTimeout,
+		Profile:           profile,
+		ProfilePort:       profilePort,
 	}
 }
 
@@ -151,6 +153,7 @@ func ExtractIRODSConnectionInfo(poolEndpoint string, params map[string]string, s
 	var user, password, clientUser, host, zone, resource, monitorUrl string
 	path := ""
 	pathMappings := []IRODSFSPathMapping{}
+	noPermissionCheck := false
 	port := 0
 	uid := -1
 	gid := -1
@@ -211,6 +214,12 @@ func ExtractIRODSConnectionInfo(poolEndpoint string, params map[string]string, s
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
 			}
+		case "no_permission_check", "nopermissioncheck":
+			npc, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
+			}
+			noPermissionCheck = npc
 		case "uid":
 			u, err := strconv.Atoi(v)
 			if err != nil {
@@ -288,6 +297,12 @@ func ExtractIRODSConnectionInfo(poolEndpoint string, params map[string]string, s
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
 			}
+		case "no_permission_check", "nopermissioncheck":
+			npc, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
+			}
+			noPermissionCheck = npc
 		case "uid":
 			u, err := strconv.Atoi(v)
 			if err != nil {
@@ -361,7 +376,7 @@ func ExtractIRODSConnectionInfo(poolEndpoint string, params map[string]string, s
 		mountTimeout = 300
 	}
 
-	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, resource, poolEndpoint, monitorUrl, profile, profilePort, pathMappings, uid, gid, sysuser, mountTimeout)
+	conn := NewIRODSConnectionInfo(host, port, zone, user, password, clientUser, resource, poolEndpoint, monitorUrl, profile, profilePort, pathMappings, noPermissionCheck, uid, gid, sysuser, mountTimeout)
 	return conn, nil
 }
 

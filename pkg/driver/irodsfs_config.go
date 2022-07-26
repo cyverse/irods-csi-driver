@@ -25,17 +25,18 @@ type IRODSFSPathMapping struct {
 }
 
 type IRODSFSConfig struct {
-	Host         string               `yaml:"host"`
-	Port         int                  `yaml:"port"`
-	ProxyUser    string               `yaml:"proxy_user"`
-	ClientUser   string               `yaml:"client_user"`
-	Zone         string               `yaml:"zone"`
-	Password     string               `yaml:"password"`
-	Resource     string               `yaml:"resource,omitempty"`
-	PathMappings []IRODSFSPathMapping `yaml:"path_mappings"`
-	UID          int                  `yaml:"uid"`
-	GID          int                  `yaml:"gid"`
-	SystemUser   string               `yaml:"system_user"`
+	Host              string               `yaml:"host"`
+	Port              int                  `yaml:"port"`
+	ProxyUser         string               `yaml:"proxy_user"`
+	ClientUser        string               `yaml:"client_user"`
+	Zone              string               `yaml:"zone"`
+	Password          string               `yaml:"password"`
+	Resource          string               `yaml:"resource,omitempty"`
+	PathMappings      []IRODSFSPathMapping `yaml:"path_mappings"`
+	NoPermissionCheck bool                 `yaml:"no_permission_check"`
+	UID               int                  `yaml:"uid"`
+	GID               int                  `yaml:"gid"`
+	SystemUser        string               `yaml:"system_user"`
 
 	TempRootPath string `yaml:"temp_root_path,omitempty"`
 
@@ -62,11 +63,12 @@ type IRODSFSConfig struct {
 // NewDefaultIRODSFSConfig creates default IRODSFSConfig
 func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 	return &IRODSFSConfig{
-		Port:         PortDefault,
-		PathMappings: []IRODSFSPathMapping{},
-		UID:          -1,
-		GID:          -1,
-		SystemUser:   "",
+		Port:              PortDefault,
+		PathMappings:      []IRODSFSPathMapping{},
+		NoPermissionCheck: false,
+		UID:               -1,
+		GID:               -1,
+		SystemUser:        "",
 
 		TempRootPath: "",
 
