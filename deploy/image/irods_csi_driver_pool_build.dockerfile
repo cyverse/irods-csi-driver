@@ -15,7 +15,7 @@ LABEL description="iRODS FUSE Lite Pool Server Build Image"
 WORKDIR /opt/
 RUN git clone https://github.com/cyverse/irodsfs-pool.git
 WORKDIR /opt/irodsfs-pool
-RUN git checkout tags/v0.5.11
+RUN git checkout tags/v0.5.15
 
 # Build
 RUN make build
