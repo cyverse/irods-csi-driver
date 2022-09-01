@@ -52,7 +52,7 @@ func main() {
 	var prometheusExporterServer *http.Server
 	if conf.PrometheusExporterPort > 0 {
 		go func() {
-			prometheusExporterAddr := fmt.Sprintf(":%d", config.PrometheusExporterPort)
+			prometheusExporterAddr := fmt.Sprintf(":%d", conf.PrometheusExporterPort)
 			http.Handle("/metrics", promhttp.Handler())
 
 			klog.Infof("Starting prometheus exporter at %s", prometheusExporterAddr)
