@@ -106,16 +106,19 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	if !pathExist {
 		klog.V(5).Infof("NodeStageVolume: creating dir %s", targetPath)
 		if err := MakeDir(targetPath); err != nil {
+			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 		}
 	}
 
 	notMountPoint, err := driver.mounter.IsLikelyNotMountPoint(targetPath)
 	if err != nil {
+		promCounterForVolumeMountFailures.Inc()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	if !notMountPoint {
+		promCounterForVolumeMountFailures.Inc()
 		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted", targetPath)
 	}
 
@@ -138,21 +141,25 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
 		if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
+			promCounterForVolumeMountFailures.Inc()
 			return nil, err
 		}
 	case WebdavType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
 		if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
+			promCounterForVolumeMountFailures.Inc()
 			return nil, err
 		}
 	case NfsType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
 		if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
+			promCounterForVolumeMountFailures.Inc()
 			return nil, err
 		}
 	default:
+		promCounterForVolumeMountFailures.Inc()
 		return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
 	}
 
@@ -222,16 +229,19 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if !pathExist {
 		klog.V(5).Infof("NodePublishVolume: creating dir %s", targetPath)
 		if err := MakeDir(targetPath); err != nil {
+			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 		}
 	}
 
 	notMountPoint, err := driver.mounter.IsLikelyNotMountPoint(targetPath)
 	if err != nil {
+		promCounterForVolumeMountFailures.Inc()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	if !notMountPoint {
+		promCounterForVolumeMountFailures.Inc()
 		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted", targetPath)
 	}
 
@@ -240,18 +250,21 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		// bind mount
 		stagingTargetPath := req.GetStagingTargetPath()
 		if len(stagingTargetPath) == 0 {
+			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
 		}
 
 		klog.V(5).Infof("NodePublishVolume: mounting %s", "bind")
 		if err := driver.mountBind(stagingTargetPath, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
+			promCounterForVolumeMountFailures.Inc()
 			return nil, err
 		}
 
 		// update node volume info
 		nodeVolume := driver.PopNodeVolume(volID)
 		if nodeVolume == nil {
+			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Errorf(codes.InvalidArgument, "Unable to find node volume %s", volID)
 		}
 
@@ -279,21 +292,25 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 			if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
 				os.Remove(targetPath)
+				promCounterForVolumeMountFailures.Inc()
 				return nil, err
 			}
 		case WebdavType:
 			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 			if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
 				os.Remove(targetPath)
+				promCounterForVolumeMountFailures.Inc()
 				return nil, err
 			}
 		case NfsType:
 			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 			if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
 				os.Remove(targetPath)
+				promCounterForVolumeMountFailures.Inc()
 				return nil, err
 			}
 		default:
+			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
 		}
 
@@ -340,6 +357,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	targetPath := req.GetTargetPath()
 	if len(targetPath) == 0 {
+		promCounterForVolumeUnmountFailures.Inc()
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
@@ -348,6 +366,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	// returns the device name, reference count, and error code
 	_, refCount, err := driver.mounter.GetDeviceName(targetPath)
 	if err != nil {
+		promCounterForVolumeUnmountFailures.Inc()
 		msg := fmt.Sprintf("failed to check if volume is mounted: %v", err)
 		return nil, status.Error(codes.Internal, msg)
 	}
@@ -364,12 +383,17 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	// unmount
 	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
+		promCounterForVolumeUnmountFailures.Inc()
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
 	}
 	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", targetPath)
 
+	promCounterForVolumeUnmount.Inc()
+	promCounterForActiveVolumeMount.Dec()
+
 	err = os.Remove(targetPath)
 	if err != nil && !os.IsNotExist(err) {
+		promCounterForVolumeUnmountFailures.Inc()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -400,6 +424,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 
 	targetPath := req.GetStagingTargetPath()
 	if len(targetPath) == 0 {
+		promCounterForVolumeUnmountFailures.Inc()
 		return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
 	}
 
@@ -408,6 +433,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	// returns the device name, reference count, and error code
 	_, refCount, err := driver.mounter.GetDeviceName(targetPath)
 	if err != nil {
+		promCounterForVolumeUnmountFailures.Inc()
 		msg := fmt.Sprintf("failed to check if volume is mounted: %v", err)
 		return nil, status.Error(codes.Internal, msg)
 	}
@@ -423,9 +449,13 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	klog.V(5).Infof("NodeUnstageVolume: unmounting %s", targetPath)
 	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
+		promCounterForVolumeUnmountFailures.Inc()
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
 	}
 	klog.V(5).Infof("NodeUnstageVolume: %s unmounted", targetPath)
+
+	promCounterForVolumeUnmount.Inc()
+	promCounterForActiveVolumeMount.Dec()
 
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
@@ -597,6 +627,9 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
 
+	promCounterForVolumeMount.Inc()
+	promCounterForActiveVolumeMount.Inc()
+
 	return nil
 }
 
@@ -626,6 +659,9 @@ func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[s
 		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
 
+	promCounterForVolumeMount.Inc()
+	promCounterForActiveVolumeMount.Inc()
+
 	return nil
 }
 
@@ -652,6 +688,9 @@ func (driver *Driver) mountNfs(volContext map[string]string, volSecrets map[stri
 	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
 		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
+
+	promCounterForVolumeMount.Inc()
+	promCounterForActiveVolumeMount.Inc()
 
 	return nil
 }

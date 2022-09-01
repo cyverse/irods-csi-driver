@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/cyverse/irods-csi-driver/pkg/driver"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"k8s.io/klog"
 )
@@ -22,6 +25,7 @@ func main() {
 	flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
 	flag.StringVar(&conf.SecretPath, "secretpath", "/etc/irods-csi-dirver", "Secret mount path")
 	flag.StringVar(&conf.PoolServiceEndpoint, "poolservice", "unix:///tmp/poolsock", "iRODS FUSE Lite Pool Service endpoint")
+	flag.IntVar(&conf.PrometheusExporterPort, "prometheus_exporter_port", 12023, "Prometheus Exporter Service port")
 	flag.BoolVar(&version, "version", false, "Print driver version information")
 
 	klog.InitFlags(nil)
@@ -45,9 +49,25 @@ func main() {
 		klog.Fatalln("Node ID is not given")
 	}
 
+	var prometheusExporterServer *http.Server
+	if conf.PrometheusExporterPort > 0 {
+		go func() {
+			prometheusExporterAddr := fmt.Sprintf(":%d", config.PrometheusExporterPort)
+			http.Handle("/metrics", promhttp.Handler())
+
+			klog.Infof("Starting prometheus exporter at %s", prometheusExporterAddr)
+			prometheusExporterServer = &http.Server{Addr: prometheusExporterAddr, Handler: nil}
+			prometheusExporterServer.ListenAndServe()
+		}()
+	}
+
 	drv := driver.NewDriver(&conf)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
+	}
+
+	if prometheusExporterServer != nil {
+		prometheusExporterServer.Shutdown(context.TODO())
 	}
 
 	os.Exit(0)

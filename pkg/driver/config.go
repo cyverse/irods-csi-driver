@@ -29,10 +29,11 @@ import (
 
 // Config holds the parameters list which can be configured
 type Config struct {
-	Endpoint            string // CSI endpoint
-	NodeID              string // node ID
-	SecretPath          string // Secret mount path
-	PoolServiceEndpoint string // iRODS FS Pool Service endpoint
+	Endpoint               string // CSI endpoint
+	NodeID                 string // node ID
+	SecretPath             string // Secret mount path
+	PoolServiceEndpoint    string // iRODS FS Pool Service endpoint
+	PrometheusExporterPort int    // Prometheus Exporter Service port
 }
 
 // ParseEndpoint parses endpoint string (TCP or UNIX)
