@@ -45,7 +45,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: PROMETHEUS_EXPORTER_PORT
-              value: 12022
+              value: "12022"
           volumeMounts:
             - name: mountpoint-dir
               mountPath: /var/lib/kubelet/pods
@@ -87,7 +87,7 @@ spec:
             - name: IRODSFS_POOL_ENDPOINT
               value: unix:///csi/pool.sock
             - name: PROMETHEUS_EXPORTER_PORT
-              value: 12022
+              value: "12022"
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
