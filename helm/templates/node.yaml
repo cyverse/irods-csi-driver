@@ -62,7 +62,7 @@ spec:
               name: healthz
               protocol: TCP
             - containerPort: 12023
-              name: prom_metrics
+              name: prom-metrics
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -93,7 +93,7 @@ spec:
               mountPath: /csi
           ports:
             - containerPort: 12022
-              name: prom_metrics
+              name: prom-metrics
               protocol: TCP
           resources:
             {{- toYaml .Values.nodeService.irodsPool.resources | nindent 12 }}
