@@ -31,6 +31,7 @@ spec:
             - --nodeid=$(NODE_ID)
             - --secretpath=$(SECRET_VOLUME_PATH)
             - --poolservice=$(IRODSFS_POOL_ENDPOINT)
+            - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
             {{- toYaml .Values.nodeService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
@@ -43,6 +44,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: PROMETHEUS_EXPORTER_PORT
+              value: 12023
           volumeMounts:
             - name: mountpoint-dir
               mountPath: /var/lib/kubelet/pods
@@ -57,6 +60,9 @@ spec:
           ports:
             - containerPort: 9810
               name: healthz
+              protocol: TCP
+            - containerPort: 12022
+              name: prometheus-metrics
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -75,13 +81,20 @@ spec:
           imagePullPolicy: {{ .Values.nodeService.irodsPool.image.pullPolicy }}
           args:
             - --endpoint=$(IRODSFS_POOL_ENDPOINT)
+            - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
             {{- toYaml .Values.nodeService.irodsPool.extraArgs | nindent 12 }}
           env:
             - name: IRODSFS_POOL_ENDPOINT
               value: unix:///csi/pool.sock
+            - name: PROMETHEUS_EXPORTER_PORT
+              value: 12023
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
+          ports:
+            - containerPort: 12022
+              name: prometheus-metrics
+              protocol: TCP
           resources:
             {{- toYaml .Values.nodeService.irodsPool.resources | nindent 12 }}
         - name: csi-driver-registrar

@@ -25,7 +25,7 @@ func main() {
 	flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
 	flag.StringVar(&conf.SecretPath, "secretpath", "/etc/irods-csi-dirver", "Secret mount path")
 	flag.StringVar(&conf.PoolServiceEndpoint, "poolservice", "unix:///tmp/poolsock", "iRODS FUSE Lite Pool Service endpoint")
-	flag.IntVar(&conf.PrometheusExporterPort, "prometheus_exporter_port", 12023, "Prometheus Exporter Service port")
+	flag.IntVar(&conf.PrometheusExporterPort, "prometheus_exporter_port", 12022, "Prometheus Exporter Service port")
 	flag.BoolVar(&version, "version", false, "Print driver version information")
 
 	klog.InitFlags(nil)
