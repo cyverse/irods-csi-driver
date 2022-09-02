@@ -1,4 +1,4 @@
-package driver
+package irods
 
 import (
 	"time"
@@ -11,8 +11,8 @@ const (
 	applicationName string = "irods-csi-driver"
 )
 
-// IRODSMkdir creates a new directory
-func IRODSMkdir(conn *IRODSConnectionInfo, path string) error {
+// Mkdir creates a new directory
+func Mkdir(conn *IRODSFSConnectionInfo, path string) error {
 	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, conn.Resource)
 	if err != nil {
 		return err
@@ -28,8 +28,8 @@ func IRODSMkdir(conn *IRODSConnectionInfo, path string) error {
 	return filesystem.MakeDir(path, true)
 }
 
-// IRODSRmdir deletes a directory
-func IRODSRmdir(conn *IRODSConnectionInfo, path string) error {
+// Rmdir deletes a directory
+func Rmdir(conn *IRODSFSConnectionInfo, path string) error {
 	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, conn.Resource)
 	if err != nil {
 		return err
@@ -45,8 +45,8 @@ func IRODSRmdir(conn *IRODSConnectionInfo, path string) error {
 	return filesystem.RemoveDir(path, true, true)
 }
 
-// IRODSTestConnection just test connection creation
-func IRODSTestConnection(conn *IRODSConnectionInfo) error {
+// TestConnection just test connection creation
+func TestConnection(conn *IRODSFSConnectionInfo) error {
 	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port, conn.ClientUser, conn.Zone, conn.User, conn.Zone, irodsclient_types.AuthSchemeNative, conn.Password, conn.Resource)
 	if err != nil {
 		return err

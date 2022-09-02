@@ -5,14 +5,15 @@ import (
 	"path"
 	"strings"
 
+	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"google.golang.org/grpc/codes"
 
 	"google.golang.org/grpc/status"
 )
 
-// ReadIRODSSecrets reads secrets from secret volume mount
-func ReadIRODSSecrets(secretPath string) (map[string]string, error) {
-	exist, err := PathExists(secretPath)
+// ReadSecrets reads secrets from secret volume mount
+func ReadSecrets(secretPath string) (map[string]string, error) {
+	exist, err := mounter.PathExists(secretPath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Secret path %s does not exist - %s", secretPath, err)
 	}

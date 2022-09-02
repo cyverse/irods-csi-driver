@@ -1,6 +1,9 @@
-package driver
+package irods
 
 import "time"
+
+// this structures must match to iRODS FUSE Lite Config
+// https://github.com/cyverse/irodsfs/blob/main/commons/config.go#L80
 
 const (
 	PortDefault                     int           = 1247
@@ -11,7 +14,6 @@ const (
 	ConnectionIdleTimeoutDefault    time.Duration = 5 * time.Minute
 	MetadataCacheTimeoutDefault     time.Duration = 5 * time.Minute
 	MetadataCacheCleanupTimeDefault time.Duration = 5 * time.Minute
-	BufferSizeMaxDefault            int64         = 1024 * 1024 * 64 // 64MB
 )
 
 // PathMapping ...

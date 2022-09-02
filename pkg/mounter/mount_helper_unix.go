@@ -1,6 +1,6 @@
 /*
 Following functions or objects are from the code under APL2 License.
-- IsCorruptedMnt
+- IsCorruptedMount
 - MountInfo
 - ParseMountInfo
 Original code:
@@ -19,7 +19,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package driver
+package mounter
 
 import (
 	"fmt"
@@ -38,8 +38,8 @@ const (
 	maxListTries = 3
 )
 
-// IsCorruptedMnt return true if err is about corrupted mount point
-func IsCorruptedMnt(err error) bool {
+// IsCorruptedMount return true if err is about corrupted mount point
+func IsCorruptedMount(err error) bool {
 	if err == nil {
 		return false
 	}

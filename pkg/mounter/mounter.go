@@ -35,7 +35,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package driver
+package mounter
 
 import (
 	"fmt"
@@ -76,7 +76,7 @@ type NodeMounter struct {
 	mount.Interface
 }
 
-func newNodeMounter() Mounter {
+func NewNodeMounter() Mounter {
 	return &NodeMounter{
 		Interface: mount.New(""),
 	}
@@ -333,7 +333,7 @@ func (mounter *NodeMounter) GetMountRefs(pathname string) ([]string, error) {
 	pathExists, pathErr := PathExists(pathname)
 	if !pathExists {
 		return []string{}, nil
-	} else if IsCorruptedMnt(pathErr) {
+	} else if IsCorruptedMount(pathErr) {
 		klog.Warningf("GetMountRefs found corrupted mount at %s, treating as unmounted path", pathname)
 		return []string{}, nil
 	} else if pathErr != nil {
@@ -398,19 +398,19 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 }
 
 // PathExists returns true if the specified path exists.
-// TODO: clean this up to use pkg/util/file/FileExists
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true, nil
 	} else if os.IsNotExist(err) {
 		return false, nil
-	} else if IsCorruptedMnt(err) {
+	} else if IsCorruptedMount(err) {
 		return true, err
 	}
 	return false, err
 }
 
+// MakeDir creates a dir for the path
 func MakeDir(path string) error {
 	err := os.MkdirAll(path, os.FileMode(0755))
 	if err != nil {

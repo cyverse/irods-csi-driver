@@ -33,7 +33,13 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/cyverse/irods-csi-driver/pkg/client"
+	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
+	"github.com/cyverse/irods-csi-driver/pkg/client/nfs"
+	"github.com/cyverse/irods-csi-driver/pkg/client/webdav"
 	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/mounter"
+	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
@@ -55,14 +61,14 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	if !driver.isDynamicVolumeProvisioningMode(req.VolumeContext) {
 		// static volume provisioning
-		nodeVolume := &NodeVolume{
+		nodeVolume := &volumeinfo.NodeVolume{
 			ID:                        volID,
 			StagingMountPath:          "",
 			MountPath:                 "",
 			DynamicVolumeProvisioning: false,
 			StageVolume:               true,
 		}
-		driver.PutNodeVolume(nodeVolume)
+		driver.nodeVolumeManager.Put(nodeVolume)
 
 		return &csi.NodeStageVolumeResponse{}, nil
 	}
@@ -99,14 +105,14 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		}
 	}
 
-	pathExist, pathExistErr := PathExists(targetPath)
+	pathExist, pathExistErr := mounter.PathExists(targetPath)
 	if pathExistErr != nil {
 		return nil, status.Error(codes.Internal, pathExistErr.Error())
 	}
 
 	if !pathExist {
 		klog.V(5).Infof("NodeStageVolume: creating dir %s", targetPath)
-		if err := MakeDir(targetPath); err != nil {
+		if err := mounter.MakeDir(targetPath); err != nil {
 			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 		}
@@ -135,24 +141,24 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		secrets[k] = v
 	}
 
-	irodsClient := ExtractIRODSClientType(volContext, secrets, FuseType)
+	irodsClient := client.GetClientType(volContext, secrets, client.FuseClientType)
 
 	switch irodsClient {
-	case FuseType:
+	case client.FuseClientType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
 		if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			promCounterForVolumeMountFailures.Inc()
 			return nil, err
 		}
-	case WebdavType:
+	case client.WebdavClientType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
 		if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			promCounterForVolumeMountFailures.Inc()
 			return nil, err
 		}
-	case NfsType:
+	case client.NfsClientType:
 		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
 		if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
@@ -166,14 +172,14 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	klog.V(5).Infof("NodeStageVolume: %s was mounted", targetPath)
 
-	nodeVolume := &NodeVolume{
+	nodeVolume := &volumeinfo.NodeVolume{
 		ID:                        volID,
 		StagingMountPath:          targetPath,
 		MountPath:                 "",
 		DynamicVolumeProvisioning: true,
 		StageVolume:               true,
 	}
-	driver.PutNodeVolume(nodeVolume)
+	driver.nodeVolumeManager.Put(nodeVolume)
 
 	return &csi.NodeStageVolumeResponse{}, nil
 }
@@ -222,14 +228,14 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 	}
 
-	pathExist, pathExistErr := PathExists(targetPath)
+	pathExist, pathExistErr := mounter.PathExists(targetPath)
 	if pathExistErr != nil {
 		return nil, status.Error(codes.Internal, pathExistErr.Error())
 	}
 
 	if !pathExist {
 		klog.V(5).Infof("NodePublishVolume: creating dir %s", targetPath)
-		if err := MakeDir(targetPath); err != nil {
+		if err := mounter.MakeDir(targetPath); err != nil {
 			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 		}
@@ -263,14 +269,14 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 
 		// update node volume info
-		nodeVolume := driver.PopNodeVolume(volID)
+		nodeVolume := driver.nodeVolumeManager.Pop(volID)
 		if nodeVolume == nil {
 			promCounterForVolumeMountFailures.Inc()
 			return nil, status.Errorf(codes.InvalidArgument, "Unable to find node volume %s", volID)
 		}
 
 		nodeVolume.MountPath = targetPath
-		driver.PutNodeVolume(nodeVolume)
+		driver.nodeVolumeManager.Put(nodeVolume)
 	} else {
 		// static volume provisioning
 		// mount volume
@@ -286,24 +292,24 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			secrets[k] = v
 		}
 
-		irodsClient := ExtractIRODSClientType(volContext, secrets, FuseType)
+		irodsClient := client.GetClientType(volContext, secrets, client.FuseClientType)
 
 		switch irodsClient {
-		case FuseType:
+		case client.FuseClientType:
 			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 			if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
 				os.Remove(targetPath)
 				promCounterForVolumeMountFailures.Inc()
 				return nil, err
 			}
-		case WebdavType:
+		case client.WebdavClientType:
 			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 			if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
 				os.Remove(targetPath)
 				promCounterForVolumeMountFailures.Inc()
 				return nil, err
 			}
-		case NfsType:
+		case client.NfsClientType:
 			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
 			if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
 				os.Remove(targetPath)
@@ -316,9 +322,9 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 
 		// update node volume info if exists
-		nodeVolume := driver.PopNodeVolume(volID)
+		nodeVolume := driver.nodeVolumeManager.Pop(volID)
 		if nodeVolume == nil {
-			nodeVolume = &NodeVolume{
+			nodeVolume = &volumeinfo.NodeVolume{
 				ID:                        volID,
 				StagingMountPath:          "",
 				MountPath:                 targetPath,
@@ -329,7 +335,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			nodeVolume.MountPath = targetPath
 		}
 
-		driver.PutNodeVolume(nodeVolume)
+		driver.nodeVolumeManager.Put(nodeVolume)
 	}
 
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", targetPath)
@@ -346,13 +352,13 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	klog.V(4).Infof("NodeUnpublishVolume: volumeId (%#v)", volID)
 
-	nodeVolume := driver.GetNodeVolume(volID)
+	nodeVolume := driver.nodeVolumeManager.Get(volID)
 	if nodeVolume == nil {
 		klog.V(5).Infof("Unable to find node volume %s", volID)
 	} else {
 		if !nodeVolume.StageVolume {
 			// delete here
-			driver.PopNodeVolume(volID)
+			driver.nodeVolumeManager.Pop(volID)
 		}
 	}
 
@@ -410,12 +416,12 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 
 	klog.V(4).Infof("NodeUnstageVolume: volumeId (%#v)", volID)
 
-	nodeVolume := driver.GetNodeVolume(volID)
+	nodeVolume := driver.nodeVolumeManager.Get(volID)
 	if nodeVolume == nil {
 		klog.V(5).Infof("Unable to find node volume %s", volID)
 	} else {
 		// delete here
-		driver.PopNodeVolume(volID)
+		driver.nodeVolumeManager.Pop(volID)
 
 		if !nodeVolume.DynamicVolumeProvisioning {
 			// nothing to do for StaticCVolumeProvisioning
@@ -528,7 +534,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 		irodsfsPoolEndpoint = endpoint
 	}
 
-	irodsConn, err := ExtractIRODSConnectionInfo(irodsfsPoolEndpoint, volContext, volSecrets)
+	irodsConn, err := irods.GetConnectionInfo(irodsfsPoolEndpoint, volContext, volSecrets)
 	if err != nil {
 		return err
 	}
@@ -580,7 +586,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	}
 
 	// test connection creation to check account info is correct
-	err = IRODSTestConnection(irodsConn)
+	err = irods.TestConnection(irodsConn)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "Could not create iRODS Conenction with given access parameters - %s", err.Error())
 	}
@@ -592,7 +598,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 	mountSensitiveOptions := []string{}
 	stdinArgs := []string{}
 
-	irodsFsConfig := NewDefaultIRODSFSConfig()
+	irodsFsConfig := irods.NewDefaultIRODSFSConfig()
 
 	irodsFsConfig.Host = irodsConn.Hostname
 	irodsFsConfig.Port = irodsConn.Port
@@ -635,7 +641,7 @@ func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[str
 }
 
 func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := ExtractIRODSWebDAVConnectionInfo(volContext, volSecrets)
+	irodsConn, err := webdav.GetConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}
@@ -667,7 +673,7 @@ func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[s
 }
 
 func (driver *Driver) mountNfs(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := ExtractIRODSNFSConnectionInfo(volContext, volSecrets)
+	irodsConn, err := nfs.GetConnectionInfo(volContext, volSecrets)
 	if err != nil {
 		return err
 	}

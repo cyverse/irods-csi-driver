@@ -47,6 +47,7 @@ func main() {
 		klog.Fatalln("Node ID is not given")
 	}
 
+	// start prometheus exporter server
 	var prometheusExporterServer *http.Server
 	if conf.PrometheusExporterPort > 0 {
 		go func() {
@@ -59,11 +60,13 @@ func main() {
 		}()
 	}
 
+	// start driver
 	drv := driver.NewDriver(&conf)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}
 
+	// shutdown prometheus exporter server when driver fails or stops
 	if prometheusExporterServer != nil {
 		prometheusExporterServer.Shutdown(context.TODO())
 	}

@@ -30,13 +30,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 
 	"google.golang.org/grpc"
 	"k8s.io/klog"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/mounter"
+	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
 )
 
 var (
@@ -51,24 +52,22 @@ type Driver struct {
 	config *common.Config
 
 	server  *grpc.Server
-	mounter Mounter
+	mounter mounter.Mounter
 	secrets map[string]string
 
-	controllerVolumes map[string]*ControllerVolume
-	nodeVolumes       map[string]*NodeVolume
-	volumeLock        sync.Mutex
+	controllerVolumeManager *volumeinfo.ControllerVolumeManager
+	nodeVolumeManager       *volumeinfo.NodeVolumeManager
 }
 
 // NewDriver returns new driver
 func NewDriver(conf *common.Config) *Driver {
 	return &Driver{
 		config:  conf,
-		mounter: newNodeMounter(),
+		mounter: mounter.NewNodeMounter(),
 		secrets: make(map[string]string),
 
-		controllerVolumes: make(map[string]*ControllerVolume),
-		nodeVolumes:       make(map[string]*NodeVolume),
-		volumeLock:        sync.Mutex{},
+		controllerVolumeManager: volumeinfo.NewControllerVolumeManager(),
+		nodeVolumeManager:       volumeinfo.NewNodeVolumeManager(),
 	}
 }
 
@@ -80,7 +79,7 @@ func (driver *Driver) Run() error {
 	}
 
 	driver.secrets = make(map[string]string)
-	secrets, err := ReadIRODSSecrets(driver.config.SecretPath)
+	secrets, err := ReadSecrets(driver.config.SecretPath)
 	if err == nil {
 		// if there's no secrets, it returns error, so we ignore
 		// otherwise, copy

@@ -30,7 +30,10 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/cyverse/irods-csi-driver/pkg/client"
+	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
 	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
 	"github.com/rs/xid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -89,8 +92,8 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		secrets[k] = v
 	}
 
-	irodsClient := ExtractIRODSClientType(volParams, secrets, FuseType)
-	if irodsClient != FuseType {
+	irodsClient := client.GetClientType(volParams, secrets, client.FuseClientType)
+	if irodsClient != client.FuseClientType {
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported driver type - %v", irodsClient)
 	}
 
@@ -108,7 +111,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		irodsfsPoolEndpoint = endpoint
 	}
 
-	irodsConn, err := ExtractIRODSConnectionInfo(irodsfsPoolEndpoint, volParams, secrets)
+	irodsConn, err := irods.GetConnectionInfo(irodsfsPoolEndpoint, volParams, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +213,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		volPath = fmt.Sprintf("%s/%s", volRootPath, volName)
 
 		klog.V(5).Infof("Creating a volume dir %s", volPath)
-		err = IRODSMkdir(irodsConn, volPath)
+		err = irods.Mkdir(irodsConn, volPath)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %s : %v", volPath, err)
 		}
@@ -227,7 +230,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	volContext["provisioning_mode"] = "dynamic"
 
 	// create a controller volume (for dynamic volume provisioning)
-	controllerVolume := &ControllerVolume{
+	controllerVolume := &volumeinfo.ControllerVolume{
 		ID:             volID,
 		Name:           volName,
 		RootPath:       volRootPath,
@@ -235,7 +238,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		ConnectionInfo: irodsConn,
 		RetainData:     volRetain,
 	}
-	driver.PutControllerVolume(controllerVolume)
+	driver.controllerVolumeManager.Put(controllerVolume)
 
 	volume := &csi.Volume{
 		VolumeId:      volID,
@@ -257,7 +260,7 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 
 	klog.V(4).Infof("DeleteVolume: volumeId (%#v)", volID)
 
-	controllerVolume := driver.PopControllerVolume(volID)
+	controllerVolume := driver.controllerVolumeManager.Pop(volID)
 	if controllerVolume == nil {
 		// orphant
 		klog.V(4).Infof("DeleteVolume: cannot find a volume with id (%v)", volID)
@@ -267,7 +270,7 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 
 	if !controllerVolume.RetainData {
 		klog.V(5).Infof("Deleting a volume dir %s", controllerVolume.Path)
-		err := IRODSRmdir(controllerVolume.ConnectionInfo, controllerVolume.Path)
+		err := irods.Rmdir(controllerVolume.ConnectionInfo, controllerVolume.Path)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %s : %v", controllerVolume.Path, err)
 		}
