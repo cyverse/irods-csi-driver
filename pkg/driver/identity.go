@@ -24,13 +24,14 @@ import (
 	"context"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 )
 
 // GetPluginInfo returns plugin info
 func (driver *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	resp := &csi.GetPluginInfoResponse{
-		Name:          driverName,
-		VendorVersion: driverVersion,
+		Name:          common.GetDriverName(),
+		VendorVersion: common.GetDriverVersion(),
 	}
 
 	return resp, nil

@@ -7,18 +7,16 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/cyverse/irods-csi-driver/pkg/driver"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"k8s.io/klog"
 )
 
-var (
-	conf driver.Config
-)
-
 func main() {
 	var version bool
+	var conf common.Config
 
 	// Parse parameters
 	flag.StringVar(&conf.Endpoint, "endpoint", "unix:///tmp/csi.sock", "CSI endpoint")
@@ -33,7 +31,7 @@ func main() {
 
 	// Handle Version
 	if version {
-		info, err := driver.GetVersionJSON()
+		info, err := common.GetVersionJSON()
 
 		if err != nil {
 			klog.Fatalln(err)
@@ -43,7 +41,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	klog.V(1).Infof("Driver version: %s", driver.GetDriverVersion())
+	klog.V(1).Infof("Driver version: %s", common.GetDriverVersion())
 
 	if conf.NodeID == "" {
 		klog.Fatalln("Node ID is not given")

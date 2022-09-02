@@ -30,6 +30,7 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/rs/xid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -99,7 +100,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 
 	irodsfsPoolEndpoint := ""
 	if len(driver.config.PoolServiceEndpoint) > 0 {
-		endpoint, err := ParsePoolServiceEndpoint(driver.config.PoolServiceEndpoint)
+		endpoint, err := common.ParsePoolServiceEndpoint(driver.config.PoolServiceEndpoint)
 		if err != nil {
 			return nil, err
 		}

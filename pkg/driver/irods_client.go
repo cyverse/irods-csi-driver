@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -189,7 +190,7 @@ func ExtractIRODSConnectionInfo(poolEndpoint string, params map[string]string, s
 			}
 			path = v
 		case "pool_endpoint", "poolendpoint":
-			pe, err := ParsePoolServiceEndpoint(v)
+			pe, err := common.ParsePoolServiceEndpoint(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid pool endpoint - %s", k, err)
 			}
@@ -272,7 +273,7 @@ func ExtractIRODSConnectionInfo(poolEndpoint string, params map[string]string, s
 			}
 			path = v
 		case "pool_endpoint", "poolendpoint":
-			pe, err := ParsePoolServiceEndpoint(v)
+			pe, err := common.ParsePoolServiceEndpoint(v)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a valid pool endpoint - %s", k, err)
 			}
