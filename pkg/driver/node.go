@@ -297,11 +297,14 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	nodeVolume := driver.nodeVolumeManager.Get(volID)
 	if nodeVolume == nil {
-		klog.V(5).Infof("Unable to find node volume %s", volID)
+		klog.Errorf("Unable to find node volume %s in the node volume manager, but we continue anyway", volID)
 	} else {
 		if !nodeVolume.StageVolume {
-			// delete here
-			driver.nodeVolumeManager.Pop(volID)
+			// if the volume is added at NodeStageVolume, delete here
+			_, err := driver.nodeVolumeManager.Pop(volID)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -334,7 +337,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
 		metrics.IncreaseCounterForVolumeUnmountFailures()
-		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
+		return nil, status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
 	}
 	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", targetPath)
 
@@ -361,10 +364,13 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 
 	nodeVolume := driver.nodeVolumeManager.Get(volID)
 	if nodeVolume == nil {
-		klog.V(5).Infof("Unable to find node volume %s", volID)
+		klog.V(5).Infof("Unable to find node volume %s in the node volume manager, but we continue anyway", volID)
 	} else {
 		// delete here
-		driver.nodeVolumeManager.Pop(volID)
+		_, err := driver.nodeVolumeManager.Pop(volID)
+		if err != nil {
+			return nil, err
+		}
 
 		if !nodeVolume.DynamicVolumeProvisioning {
 			// nothing to do for StaticCVolumeProvisioning
@@ -400,7 +406,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
 		metrics.IncreaseCounterForVolumeUnmountFailures()
-		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
+		return nil, status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
 	}
 	klog.V(5).Infof("NodeUnstageVolume: %s unmounted", targetPath)
 
