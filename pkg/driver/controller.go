@@ -87,7 +87,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	}
 
 	// make controller config
-	controllerConfig, err := MakeControllerConfig(volName, configs)
+	controllerConfig, err := makeControllerConfig(volName, configs)
 	if err != nil {
 		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, err

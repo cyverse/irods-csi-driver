@@ -103,8 +103,8 @@ func getControllerConfigFromMap(params map[string]string, config *ControllerConf
 	return nil
 }
 
-// MakeControllerConfig extracts ControllerConfig value from param map
-func MakeControllerConfig(volName string, configs map[string]string) (*ControllerConfig, error) {
+// makeControllerConfig extracts ControllerConfig value from param map
+func makeControllerConfig(volName string, configs map[string]string) (*ControllerConfig, error) {
 	controllerConfig := ControllerConfig{
 		VolumeRootPath:     "",
 		VolumePath:         "",
