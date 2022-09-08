@@ -24,17 +24,12 @@ package driver
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/cyverse/irods-csi-driver/pkg/client"
 	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
-	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/metrics"
 	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
-	"github.com/rs/xid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -45,198 +40,104 @@ var (
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
 
-	// DefaultVolumeSize specifies default volume size in Bytes
-	DefaultVolumeSize int64 = 100 * 1024 * 1024 * 1024
+	// defaultVolumeSize specifies default volume size in Bytes
+	defaultVolumeSize int64 = 100 * 1024 * 1024 * 1024
 )
 
 // CreateVolume handles persistent volume creation event
 func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	//klog.V(4).Infof("CreateVolume: called with args %#v", req)
-
 	// volume name is created by CO for idempotency
 	volName := req.GetName()
 	if len(volName) == 0 {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
-	volID := driver.generateVolumeID(volName)
+	volID := generateVolumeID(volName)
 
 	klog.V(4).Infof("CreateVolume: volumeName(%#v)", volName)
 
 	volCaps := req.GetVolumeCapabilities()
 	if len(volCaps) == 0 {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not provided")
 	}
 
-	if !driver.isValidVolumeCapabilities(volCaps) {
+	if !isValidVolumeCapabilities(volCaps) {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not supported")
 	}
 
 	capRange := req.GetCapacityRange()
-	volCapacity := DefaultVolumeSize
+	volCapacity := defaultVolumeSize
 	if capRange != nil {
 		volCapacity = capRange.GetRequiredBytes()
 	}
 
 	// create a new volume
-	// need to provide idempotency
-	volParams := req.GetParameters()
-	volSecrets := req.GetSecrets()
-	volRootPath := ""
+	// merge params
+	configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetParameters())
 
-	secrets := make(map[string]string)
-	for k, v := range driver.secrets {
-		secrets[k] = v
+	///////////////////////////////////////////////////////////
+	// We only support irodsfs for dynamic volume provisioning
+	///////////////////////////////////////////////////////////
+	irodsClientType := client.GetClientType(configs)
+	if irodsClientType != client.IrodsFuseClientType {
+		metrics.IncreaseCounterForVolumeMountFailures()
+		return nil, status.Errorf(codes.InvalidArgument, "unsupported driver type - %v", irodsClientType)
 	}
 
-	for k, v := range volSecrets {
-		secrets[k] = v
-	}
-
-	irodsClient := client.GetClientType(volParams, secrets, client.FuseClientType)
-	if irodsClient != client.FuseClientType {
-		return nil, status.Errorf(codes.InvalidArgument, "unsupported driver type - %v", irodsClient)
-	}
-
-	// check security flags
-	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
-	proxyUser := driver.getDriverConfigUser()
-
-	irodsfsPoolEndpoint := ""
-	if len(driver.config.PoolServiceEndpoint) > 0 {
-		endpoint, err := common.ParsePoolServiceEndpoint(driver.config.PoolServiceEndpoint)
-		if err != nil {
-			return nil, err
-		}
-
-		irodsfsPoolEndpoint = endpoint
-	}
-
-	irodsConn, err := irods.GetConnectionInfo(irodsfsPoolEndpoint, volParams, secrets)
+	// make controller config
+	controllerConfig, err := MakeControllerConfig(volName, configs)
 	if err != nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, err
 	}
 
-	if enforceProxyAccess {
-		if proxyUser != irodsConn.User {
-			// different proxy user
-			return nil, status.Error(codes.InvalidArgument, "cannot use change proxy user account from pre-configued one")
-		}
+	// set path
+	configs["path"] = controllerConfig.VolumePath
 
-		if len(irodsConn.ClientUser) == 0 {
-			return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be given")
-		}
-
-		if irodsConn.User == irodsConn.ClientUser {
-			return nil, status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", irodsConn.User, irodsConn.ClientUser)
-		}
-	}
-
-	// do not allow anonymous access
-	if irodsConn.User == "anonymous" {
-		return nil, status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
-	}
-
-	if irodsConn.ClientUser == "anonymous" {
-		return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
-	}
-
-	volContext := make(map[string]string)
-	volRetain := false
-	volCreate := true
-	volPath := ""
-	for k, v := range secrets {
-		switch strings.ToLower(k) {
-		case "volumerootpath", "volume_root_path":
-			if !filepath.IsAbs(v) {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
-			}
-			if v == "/" {
-				volRootPath = v
-			} else {
-				volRootPath = strings.TrimRight(v, "/")
-			}
-		case "retaindata", "retain_data":
-			retain, err := strconv.ParseBool(v)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
-			}
-			volRetain = retain
-		case "novolumedir", "no_volume_dir":
-			novolumedir, err := strconv.ParseBool(v)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
-			}
-			volCreate = !novolumedir
-		}
-		// do not copy secret params
-	}
-
-	for k, v := range volParams {
-		switch strings.ToLower(k) {
-		case "volumerootpath", "volume_root_path":
-			if !filepath.IsAbs(v) {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
-			}
-			if v == "/" {
-				volRootPath = v
-			} else {
-				volRootPath = strings.TrimRight(v, "/")
-			}
-		case "retaindata", "retain_data":
-			retain, err := strconv.ParseBool(v)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
-			}
-			volRetain = retain
-		case "novolumedir", "no_volume_dir":
-			novolumedir, err := strconv.ParseBool(v)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
-			}
-			volCreate = !novolumedir
-		}
-		// copy all params
-		volContext[k] = v
-	}
-
-	if len(volRootPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Argument volumeRootPath is not provided")
-	}
-
-	// need to check if mount path is in whitelist
-	if !driver.isMountPathAllowed(volRootPath) {
-		return nil, status.Errorf(codes.InvalidArgument, "Argument volumeRootPath %s is not allowed to mount", volRootPath)
+	// get iRODS connection info
+	irodsConnectionInfo, err := irods.GetConnectionInfo(configs)
+	if err != nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
+		return nil, err
 	}
 
 	// generate path
-	if volCreate {
-		volPath = fmt.Sprintf("%s/%s", volRootPath, volName)
-
-		klog.V(5).Infof("Creating a volume dir %s", volPath)
-		err = irods.Mkdir(irodsConn, volPath)
+	if !controllerConfig.NotCreateVolumeDir {
+		// create
+		klog.V(5).Infof("Creating a volume dir %s", controllerConfig.VolumePath)
+		err = irods.Mkdir(irodsConnectionInfo, controllerConfig.VolumePath)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %s : %v", volPath, err)
+			metrics.IncreaseCounterForVolumeMountFailures()
+			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %s : %v", controllerConfig.VolumePath, err)
 		}
-	} else {
-		volPath = volRootPath
-		// in this case, we should retain data because the mounted path may have files
-		// we should not delete these old files when the pvc is deleted
-		volRetain = true
 	}
 
-	volContext["path"] = volPath
+	// do not allow anonymous access for dynamic volume provisioning since it creates a new empty volume
+	if irodsConnectionInfo.IsAnonymousUser() {
+		metrics.IncreaseCounterForVolumeMountFailures()
+		return nil, status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
+	}
+
+	// copy config values to volContext, to be used in node
+	volContext := make(map[string]string)
+	for k, v := range req.GetParameters() {
+		volContext[k] = v
+	}
+	volContext["path"] = controllerConfig.VolumePath
 
 	// tell this volume is created via dynamic volume provisioning
-	volContext["provisioning_mode"] = "dynamic"
+	setDynamicVolumeProvisioningMode(volContext)
 
 	// create a controller volume (for dynamic volume provisioning)
 	controllerVolume := &volumeinfo.ControllerVolume{
 		ID:             volID,
 		Name:           volName,
-		RootPath:       volRootPath,
-		Path:           volPath,
-		ConnectionInfo: irodsConn,
-		RetainData:     volRetain,
+		RootPath:       controllerConfig.VolumeRootPath,
+		Path:           controllerConfig.VolumePath,
+		ConnectionInfo: irodsConnectionInfo,
+		RetainData:     controllerConfig.RetainData,
 	}
 	driver.controllerVolumeManager.Put(controllerVolume)
 
@@ -251,8 +152,6 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 
 // DeleteVolume handles persistent volume deletion event
 func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	//klog.V(4).Infof("DeleteVolume: called with args: %#v", req)
-
 	volID := req.GetVolumeId()
 	if len(volID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -332,7 +231,7 @@ func (driver *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.V
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not provided")
 	}
 
-	confirmed := driver.isValidVolumeCapabilities(volCaps)
+	confirmed := isValidVolumeCapabilities(volCaps)
 	if confirmed {
 		return &csi.ValidateVolumeCapabilitiesResponse{
 			Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
@@ -366,9 +265,4 @@ func (driver *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsR
 // ControllerExpandVolume expands a volume
 func (driver *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
-}
-
-// generateVolumeID generates volume id from volume name
-func (driver *Driver) generateVolumeID(volName string) string {
-	return fmt.Sprintf("volid-%s-%s", volName, xid.New().String())
 }

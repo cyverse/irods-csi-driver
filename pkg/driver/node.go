@@ -28,39 +28,37 @@ package driver
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
-	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/cyverse/irods-csi-driver/pkg/client"
-	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
-	"github.com/cyverse/irods-csi-driver/pkg/client/nfs"
-	"github.com/cyverse/irods-csi-driver/pkg/client/webdav"
-	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/metrics"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gopkg.in/yaml.v2"
 	"k8s.io/klog"
 )
 
 var (
-	nodeCaps = []csi.NodeServiceCapability_RPC_Type{csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME}
+	nodeCaps = []csi.NodeServiceCapability_RPC_Type{
+		csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME,
+	}
 )
 
 // NodeStageVolume handles persistent volume stage event in node service
 func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	volID := req.GetVolumeId()
 	if len(volID) == 0 {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
 	klog.V(4).Infof("NodeStageVolume: volumeId (%#v)", volID)
 
-	if !driver.isDynamicVolumeProvisioningMode(req.VolumeContext) {
-		// static volume provisioning
+	if !isDynamicVolumeProvisioningMode(req.GetVolumeContext()) {
+		// if it is static volume provisioning, just return quick.
+		// nothing to do.
 		nodeVolume := &volumeinfo.NodeVolume{
 			ID:                        volID,
 			StagingMountPath:          "",
@@ -76,98 +74,56 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	// only for dynamic volume provisioning mode
 	targetPath := req.GetStagingTargetPath()
 	if len(targetPath) == 0 {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
 	}
 
 	volCap := req.GetVolumeCapability()
 	if volCap == nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not provided")
 	}
 
-	if !driver.isValidVolumeCapabilities([]*csi.VolumeCapability{volCap}) {
+	if !isValidVolumeCapabilities([]*csi.VolumeCapability{volCap}) {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
-	mountOptions := []string{}
-	if m := volCap.GetMount(); m != nil {
-		hasOption := func(options []string, opt string) bool {
-			for _, o := range options {
-				if o == opt {
-					return true
-				}
-			}
-			return false
-		}
-		for _, f := range m.MountFlags {
-			if !hasOption(mountOptions, f) {
-				mountOptions = append(mountOptions, f)
-			}
-		}
-	}
+	mountOptions := mounter.GetMountOptions(volCap.GetMount())
 
 	pathExist, pathExistErr := mounter.PathExists(targetPath)
 	if pathExistErr != nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.Internal, pathExistErr.Error())
 	}
 
 	if !pathExist {
 		klog.V(5).Infof("NodeStageVolume: creating dir %s", targetPath)
 		if err := mounter.MakeDir(targetPath); err != nil {
-			promCounterForVolumeMountFailures.Inc()
+			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 		}
 	}
 
 	notMountPoint, err := driver.mounter.IsLikelyNotMountPoint(targetPath)
 	if err != nil {
-		promCounterForVolumeMountFailures.Inc()
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	if !notMountPoint {
-		promCounterForVolumeMountFailures.Inc()
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted", targetPath)
 	}
 
-	volContext := req.GetVolumeContext()
-	volSecrets := req.GetSecrets()
+	// merge params
+	configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
+	klog.V(5).Infof("NodeStageVolume: mounting %s", targetPath)
 
-	secrets := make(map[string]string)
-	for k, v := range driver.secrets {
-		secrets[k] = v
-	}
-
-	for k, v := range volSecrets {
-		secrets[k] = v
-	}
-
-	irodsClient := client.GetClientType(volContext, secrets, client.FuseClientType)
-
-	switch irodsClient {
-	case client.FuseClientType:
-		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
-		if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
-			os.Remove(targetPath)
-			promCounterForVolumeMountFailures.Inc()
-			return nil, err
-		}
-	case client.WebdavClientType:
-		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
-		if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
-			os.Remove(targetPath)
-			promCounterForVolumeMountFailures.Inc()
-			return nil, err
-		}
-	case client.NfsClientType:
-		klog.V(5).Infof("NodeStageVolume: mounting %s", irodsClient)
-		if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
-			os.Remove(targetPath)
-			promCounterForVolumeMountFailures.Inc()
-			return nil, err
-		}
-	default:
-		promCounterForVolumeMountFailures.Inc()
-		return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
+	// mount
+	err = client.MountClient(driver.mounter, configs, mountOptions, targetPath)
+	if err != nil {
+		return nil, err
 	}
 
 	klog.V(5).Infof("NodeStageVolume: %s was mounted", targetPath)
@@ -188,6 +144,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	volID := req.GetVolumeId()
 	if len(volID) == 0 {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
@@ -195,130 +152,89 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	targetPath := req.GetTargetPath()
 	if len(targetPath) == 0 {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
 	volCap := req.GetVolumeCapability()
 	if volCap == nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not provided")
 	}
 
-	if !driver.isValidVolumeCapabilities([]*csi.VolumeCapability{volCap}) {
+	if !isValidVolumeCapabilities([]*csi.VolumeCapability{volCap}) {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
-	mountOptions := []string{}
+	mountOptions := mounter.GetMountOptions(volCap.GetMount())
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
 	}
 
-	if m := volCap.GetMount(); m != nil {
-		hasOption := func(options []string, opt string) bool {
-			for _, o := range options {
-				if o == opt {
-					return true
-				}
-			}
-			return false
-		}
-		for _, f := range m.MountFlags {
-			if !hasOption(mountOptions, f) {
-				mountOptions = append(mountOptions, f)
-			}
-		}
-	}
-
 	pathExist, pathExistErr := mounter.PathExists(targetPath)
 	if pathExistErr != nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.Internal, pathExistErr.Error())
 	}
 
 	if !pathExist {
 		klog.V(5).Infof("NodePublishVolume: creating dir %s", targetPath)
 		if err := mounter.MakeDir(targetPath); err != nil {
-			promCounterForVolumeMountFailures.Inc()
+			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
 		}
 	}
 
 	notMountPoint, err := driver.mounter.IsLikelyNotMountPoint(targetPath)
 	if err != nil {
-		promCounterForVolumeMountFailures.Inc()
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	if !notMountPoint {
-		promCounterForVolumeMountFailures.Inc()
+		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted", targetPath)
 	}
 
-	if driver.isDynamicVolumeProvisioningMode(req.VolumeContext) {
+	if isDynamicVolumeProvisioningMode(req.GetVolumeContext()) {
 		// dynamic volume provisioning
 		// bind mount
 		stagingTargetPath := req.GetStagingTargetPath()
 		if len(stagingTargetPath) == 0 {
-			promCounterForVolumeMountFailures.Inc()
+			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
 		}
 
-		klog.V(5).Infof("NodePublishVolume: mounting %s", "bind")
-		if err := driver.mountBind(stagingTargetPath, mountOptions, targetPath); err != nil {
+		klog.V(5).Infof("NodePublishVolume: bind mounting %s", targetPath)
+		if err := mounter.MountBind(driver.mounter, stagingTargetPath, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
-			promCounterForVolumeMountFailures.Inc()
+			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, err
 		}
 
 		// update node volume info
 		nodeVolume := driver.nodeVolumeManager.Pop(volID)
 		if nodeVolume == nil {
-			promCounterForVolumeMountFailures.Inc()
+			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, status.Errorf(codes.InvalidArgument, "Unable to find node volume %s", volID)
 		}
 
 		nodeVolume.MountPath = targetPath
 		driver.nodeVolumeManager.Put(nodeVolume)
+
+		metrics.IncreaseCounterForVolumeMount()
+		metrics.IncreaseCounterForActiveVolumeMount()
 	} else {
 		// static volume provisioning
-		// mount volume
-		volContext := req.GetVolumeContext()
-		volSecrets := req.GetSecrets()
+		// merge params
+		configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
 
-		secrets := make(map[string]string)
-		for k, v := range driver.secrets {
-			secrets[k] = v
-		}
-
-		for k, v := range volSecrets {
-			secrets[k] = v
-		}
-
-		irodsClient := client.GetClientType(volContext, secrets, client.FuseClientType)
-
-		switch irodsClient {
-		case client.FuseClientType:
-			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-			if err := driver.mountFuse(volContext, secrets, mountOptions, targetPath); err != nil {
-				os.Remove(targetPath)
-				promCounterForVolumeMountFailures.Inc()
-				return nil, err
-			}
-		case client.WebdavClientType:
-			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-			if err := driver.mountWebdav(volContext, secrets, mountOptions, targetPath); err != nil {
-				os.Remove(targetPath)
-				promCounterForVolumeMountFailures.Inc()
-				return nil, err
-			}
-		case client.NfsClientType:
-			klog.V(5).Infof("NodePublishVolume: mounting %s", irodsClient)
-			if err := driver.mountNfs(volContext, secrets, mountOptions, targetPath); err != nil {
-				os.Remove(targetPath)
-				promCounterForVolumeMountFailures.Inc()
-				return nil, err
-			}
-		default:
-			promCounterForVolumeMountFailures.Inc()
-			return nil, status.Errorf(codes.Internal, "unknown driver type - %v", irodsClient)
+		// mount
+		klog.V(5).Infof("NodePublishVolume: mounting %s", targetPath)
+		err = client.MountClient(driver.mounter, configs, mountOptions, targetPath)
+		if err != nil {
+			return nil, err
 		}
 
 		// update node volume info if exists
@@ -364,7 +280,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	targetPath := req.GetTargetPath()
 	if len(targetPath) == 0 {
-		promCounterForVolumeUnmountFailures.Inc()
+		metrics.IncreaseCounterForVolumeUnmountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
@@ -373,7 +289,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	// returns the device name, reference count, and error code
 	_, refCount, err := driver.mounter.GetDeviceName(targetPath)
 	if err != nil {
-		promCounterForVolumeUnmountFailures.Inc()
+		metrics.IncreaseCounterForVolumeUnmountFailures()
 		msg := fmt.Sprintf("failed to check if volume is mounted: %v", err)
 		return nil, status.Error(codes.Internal, msg)
 	}
@@ -390,17 +306,17 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	// unmount
 	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
-		promCounterForVolumeUnmountFailures.Inc()
+		metrics.IncreaseCounterForVolumeUnmountFailures()
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
 	}
 	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", targetPath)
 
-	promCounterForVolumeUnmount.Inc()
-	promCounterForActiveVolumeMount.Dec()
+	metrics.IncreaseCounterForVolumeUnmount()
+	metrics.DecreaseCounterForActiveVolumeMount()
 
 	err = os.Remove(targetPath)
 	if err != nil && !os.IsNotExist(err) {
-		promCounterForVolumeUnmountFailures.Inc()
+		metrics.IncreaseCounterForVolumeUnmountFailures()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -431,7 +347,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 
 	targetPath := req.GetStagingTargetPath()
 	if len(targetPath) == 0 {
-		promCounterForVolumeUnmountFailures.Inc()
+		metrics.IncreaseCounterForVolumeUnmountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
 	}
 
@@ -440,7 +356,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	// returns the device name, reference count, and error code
 	_, refCount, err := driver.mounter.GetDeviceName(targetPath)
 	if err != nil {
-		promCounterForVolumeUnmountFailures.Inc()
+		metrics.IncreaseCounterForVolumeUnmountFailures()
 		msg := fmt.Sprintf("failed to check if volume is mounted: %v", err)
 		return nil, status.Error(codes.Internal, msg)
 	}
@@ -456,13 +372,13 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	klog.V(5).Infof("NodeUnstageVolume: unmounting %s", targetPath)
 	err = driver.mounter.UnmountForcefully(targetPath)
 	if err != nil {
-		promCounterForVolumeUnmountFailures.Inc()
+		metrics.IncreaseCounterForVolumeUnmountFailures()
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", targetPath, err)
 	}
 	klog.V(5).Infof("NodeUnstageVolume: %s unmounted", targetPath)
 
-	promCounterForVolumeUnmount.Inc()
-	promCounterForActiveVolumeMount.Dec()
+	metrics.IncreaseCounterForVolumeUnmount()
+	metrics.DecreaseCounterForActiveVolumeMount()
 
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
@@ -501,215 +417,4 @@ func (driver *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReque
 	return &csi.NodeGetInfoResponse{
 		NodeId: driver.config.NodeID,
 	}, nil
-}
-
-func (driver *Driver) mountBind(sourcePath string, mntOptions []string, targetPath string) error {
-	fsType := ""
-	mountOptions := []string{}
-	mountSensitiveOptions := []string{}
-	stdinArgs := []string{}
-
-	mountOptions = append(mountOptions, mntOptions...)
-	mountOptions = append(mountOptions, "bind")
-
-	klog.V(5).Infof("Mounting %s at %s with options %v", sourcePath, targetPath, mountOptions)
-	if err := driver.mounter.MountSensitive2(sourcePath, sourcePath, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", sourcePath, fsType, targetPath, err)
-	}
-
-	return nil
-}
-
-func (driver *Driver) mountFuse(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	enforceProxyAccess := driver.getDriverConfigEnforceProxyAccess()
-	proxyUser := driver.getDriverConfigUser()
-
-	irodsfsPoolEndpoint := ""
-	if len(driver.config.PoolServiceEndpoint) > 0 {
-		endpoint, err := common.ParsePoolServiceEndpoint(driver.config.PoolServiceEndpoint)
-		if err != nil {
-			return err
-		}
-
-		irodsfsPoolEndpoint = endpoint
-	}
-
-	irodsConn, err := irods.GetConnectionInfo(irodsfsPoolEndpoint, volContext, volSecrets)
-	if err != nil {
-		return err
-	}
-
-	if enforceProxyAccess {
-		if proxyUser == irodsConn.User {
-			// same proxy user
-			// enforce clientUser
-			if len(irodsConn.ClientUser) == 0 {
-				return status.Error(codes.InvalidArgument, "Argument clientUser must be given")
-			}
-
-			if irodsConn.User == irodsConn.ClientUser {
-				return status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", irodsConn.User, irodsConn.ClientUser)
-			}
-		} else {
-			// replaced user
-			// static volume provisioning takes user argument from pv
-			// this is okay
-
-			// do not allow anonymous access
-			if irodsConn.User == "anonymous" {
-				return status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
-			}
-		}
-	}
-
-	if irodsConn.ClientUser == "anonymous" {
-		return status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
-	}
-
-	if len(irodsConn.PathMappings) < 1 {
-		return status.Error(codes.InvalidArgument, "Argument path and path_mappings are empty, one must be given")
-	}
-
-	// need to check if mount path is in whitelist
-	for _, mapping := range irodsConn.PathMappings {
-		if !driver.isMountPathAllowed(mapping.IRODSPath) {
-			return status.Errorf(codes.InvalidArgument, "Argument mount path %s is not allowed to mount", mapping.IRODSPath)
-		}
-	}
-
-	if len(irodsConn.MonitorURL) > 0 {
-		// check
-		_, err := url.ParseRequestURI(irodsConn.MonitorURL)
-		if err != nil {
-			return status.Errorf(codes.InvalidArgument, "Invalid monitor URL - %s", irodsConn.MonitorURL)
-		}
-	}
-
-	// test connection creation to check account info is correct
-	err = irods.TestConnection(irodsConn)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "Could not create iRODS Conenction with given access parameters - %s", err.Error())
-	}
-
-	fsType := "irodsfs"
-	source := "irodsfs" // device name -- this parameter is actually required but ignored
-
-	mountOptions := []string{}
-	mountSensitiveOptions := []string{}
-	stdinArgs := []string{}
-
-	irodsFsConfig := irods.NewDefaultIRODSFSConfig()
-
-	irodsFsConfig.Host = irodsConn.Hostname
-	irodsFsConfig.Port = irodsConn.Port
-	irodsFsConfig.ProxyUser = irodsConn.User
-	irodsFsConfig.ClientUser = irodsConn.ClientUser
-	irodsFsConfig.Zone = irodsConn.Zone
-	irodsFsConfig.Password = irodsConn.Password
-	irodsFsConfig.Resource = irodsConn.Resource
-	irodsFsConfig.MonitorURL = irodsConn.MonitorURL
-	irodsFsConfig.PathMappings = irodsConn.PathMappings
-	irodsFsConfig.NoPermissionCheck = irodsConn.NoPermissionCheck
-	irodsFsConfig.UID = irodsConn.UID
-	irodsFsConfig.GID = irodsConn.GID
-	irodsFsConfig.SystemUser = irodsConn.SystemUser
-	irodsFsConfig.PoolEndpoint = irodsConn.PoolEndpoint
-	irodsFsConfig.Profile = irodsConn.Profile
-	irodsFsConfig.ProfileServicePort = irodsConn.ProfilePort
-
-	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
-	if err != nil {
-		return status.Errorf(codes.Internal, "Could not serialize configuration: %v", err)
-	}
-
-	mountOptions = append(mountOptions, mntOptions...)
-	mountOptions = append(mountOptions, fmt.Sprintf("mounttimeout=%d", irodsConn.MountTimeout))
-	mountOptions = append(mountOptions, "config=-") // read configuration yaml via STDIN
-
-	// passing configuration yaml via STDIN
-	stdinArgs = append(stdinArgs, string(irodsFsConfigBytes))
-
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
-	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
-	}
-
-	promCounterForVolumeMount.Inc()
-	promCounterForActiveVolumeMount.Inc()
-
-	return nil
-}
-
-func (driver *Driver) mountWebdav(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := webdav.GetConnectionInfo(volContext, volSecrets)
-	if err != nil {
-		return err
-	}
-
-	fsType := "davfs"
-	source := irodsConn.URL
-
-	mountOptions := []string{}
-	mountSensitiveOptions := []string{}
-	stdinArgs := []string{}
-
-	mountOptions = append(mountOptions, mntOptions...)
-
-	// if user == anonymous, password is empty, and doesn't need to pass user/password as arguments
-	if len(irodsConn.User) > 0 && irodsConn.User != "anonymous" && len(irodsConn.Password) > 0 {
-		mountSensitiveOptions = append(mountSensitiveOptions, fmt.Sprintf("username=%s", irodsConn.User))
-		stdinArgs = append(stdinArgs, irodsConn.Password)
-	}
-
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
-	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
-	}
-
-	promCounterForVolumeMount.Inc()
-	promCounterForActiveVolumeMount.Inc()
-
-	return nil
-}
-
-func (driver *Driver) mountNfs(volContext map[string]string, volSecrets map[string]string, mntOptions []string, targetPath string) error {
-	irodsConn, err := nfs.GetConnectionInfo(volContext, volSecrets)
-	if err != nil {
-		return err
-	}
-
-	fsType := "nfs"
-	source := fmt.Sprintf("%s:%s", irodsConn.Hostname, irodsConn.Path)
-
-	mountOptions := []string{}
-	mountSensitiveOptions := []string{}
-	stdinArgs := []string{}
-
-	mountOptions = append(mountOptions, mntOptions...)
-
-	if irodsConn.Port != 2049 {
-		mountOptions = append(mountOptions, fmt.Sprintf("port=%d", irodsConn.Port))
-	}
-
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
-	if err := driver.mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
-		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", source, fsType, targetPath, err)
-	}
-
-	promCounterForVolumeMount.Inc()
-	promCounterForActiveVolumeMount.Inc()
-
-	return nil
-}
-
-func (driver *Driver) isDynamicVolumeProvisioningMode(volContext map[string]string) bool {
-	for k, v := range volContext {
-		if strings.ToLower(k) == "provisioning_mode" {
-			if strings.ToLower(v) == "dynamic" {
-				return true
-			}
-		}
-	}
-
-	return false
 }

@@ -1,4 +1,4 @@
-package driver
+package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,3 +27,33 @@ var (
 		Help: "The total number of volume unmount failures",
 	})
 )
+
+// IncreaseCounterForVolumeMount increases the counter for volume mount
+func IncreaseCounterForVolumeMount() {
+	promCounterForVolumeMount.Inc()
+}
+
+// IncreaseCounterForVolumeUnmount increases the counter for volume unmount
+func IncreaseCounterForVolumeUnmount() {
+	promCounterForVolumeUnmount.Inc()
+}
+
+// IncreaseCounterForActiveVolumeMount increases the counter for active volume mounts
+func IncreaseCounterForActiveVolumeMount() {
+	promCounterForActiveVolumeMount.Inc()
+}
+
+// DecreaseCounterForActiveVolumeMount decreases the counter for active volume mounts
+func DecreaseCounterForActiveVolumeMount() {
+	promCounterForActiveVolumeMount.Dec()
+}
+
+// IncreaseCounterForVolumeMountFailures increases the counter for volume mount failures
+func IncreaseCounterForVolumeMountFailures() {
+	promCounterForVolumeMountFailures.Inc()
+}
+
+// IncreaseCounterForVolumeUnmountFailures increases the counter for volume unmount failures
+func IncreaseCounterForVolumeUnmountFailures() {
+	promCounterForVolumeUnmountFailures.Inc()
+}

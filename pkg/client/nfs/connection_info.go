@@ -37,15 +37,10 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *NFSConnectionI
 }
 
 // GetConnectionInfo returns NFSConnectionInfo value from param map
-func GetConnectionInfo(params map[string]string, secrets map[string]string) (*NFSConnectionInfo, error) {
+func GetConnectionInfo(configs map[string]string) (*NFSConnectionInfo, error) {
 	connInfo := NFSConnectionInfo{}
 
-	err := getConnectionInfoFromMap(secrets, &connInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	err = getConnectionInfoFromMap(params, &connInfo)
+	err := getConnectionInfoFromMap(configs, &connInfo)
 	if err != nil {
 		return nil, err
 	}
