@@ -60,7 +60,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 			connInfo.User = v
 		case "password":
 			connInfo.Password = v
-		case "client_user", "clientuser":
+		case "clientuser":
 			// for proxy
 			connInfo.ClientUser = v
 		case "host":
@@ -88,7 +88,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 					ResourceType: "dir",
 				},
 			}
-		case "pool_endpoint", "poolendpoint":
+		case "poolendpoint":
 			connInfo.PoolEndpoint = v
 		case "profile":
 			pb, err := strconv.ParseBool(v)
@@ -96,21 +96,21 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
 			}
 			connInfo.Profile = pb
-		case "profile_port", "profileport":
+		case "profileport":
 			p, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
 			}
 			connInfo.ProfilePort = p
-		case "monitorurl", "monitor_url":
+		case "monitorurl":
 			connInfo.MonitorURL = v
-		case "path_mapping_json", "pathmappingjson":
+		case "pathmappingjson":
 			connInfo.PathMappings = []IRODSFSPathMapping{}
 			err := json.Unmarshal([]byte(v), &connInfo.PathMappings)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
 			}
-		case "no_permission_check", "nopermissioncheck":
+		case "nopermissioncheck":
 			npc, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
@@ -128,9 +128,9 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %s", k, err)
 			}
 			connInfo.GID = g
-		case "system_user", "systemuser", "sys_user", "sysuser":
+		case "systemuser":
 			connInfo.SystemUser = v
-		case "mount_timeout", "mounttimeout":
+		case "mounttimeout":
 			t, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %s", k, err)

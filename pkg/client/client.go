@@ -32,7 +32,7 @@ const (
 func GetClientType(params map[string]string) ClientType {
 	irodsClient := ""
 	for k, v := range params {
-		if strings.ToLower(k) == "driver" || strings.ToLower(k) == "client" {
+		if strings.ToLower(k) == "client" {
 			irodsClient = v
 			break
 		}

@@ -74,7 +74,7 @@ type ControllerConfig struct {
 func getControllerConfigFromMap(params map[string]string, config *ControllerConfig) error {
 	for k, v := range params {
 		switch strings.ToLower(k) {
-		case "volumerootpath", "volume_root_path":
+		case "volumerootpath":
 			if !filepath.IsAbs(v) {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
@@ -83,13 +83,13 @@ func getControllerConfigFromMap(params map[string]string, config *ControllerConf
 			} else {
 				config.VolumeRootPath = strings.TrimRight(v, "/")
 			}
-		case "retaindata", "retain_data":
+		case "retaindata":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
 			}
 			config.RetainData = retain
-		case "novolumedir", "no_volume_dir", "notcreatevolumedir", "not_create_volume_dir":
+		case "novolumedir", "notcreatevolumedir":
 			novolumedir, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
@@ -133,30 +133,40 @@ func MakeControllerConfig(volName string, configs map[string]string) (*Controlle
 	return &controllerConfig, nil
 }
 
+func normalizeConfigKey(key string) string {
+	key = strings.ToLower(key)
+
+	if key == "driver" {
+		return "client"
+	}
+
+	return strings.ReplaceAll(key, "_", "")
+}
+
 // mergeConfig merges configuration params
 func mergeConfig(driverConfig *common.Config, driverSecrets map[string]string, volSecrets map[string]string, volParams map[string]string) map[string]string {
 	configs := make(map[string]string)
 	for k, v := range volSecrets {
 		if len(v) > 0 {
-			configs[k] = v
+			configs[k] = normalizeConfigKey(v)
 		}
 	}
 
 	for k, v := range volParams {
 		if len(v) > 0 {
-			configs[k] = v
+			configs[k] = normalizeConfigKey(v)
 		}
 	}
 
 	// driver secrets have higher priority
 	for k, v := range driverSecrets {
 		if len(v) > 0 {
-			configs[k] = v
+			configs[k] = normalizeConfigKey(v)
 		}
 	}
 
 	if len(driverConfig.PoolServiceEndpoint) > 0 {
-		configs["pool_endpoint"] = driverConfig.PoolServiceEndpoint
+		configs["poolendpoint"] = driverConfig.PoolServiceEndpoint
 	}
 
 	return configs
