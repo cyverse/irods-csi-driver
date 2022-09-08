@@ -8,8 +8,13 @@ import (
 	"strings"
 
 	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	irodsfsAnonymousUser string = "anonymous"
 )
 
 // IRODSFSConnectionInfo class
@@ -31,6 +36,21 @@ type IRODSFSConnectionInfo struct {
 	MountTimeout      int
 	Profile           bool
 	ProfilePort       int
+}
+
+// SetAnonymousUser sets anonymous user
+func (connInfo *IRODSFSConnectionInfo) SetAnonymousUser() {
+	connInfo.User = irodsfsAnonymousUser
+}
+
+// IsAnonymousUser checks if the user is anonymous
+func (connInfo *IRODSFSConnectionInfo) IsAnonymousUser() bool {
+	return connInfo.User == irodsfsAnonymousUser
+}
+
+// IsAnonymousClientUser checks if the client user is anonymous
+func (connInfo *IRODSFSConnectionInfo) IsAnonymousClientUser() bool {
+	return connInfo.ClientUser == irodsfsAnonymousUser
 }
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnectionInfo) error {
@@ -69,12 +89,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 				},
 			}
 		case "pool_endpoint", "poolendpoint":
-			pe, err := common.ParsePoolServiceEndpoint(v)
-			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid pool endpoint - %s", k, err)
-			}
-
-			connInfo.PoolEndpoint = pe
+			connInfo.PoolEndpoint = v
 		case "profile":
 			pb, err := strconv.ParseBool(v)
 			if err != nil {
@@ -130,32 +145,46 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 }
 
 // GetConnectionInfo extracts IRODSFSConnectionInfo value from param map
-func GetConnectionInfo(poolEndpoint string, params map[string]string, secrets map[string]string) (*IRODSFSConnectionInfo, error) {
+func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error) {
 	connInfo := IRODSFSConnectionInfo{}
 	connInfo.UID = -1
 	connInfo.GID = -1
 
-	err := getConnectionInfoFromMap(secrets, &connInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	err = getConnectionInfoFromMap(params, &connInfo)
+	err := getConnectionInfoFromMap(configs, &connInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(connInfo.User) == 0 {
-		connInfo.User = "anonymous"
+		connInfo.SetAnonymousUser()
 	}
 
 	// password can be empty for anonymous access
-	if len(connInfo.Password) == 0 && connInfo.User != "anonymous" {
+	if len(connInfo.Password) == 0 && !connInfo.IsAnonymousUser() {
 		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
 	}
 
-	if len(connInfo.ClientUser) == 0 {
-		connInfo.ClientUser = connInfo.User
+	if connInfo.IsAnonymousClientUser() {
+		return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
+	}
+
+	if getConfigEnforceProxyAccess(configs) {
+		// we don't allow anonymous user
+		if connInfo.IsAnonymousUser() {
+			return nil, status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
+		}
+
+		if len(connInfo.ClientUser) == 0 {
+			return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be given")
+		}
+
+		if connInfo.User == connInfo.ClientUser {
+			return nil, status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", connInfo.User, connInfo.ClientUser)
+		}
+	} else {
+		if len(connInfo.ClientUser) == 0 {
+			connInfo.ClientUser = connInfo.User
+		}
 	}
 
 	if len(connInfo.Hostname) == 0 {
@@ -178,11 +207,29 @@ func GetConnectionInfo(poolEndpoint string, params map[string]string, secrets ma
 		connInfo.ProfilePort = 11021
 	}
 
+	if len(connInfo.PoolEndpoint) > 0 {
+		_, err := common.ParsePoolServiceEndpoint(connInfo.PoolEndpoint)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if len(connInfo.MonitorURL) > 0 {
 		// check
 		_, err := url.ParseRequestURI(connInfo.MonitorURL)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Invalid monitor URL - %s", connInfo.MonitorURL)
+		}
+	}
+
+	if len(connInfo.PathMappings) < 1 {
+		return nil, status.Error(codes.InvalidArgument, "Argument path and path_mappings are empty, one must be given")
+	}
+
+	whitelist := getConfigMountPathWhitelist(configs)
+	for _, mapping := range connInfo.PathMappings {
+		if !mounter.IsMountPathAllowed(whitelist, mapping.IRODSPath) {
+			return nil, status.Errorf(codes.InvalidArgument, "Argument path %s is not allowed to mount", mapping.IRODSPath)
 		}
 	}
 

@@ -47,6 +47,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"k8s.io/klog/v2"
 	utilio "k8s.io/utils/io"
 	"k8s.io/utils/mount"
@@ -419,4 +420,26 @@ func MakeDir(path string) error {
 		}
 	}
 	return nil
+}
+
+func hasValueInArray(arr []string, val string) bool {
+	for _, arrVal := range arr {
+		if arrVal == val {
+			return true
+		}
+	}
+	return false
+}
+
+// GetMountOptions returns mount options from VolumeCapability_MountVolume
+func GetMountOptions(volumes *csi.VolumeCapability_MountVolume) []string {
+	mountOptions := []string{}
+	if volumes != nil {
+		for _, f := range volumes.MountFlags {
+			if !hasValueInArray(mountOptions, f) {
+				mountOptions = append(mountOptions, f)
+			}
+		}
+	}
+	return mountOptions
 }

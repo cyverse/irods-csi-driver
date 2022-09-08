@@ -1,10 +1,15 @@
 package webdav
 
 import (
+	"net/url"
 	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	webdavAnonymousUser string = "anonymous"
 )
 
 // WebDAVConnectionInfo class
@@ -12,6 +17,16 @@ type WebDAVConnectionInfo struct {
 	URL      string
 	User     string
 	Password string
+}
+
+// SetAnonymousUser sets anonymous user
+func (connInfo *WebDAVConnectionInfo) SetAnonymousUser() {
+	connInfo.User = webdavAnonymousUser
+}
+
+// IsAnonymousUser checks if the user is anonymous
+func (connInfo *WebDAVConnectionInfo) IsAnonymousUser() bool {
+	return connInfo.User == webdavAnonymousUser
 }
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *WebDAVConnectionInfo) error {
@@ -32,15 +47,10 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *WebDAVConnecti
 }
 
 // GetConnectionInfo extracts WebDAVConnectionInfo value from param map
-func GetConnectionInfo(params map[string]string, secrets map[string]string) (*WebDAVConnectionInfo, error) {
+func GetConnectionInfo(configs map[string]string) (*WebDAVConnectionInfo, error) {
 	connInfo := WebDAVConnectionInfo{}
 
-	err := getConnectionInfoFromMap(secrets, &connInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	err = getConnectionInfoFromMap(params, &connInfo)
+	err := getConnectionInfoFromMap(configs, &connInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +58,22 @@ func GetConnectionInfo(params map[string]string, secrets map[string]string) (*We
 	// user and password fields are optional
 	// if user is not given, it is regarded as anonymous user
 	if len(connInfo.User) == 0 {
-		connInfo.User = "anonymous"
+		connInfo.SetAnonymousUser()
 	}
 
 	// password can be empty for anonymous access
-	if len(connInfo.Password) == 0 && connInfo.User != "anonymous" {
+	if len(connInfo.Password) == 0 && !connInfo.IsAnonymousUser() {
 		return nil, status.Error(codes.InvalidArgument, "Argument password is empty")
 	}
 
 	if len(connInfo.URL) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Argument url is empty")
+	}
+
+	// check
+	_, err = url.ParseRequestURI(connInfo.URL)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid URL - %s", connInfo.URL)
 	}
 
 	return &connInfo, nil
