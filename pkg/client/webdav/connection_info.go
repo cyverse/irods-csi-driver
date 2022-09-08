@@ -2,7 +2,6 @@ package webdav
 
 import (
 	"net/url"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,7 +30,7 @@ func (connInfo *WebDAVConnectionInfo) IsAnonymousUser() bool {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *WebDAVConnectionInfo) error {
 	for k, v := range params {
-		switch strings.ToLower(k) {
+		switch k {
 		case "user":
 			connInfo.User = v
 		case "password":

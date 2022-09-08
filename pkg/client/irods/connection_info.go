@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
@@ -55,7 +54,7 @@ func (connInfo *IRODSFSConnectionInfo) IsAnonymousClientUser() bool {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnectionInfo) error {
 	for k, v := range params {
-		switch strings.ToLower(k) {
+		switch k {
 		case "user":
 			connInfo.User = v
 		case "password":

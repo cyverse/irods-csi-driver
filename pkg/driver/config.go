@@ -49,7 +49,7 @@ func readSecrets(secretPath string) (map[string]string, error) {
 
 func isDynamicVolumeProvisioningMode(volContext map[string]string) bool {
 	for k, v := range volContext {
-		if strings.ToLower(k) == "provisioning_mode" {
+		if k == "provisioningmode" {
 			if strings.ToLower(v) == "dynamic" {
 				return true
 			}
@@ -60,7 +60,7 @@ func isDynamicVolumeProvisioningMode(volContext map[string]string) bool {
 }
 
 func setDynamicVolumeProvisioningMode(volContext map[string]string) {
-	volContext["provisioning_mode"] = "dynamic"
+	volContext["provisioningmode"] = "dynamic"
 }
 
 // ControllerConfig is a controller config struct
@@ -73,7 +73,7 @@ type ControllerConfig struct {
 
 func getControllerConfigFromMap(params map[string]string, config *ControllerConfig) error {
 	for k, v := range params {
-		switch strings.ToLower(k) {
+		switch k {
 		case "volumerootpath":
 			if !filepath.IsAbs(v) {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
@@ -89,7 +89,7 @@ func getControllerConfigFromMap(params map[string]string, config *ControllerConf
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
 			}
 			config.RetainData = retain
-		case "novolumedir", "notcreatevolumedir":
+		case "novolumedir":
 			novolumedir, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)

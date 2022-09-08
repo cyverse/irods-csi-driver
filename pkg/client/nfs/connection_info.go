@@ -2,7 +2,6 @@ package nfs
 
 import (
 	"strconv"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,7 +16,7 @@ type NFSConnectionInfo struct {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *NFSConnectionInfo) error {
 	for k, v := range params {
-		switch strings.ToLower(k) {
+		switch k {
 		case "host":
 			connInfo.Hostname = v
 		case "port":
