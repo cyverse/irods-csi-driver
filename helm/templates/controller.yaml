@@ -32,12 +32,15 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
             - --secretpath=$(SECRET_VOLUME_PATH)
+            - --storagepath=$(STORAGE_VOLUME_PATH)
             {{- toYaml .Values.controllerService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
+            - name: STORAGE_VOLUME_PATH
+              value: /storage
             - name: NODE_ID
               valueFrom:
                 fieldRef:
@@ -47,6 +50,8 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy
             - name: secret-volume
               mountPath: /secrets
+            - name: storage-volume
+              mountPath: /storage
           resources:
             {{- toYaml .Values.controllerService.irodsPlugin.resources | nindent 12 }}
         - name: csi-provisioner
@@ -69,6 +74,8 @@ spec:
         - name: secret-volume
           secret:
             secretName: {{ include "helm.fullname" . }}-global-secret
+        - name: storage-volume
+          emptyDir: {}
       {{- with .Values.controllerService.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

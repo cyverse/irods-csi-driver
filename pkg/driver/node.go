@@ -66,7 +66,11 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 			DynamicVolumeProvisioning: false,
 			StageVolume:               true,
 		}
-		driver.nodeVolumeManager.Put(nodeVolume)
+		err := driver.nodeVolumeManager.Put(nodeVolume)
+		if err != nil {
+			metrics.IncreaseCounterForVolumeMountFailures()
+			return nil, err
+		}
 
 		return &csi.NodeStageVolumeResponse{}, nil
 	}
@@ -135,7 +139,12 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		DynamicVolumeProvisioning: true,
 		StageVolume:               true,
 	}
-	driver.nodeVolumeManager.Put(nodeVolume)
+
+	err = driver.nodeVolumeManager.Put(nodeVolume)
+	if err != nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
+		return nil, err
+	}
 
 	return &csi.NodeStageVolumeResponse{}, nil
 }
@@ -214,14 +223,23 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 
 		// update node volume info
-		nodeVolume := driver.nodeVolumeManager.Pop(volID)
+		nodeVolume, err := driver.nodeVolumeManager.Pop(volID)
+		if err != nil {
+			metrics.IncreaseCounterForVolumeMountFailures()
+			return nil, err
+		}
+
 		if nodeVolume == nil {
 			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, status.Errorf(codes.InvalidArgument, "Unable to find node volume %s", volID)
 		}
 
 		nodeVolume.MountPath = targetPath
-		driver.nodeVolumeManager.Put(nodeVolume)
+		err = driver.nodeVolumeManager.Put(nodeVolume)
+		if err != nil {
+			metrics.IncreaseCounterForVolumeMountFailures()
+			return nil, err
+		}
 
 		metrics.IncreaseCounterForVolumeMount()
 		metrics.IncreaseCounterForActiveVolumeMount()
@@ -238,7 +256,12 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 
 		// update node volume info if exists
-		nodeVolume := driver.nodeVolumeManager.Pop(volID)
+		nodeVolume, err := driver.nodeVolumeManager.Pop(volID)
+		if err != nil {
+			metrics.IncreaseCounterForVolumeMountFailures()
+			return nil, err
+		}
+
 		if nodeVolume == nil {
 			nodeVolume = &volumeinfo.NodeVolume{
 				ID:                        volID,
@@ -251,7 +274,11 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			nodeVolume.MountPath = targetPath
 		}
 
-		driver.nodeVolumeManager.Put(nodeVolume)
+		err = driver.nodeVolumeManager.Put(nodeVolume)
+		if err != nil {
+			metrics.IncreaseCounterForVolumeMountFailures()
+			return nil, err
+		}
 	}
 
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", targetPath)

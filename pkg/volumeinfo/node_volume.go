@@ -1,28 +1,71 @@
 package volumeinfo
 
-import "sync"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"path"
+	"sync"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const (
+	nodeVolumeSaveFileName string = "node_volumes.json"
+)
 
 // NodeVolume class, used by node to track created volumes
 type NodeVolume struct {
-	ID                        string
-	StagingMountPath          string
-	MountPath                 string
-	DynamicVolumeProvisioning bool
-	StageVolume               bool
+	ID                        string `yaml:"id" json:"id"`
+	StagingMountPath          string `yaml:"staging_mount_path" json:"staging_mount_path"`
+	MountPath                 string `yaml:"mount_path" json:"mount_path"`
+	DynamicVolumeProvisioning bool   `yaml:"dynamic_volume_provisioning" json:"dynamic_volume_provisioning"`
+	StageVolume               bool   `yaml:"stage_volume" json:"stage_volume"`
 }
 
 // NodeVolumeManager manages node volumes
 type NodeVolumeManager struct {
-	volumes map[string]*NodeVolume
-	mutex   sync.Mutex
+	savefilePath string
+	volumes      map[string]*NodeVolume
+	mutex        sync.Mutex
 }
 
 // NewNodeVolumeManager creates ControllerVolumeManager
-func NewNodeVolumeManager() *NodeVolumeManager {
-	return &NodeVolumeManager{
-		volumes: map[string]*NodeVolume{},
-		mutex:   sync.Mutex{},
+func NewNodeVolumeManager(saveDirPath string) (*NodeVolumeManager, error) {
+	if saveDirPath == "" {
+		saveDirPath = "/"
 	}
+
+	manager := &NodeVolumeManager{
+		savefilePath: path.Join(saveDirPath, nodeVolumeSaveFileName),
+		volumes:      map[string]*NodeVolume{},
+		mutex:        sync.Mutex{},
+	}
+
+	err := manager.load()
+	if err != nil {
+		return nil, err
+	}
+
+	return manager, nil
+}
+
+func (manager *NodeVolumeManager) save() error {
+	jsonBytes, err := json.Marshal(manager.volumes)
+	if err != nil {
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	return ioutil.WriteFile(manager.savefilePath, jsonBytes, 0644)
+}
+
+func (manager *NodeVolumeManager) load() error {
+	jsonBytes, err := ioutil.ReadFile(manager.savefilePath)
+	if err != nil {
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	return json.Unmarshal(jsonBytes, &manager.volumes)
 }
 
 // Get returns the volume with given id
@@ -38,24 +81,27 @@ func (manager *NodeVolumeManager) Get(id string) *NodeVolume {
 }
 
 // Put puts a volume
-func (manager *NodeVolumeManager) Put(volume *NodeVolume) {
+func (manager *NodeVolumeManager) Put(volume *NodeVolume) error {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 
 	manager.volumes[volume.ID] = volume
+
+	return manager.save()
 }
 
 // Pop returns NodeVolume with given id and delete
-func (manager *NodeVolumeManager) Pop(id string) *NodeVolume {
+func (manager *NodeVolumeManager) Pop(id string) (*NodeVolume, error) {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 
 	vol, ok := manager.volumes[id]
 	if ok {
 		delete(manager.volumes, id)
-		return vol
+		err := manager.save()
+		return vol, err
 	}
-	return nil
+	return nil, nil
 }
 
 // Check returns presence of NodeVolume with given id

@@ -26,6 +26,7 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --nodeid=$(NODE_ID)
             - --secretpath=$(SECRET_VOLUME_PATH)
+            - --storagepath=$(STORAGE_VOLUME_PATH)
             - --logtostderr
             - --v=5
           env:
@@ -33,6 +34,8 @@ spec:
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
+            - name: STORAGE_VOLUME_PATH
+              value: /storage
             - name: NODE_ID
               valueFrom:
                 fieldRef:
@@ -42,6 +45,8 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy
             - name: secret-volume
               mountPath: /secrets
+            - name: storage-volume
+              mountPath: /storage
         - name: csi-provisioner
           image: quay.io/k8scsi/csi-provisioner:v1.6.0
           args:
@@ -62,6 +67,9 @@ spec:
         - name: secret-volume
           secret:
             secretName: irods-csi-driver-global-secret
+        - name: storage-volume
+          emptyDir: {}
       nodeSelector:
         kubernetes.io/os: linux
         kubernetes.io/arch: amd64
+

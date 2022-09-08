@@ -24,6 +24,7 @@ func main() {
 	flag.StringVar(&conf.SecretPath, "secretpath", "/etc/irods-csi-dirver", "Secret mount path")
 	flag.StringVar(&conf.PoolServiceEndpoint, "poolservice", "unix:///tmp/poolsock", "iRODS FUSE Lite Pool Service endpoint")
 	flag.IntVar(&conf.PrometheusExporterPort, "prometheus_exporter_port", 12022, "Prometheus Exporter Service port")
+	flag.StringVar(&conf.StoragePath, "storagepath", "/storage", "Storage path for driver internal data")
 	flag.BoolVar(&version, "version", false, "Print driver version information")
 
 	klog.InitFlags(nil)
@@ -32,8 +33,8 @@ func main() {
 	// Handle Version
 	if version {
 		info, err := common.GetVersionJSON()
-
 		if err != nil {
+			// exit automatically
 			klog.Fatalln(err)
 		}
 
@@ -44,7 +45,23 @@ func main() {
 	klog.V(1).Infof("Driver version: %s", common.GetDriverVersion())
 
 	if conf.NodeID == "" {
+		// exit automatically
 		klog.Fatalln("Node ID is not given")
+	}
+
+	if conf.StoragePath != "" {
+		_, err := os.Stat(conf.StoragePath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// not exist, make one
+				err = os.MkdirAll(conf.StoragePath, os.FileMode(0755))
+				if err != nil {
+					klog.Fatalf("Failed to create a storage path %s", conf.StoragePath)
+				}
+			} else {
+				klog.Fatalf("Failed to access a storage path %s", conf.StoragePath)
+			}
+		}
 	}
 
 	// start prometheus exporter server
@@ -61,8 +78,26 @@ func main() {
 	}
 
 	// start driver
-	drv := driver.NewDriver(&conf)
-	if err := drv.Run(); err != nil {
+	drv, drvErr := driver.NewDriver(&conf)
+	if drvErr != nil {
+		// shutdown prometheus exporter server when driver fails or stops
+		if prometheusExporterServer != nil {
+			prometheusExporterServer.Shutdown(context.TODO())
+		}
+
+		// exit automatically
+		klog.Fatalln(drvErr)
+	}
+
+	// driver is created
+	err := drv.Run()
+	if err != nil {
+		// shutdown prometheus exporter server when driver fails or stops
+		if prometheusExporterServer != nil {
+			prometheusExporterServer.Shutdown(context.TODO())
+		}
+
+		// exit automatically
 		klog.Fatalln(err)
 	}
 

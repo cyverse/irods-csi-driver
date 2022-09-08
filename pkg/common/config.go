@@ -34,6 +34,7 @@ type Config struct {
 	SecretPath             string // Secret mount path
 	PoolServiceEndpoint    string // iRODS FS Pool Service endpoint
 	PrometheusExporterPort int    // Prometheus Exporter Service port
+	StoragePath            string // Path to storage dir (for saving volume info and etc)
 }
 
 // ParseEndpoint parses endpoint string (TCP or UNIX)

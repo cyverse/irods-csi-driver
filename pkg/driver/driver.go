@@ -57,15 +57,25 @@ type Driver struct {
 }
 
 // NewDriver returns new driver
-func NewDriver(conf *common.Config) *Driver {
+func NewDriver(conf *common.Config) (*Driver, error) {
+	controllerVolumeManager, err := volumeinfo.NewControllerVolumeManager(conf.StoragePath)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeVolumeManager, err := volumeinfo.NewNodeVolumeManager(conf.StoragePath)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Driver{
 		config:  conf,
 		mounter: mounter.NewNodeMounter(),
 		secrets: make(map[string]string),
 
-		controllerVolumeManager: volumeinfo.NewControllerVolumeManager(),
-		nodeVolumeManager:       volumeinfo.NewNodeVolumeManager(),
-	}
+		controllerVolumeManager: controllerVolumeManager,
+		nodeVolumeManager:       nodeVolumeManager,
+	}, nil
 }
 
 // Run runs the driver service

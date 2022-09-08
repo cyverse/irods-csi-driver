@@ -30,6 +30,8 @@ spec:
             - --nodeid=$(NODE_ID)
             - --secretpath=$(SECRET_VOLUME_PATH)
             - --poolservice=$(IRODSFS_POOL_ENDPOINT)
+            - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
+            - --storagepath=$(STORAGE_VOLUME_PATH)
             - --logtostderr
             - --v=5
           env:
@@ -39,10 +41,14 @@ spec:
               value: unix:/csi/pool.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
+            - name: STORAGE_VOLUME_PATH
+              value: /storage
             - name: NODE_ID
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: PROMETHEUS_EXPORTER_PORT
+              value: "12023"
           volumeMounts:
             - name: mountpoint-dir
               mountPath: /var/lib/kubelet/pods
@@ -54,9 +60,14 @@ spec:
               mountPath: /csi
             - name: secret-volume
               mountPath: /secrets
+            - name: storage-volume
+              mountPath: /storage
           ports:
             - containerPort: 9810
               name: healthz
+              protocol: TCP
+            - containerPort: 12023
+              name: prom-metrics
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -73,14 +84,21 @@ spec:
             - --cache_root=/irodsfs_pool_cache
             - --temp_root=/tmp/irodsfs_pool_temp
             - --endpoint=$(IRODSFS_POOL_ENDPOINT)
+            - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
           env:
             - name: CACHE_SIZE_MAX
               value: "21474836480"
             - name: IRODSFS_POOL_ENDPOINT
               value: unix:///csi/pool.sock
+            - name: PROMETHEUS_EXPORTER_PORT
+              value: "12022"
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
+          ports:
+            - containerPort: 12022
+              name: prom-metrics
+              protocol: TCP
         - name: csi-driver-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           args:
@@ -129,6 +147,8 @@ spec:
         - name: secret-volume
           secret:
             secretName: irods-csi-driver-global-secret
+        - name: storage-volume
+          emptyDir: {}
       nodeSelector:
         kubernetes.io/os: linux
         kubernetes.io/arch: amd64

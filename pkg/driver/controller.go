@@ -139,7 +139,11 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		ConnectionInfo: irodsConnectionInfo,
 		RetainData:     controllerConfig.RetainData,
 	}
-	driver.controllerVolumeManager.Put(controllerVolume)
+	err = driver.controllerVolumeManager.Put(controllerVolume)
+	if err != nil {
+		metrics.IncreaseCounterForVolumeMountFailures()
+		return nil, err
+	}
 
 	volume := &csi.Volume{
 		VolumeId:      volID,
@@ -159,7 +163,11 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 
 	klog.V(4).Infof("DeleteVolume: volumeId (%#v)", volID)
 
-	controllerVolume := driver.controllerVolumeManager.Pop(volID)
+	controllerVolume, err := driver.controllerVolumeManager.Pop(volID)
+	if err != nil {
+		return nil, err
+	}
+
 	if controllerVolume == nil {
 		// orphant
 		klog.V(4).Infof("DeleteVolume: cannot find a volume with id (%v)", volID)

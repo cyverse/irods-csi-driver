@@ -32,6 +32,7 @@ spec:
             - --secretpath=$(SECRET_VOLUME_PATH)
             - --poolservice=$(IRODSFS_POOL_ENDPOINT)
             - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
+            - --storagepath=$(STORAGE_VOLUME_PATH)
             {{- toYaml .Values.nodeService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
@@ -40,6 +41,8 @@ spec:
               value: unix:/csi/pool.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
+            - name: STORAGE_VOLUME_PATH
+              value: /storage
             - name: NODE_ID
               valueFrom:
                 fieldRef:
@@ -57,6 +60,8 @@ spec:
               mountPath: /csi
             - name: secret-volume
               mountPath: /secrets
+            - name: storage-volume
+              mountPath: /storage
           ports:
             - containerPort: 9810
               name: healthz
@@ -153,6 +158,8 @@ spec:
         - name: secret-volume
           secret:
             secretName: {{ include "helm.fullname" . }}-global-secret
+        - name: storage-volume
+          emptyDir: {}
       {{- with .Values.nodeService.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
