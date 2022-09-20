@@ -3,6 +3,7 @@ package volumeinfo
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"path"
 	"sync"
 
@@ -62,6 +63,15 @@ func (manager *ControllerVolumeManager) save() error {
 }
 
 func (manager *ControllerVolumeManager) load() error {
+	_, err := os.Stat(manager.savefilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// file not exist
+			return nil
+		}
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
 	jsonBytes, err := ioutil.ReadFile(manager.savefilePath)
 	if err != nil {
 		return status.Errorf(codes.Internal, err.Error())
