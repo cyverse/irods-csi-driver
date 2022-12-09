@@ -81,13 +81,14 @@ spec:
           image: cyverse/irods-csi-driver-pool:latest
           args:
             - --cache_size_max=$(CACHE_SIZE_MAX)
-            - --cache_root=/irodsfs_pool_cache
-            - --temp_root=/tmp/irodsfs_pool_temp
+            - --data_root=$(IRODSFS_POOL_DATA)
             - --endpoint=$(IRODSFS_POOL_ENDPOINT)
             - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
           env:
             - name: CACHE_SIZE_MAX
               value: "21474836480"
+            - name: IRODSFS_POOL_DATA
+              value: /irodsfs_pool_data
             - name: IRODSFS_POOL_ENDPOINT
               value: unix:///csi/pool.sock
             - name: PROMETHEUS_EXPORTER_PORT

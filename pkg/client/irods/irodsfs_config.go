@@ -40,20 +40,20 @@ type IRODSFSConfig struct {
 	GID               int                  `yaml:"gid"`
 	SystemUser        string               `yaml:"system_user"`
 
-	TempRootPath string `yaml:"temp_root_path,omitempty"`
+	DataRootPath string `yaml:"data_root_path,omitempty"`
+
+	LogPath string `yaml:"log_path,omitempty"`
 
 	PoolEndpoint string `yaml:"pool_endpoint,omitempty"`
 
-	ReadAheadMax     int           `yaml:"read_ahead_max"`
-	OperationTimeout time.Duration `yaml:"operation_timeout"`
-
+	ReadAheadMax             int           `yaml:"read_ahead_max"`
+	OperationTimeout         time.Duration `yaml:"operation_timeout"`
 	ConnectionLifespan       time.Duration `yaml:"connection_lifespan"`
 	ConnectionIdleTimeout    time.Duration `yaml:"connection_idle_timeout"`
 	ConnectionMax            int           `yaml:"connection_max"`
 	MetadataCacheTimeout     time.Duration `yaml:"metadata_cache_timeout"`
 	MetadataCacheCleanupTime time.Duration `yaml:"metadata_cache_cleanup_time"`
 
-	LogPath    string `yaml:"log_path,omitempty"`
 	MonitorURL string `yaml:"monitor_url,omitempty"`
 
 	Profile            bool `yaml:"profile,omitempty"`
@@ -65,14 +65,22 @@ type IRODSFSConfig struct {
 // NewDefaultIRODSFSConfig creates default IRODSFSConfig
 func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 	return &IRODSFSConfig{
+		Host:              "",
 		Port:              PortDefault,
+		ProxyUser:         "",
+		ClientUser:        "",
+		Zone:              "",
+		Password:          "",
+		Resource:          "",
 		PathMappings:      []IRODSFSPathMapping{},
 		NoPermissionCheck: false,
 		UID:               -1,
 		GID:               -1,
 		SystemUser:        "",
 
-		TempRootPath: "",
+		DataRootPath: "/var/lib/irodsfs",
+
+		LogPath: "", // use default
 
 		PoolEndpoint: "",
 
@@ -84,10 +92,11 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		MetadataCacheTimeout:     MetadataCacheTimeoutDefault,
 		MetadataCacheCleanupTime: MetadataCacheCleanupTimeDefault,
 
-		LogPath:            "",
-		MonitorURL:         "",
+		MonitorURL: "",
+
 		Profile:            false,
 		ProfileServicePort: 0,
-		AllowOther:         true,
+
+		AllowOther: true,
 	}
 }

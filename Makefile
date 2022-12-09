@@ -1,15 +1,11 @@
 PKG=github.com/cyverse/irods-csi-driver
 CSI_DRIVER_BUILD_IMAGE=irods_csi_driver_build
 CSI_DRIVER_BUILD_DOCKERFILE=deploy/image/irods_csi_driver_build.dockerfile
-FUSE_CLIENT_BUILD_IMAGE=irods_fuse_client_build
-FUSE_CLIENT_BUILD_DOCKERFILE=deploy/image/irods_fuse_build.dockerfile
-CSI_DRIVER_POOL_BUILD_IMAGE=irods_csi_driver_pool_build
-CSI_DRIVER_POOL_BUILD_DOCKERFILE=deploy/image/irods_csi_driver_pool_build.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
 CSI_DRIVER_POOL_IMAGE?=cyverse/irods-csi-driver-pool
 CSI_DRIVER_POOL_DOCKERFILE=deploy/image/irods_csi_driver_pool_image.dockerfile
-VERSION=v0.8.7
+VERSION=v0.9.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/common.driverVersion=${VERSION} -X ${PKG}/pkg/common.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/common.buildDate=${BUILD_DATE}"
@@ -24,20 +20,12 @@ irods-csi-driver:
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/irods-csi-driver ./cmd/
 
-.PHONY: fuse_build
-fuse_build:
-	docker build -t $(FUSE_CLIENT_BUILD_IMAGE):latest -f $(FUSE_CLIENT_BUILD_DOCKERFILE) .
-
-.PHONY: driver_pool_build
-driver_pool_build:
-	docker build -t $(CSI_DRIVER_POOL_BUILD_IMAGE):latest -f $(CSI_DRIVER_POOL_BUILD_DOCKERFILE) .
-
 .PHONY: driver_build
 driver_build:
 	docker build -t $(CSI_DRIVER_BUILD_IMAGE):latest -f $(CSI_DRIVER_BUILD_DOCKERFILE) .
 
 .PHONY: image
-image: fuse_build driver_pool_build driver_build
+image: driver_build
 	docker build -t $(CSI_DRIVER_POOL_IMAGE):latest -f $(CSI_DRIVER_POOL_DOCKERFILE) .
 	docker build -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
 

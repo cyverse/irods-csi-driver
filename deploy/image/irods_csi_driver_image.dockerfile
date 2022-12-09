@@ -19,10 +19,22 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Setup Utility Packages
 RUN apt-get update && \
-    apt-get install -y wget fuse apt-transport-https lsb-release gnupg
+    apt-get install -y wget curl fuse apt-transport-https lsb-release gnupg
 
 # Setup NFS Client and WebDAV Client
 RUN apt-get install -y nfs-common davfs2
+
+### Install irodsfs
+RUN mkdir -p /tmp/irodsfs && \
+    mkdir -p /var/lib/irodsfs
+RUN curl -L https://github.com/cyverse/irodsfs/releases/download/v0.8.2/irodsfs-v0.8.2-linux-amd64.tar.gz --output /tmp/irodsfs/irodsfs.tar.gz
+RUN tar zxvf /tmp/irodsfs/irodsfs.tar.gz -C /tmp/irodsfs && \
+    cp /tmp/irodsfs/irodsfs /usr/bin && \
+    rm -rf /tmp/irodsfs
+
+ADD https://raw.githubusercontent.com/cyverse/irodsfs/v0.8.2/mount_exec/mount.irodsfs \
+  /sbin/mount.irodsfs
+RUN chmod +x /sbin/mount.irodsfs
 
 ### Install dumb-init
 ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
@@ -33,8 +45,5 @@ WORKDIR /opt/
 
 # Setup CSI Driver
 COPY --from=irods_csi_driver_build:latest ${CSI_DRIVER_SRC_DIR}/bin/irods-csi-driver /usr/bin/irods-csi-driver
-# Setup iRODS FUSE Lite
-COPY --from=irods_fuse_client_build:latest ${IRODS_FUSE_DIR}/mount_exec/mount.irodsfs /sbin/mount.irodsfs
-COPY --from=irods_fuse_client_build:latest ${IRODS_FUSE_DIR}/bin/irodsfs /usr/bin/irodsfs
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/bin/irods-csi-driver"]

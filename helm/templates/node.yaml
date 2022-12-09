@@ -85,10 +85,13 @@ spec:
           image: "{{ .Values.nodeService.irodsPool.image.repository }}:{{ .Values.nodeService.irodsPool.image.tag }}"
           imagePullPolicy: {{ .Values.nodeService.irodsPool.image.pullPolicy }}
           args:
+            - --data_root=$(IRODSFS_POOL_DATA)
             - --endpoint=$(IRODSFS_POOL_ENDPOINT)
             - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
             {{- toYaml .Values.nodeService.irodsPool.extraArgs | nindent 12 }}
           env:
+            - name: IRODSFS_POOL_DATA
+              value: /irodsfs_pool_data
             - name: IRODSFS_POOL_ENDPOINT
               value: unix:///csi/pool.sock
             - name: PROMETHEUS_EXPORTER_PORT

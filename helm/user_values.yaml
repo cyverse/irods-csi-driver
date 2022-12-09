@@ -15,6 +15,4 @@ nodeService:
   irodsPool:
     extraArgs:
       - --cache_size_max=107374182400
-      - --cache_root=/irodsfs_pool_cache
-      - --temp_root=/tmp/irodsfs_pool_temp
       - '--cache_timeout_settings=[{"path":"/","timeout":"-1ns","inherit":false},{"path":"/iplant","timeout":"-1ns","inherit":false},{"path":"/iplant/home","timeout":"1h","inherit":false},{"path":"/iplant/home/shared","timeout":"1h","inherit":true}]'
