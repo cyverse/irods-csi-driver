@@ -148,20 +148,20 @@ func mergeConfig(driverConfig *common.Config, driverSecrets map[string]string, v
 	configs := make(map[string]string)
 	for k, v := range volSecrets {
 		if len(v) > 0 {
-			configs[k] = normalizeConfigKey(v)
+			configs[normalizeConfigKey(k)] = v
 		}
 	}
 
 	for k, v := range volParams {
 		if len(v) > 0 {
-			configs[k] = normalizeConfigKey(v)
+			configs[normalizeConfigKey(k)] = v
 		}
 	}
 
 	// driver secrets have higher priority
 	for k, v := range driverSecrets {
 		if len(v) > 0 {
-			configs[k] = normalizeConfigKey(v)
+			configs[normalizeConfigKey(k)] = v
 		}
 	}
 
