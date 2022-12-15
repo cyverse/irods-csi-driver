@@ -27,12 +27,12 @@ RUN apt-get install -y nfs-common davfs2
 ### Install irodsfs
 RUN mkdir -p /tmp/irodsfs && \
     mkdir -p /var/lib/irodsfs
-RUN curl -L https://github.com/cyverse/irodsfs/releases/download/v0.8.2/irodsfs-v0.8.2-linux-amd64.tar.gz --output /tmp/irodsfs/irodsfs.tar.gz
+RUN curl -L https://github.com/cyverse/irodsfs/releases/download/v0.8.4/irodsfs-v0.8.4-linux-amd64.tar.gz --output /tmp/irodsfs/irodsfs.tar.gz
 RUN tar zxvf /tmp/irodsfs/irodsfs.tar.gz -C /tmp/irodsfs && \
     cp /tmp/irodsfs/irodsfs /usr/bin && \
     rm -rf /tmp/irodsfs
 
-ADD https://raw.githubusercontent.com/cyverse/irodsfs/v0.8.2/mount_exec/mount.irodsfs \
+ADD https://raw.githubusercontent.com/cyverse/irodsfs/v0.8.4/mount_exec/mount.irodsfs \
   /sbin/mount.irodsfs
 RUN chmod +x /sbin/mount.irodsfs
 

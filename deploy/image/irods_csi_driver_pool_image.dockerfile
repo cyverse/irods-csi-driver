@@ -20,7 +20,7 @@ RUN apt-get update && \
 ### Install irodsfs-pool
 RUN mkdir -p /tmp/irodsfs-pool && \
     mkdir -p /var/lib/irodsfs-pool
-RUN curl -L https://github.com/cyverse/irodsfs-pool/releases/download/v0.6.3/irodsfs-pool-v0.6.3-linux-amd64.tar.gz --output /tmp/irodsfs-pool/irodsfs-pool.tar.gz
+RUN curl -L https://github.com/cyverse/irodsfs-pool/releases/download/v0.6.5/irodsfs-pool-v0.6.5-linux-amd64.tar.gz --output /tmp/irodsfs-pool/irodsfs-pool.tar.gz
 RUN tar zxvf /tmp/irodsfs-pool/irodsfs-pool.tar.gz -C /tmp/irodsfs-pool && \
     cp /tmp/irodsfs-pool/irodsfs-pool /usr/bin && \
     rm -rf /tmp/irodsfs-pool
