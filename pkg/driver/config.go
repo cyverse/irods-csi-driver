@@ -171,3 +171,15 @@ func mergeConfig(driverConfig *common.Config, driverSecrets map[string]string, v
 
 	return configs
 }
+
+func redactConfig(config map[string]string) map[string]string {
+	newConfigs := make(map[string]string)
+	for k, v := range config {
+		if k == "password" {
+			newConfigs[k] = "**REDACTED**"
+		} else {
+			newConfigs[k] = v
+		}
+	}
+	return newConfigs
+}

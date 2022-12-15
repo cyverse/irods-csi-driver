@@ -69,6 +69,7 @@ func GetValidClientType(client string) ClientType {
 	}
 }
 
+// MountClient mounts a fs client
 func MountClient(mounter mounter.Mounter, configs map[string]string, mountOptions []string, targetPath string) error {
 	irodsClientType := GetClientType(configs)
 	switch irodsClientType {
@@ -112,6 +113,17 @@ func MountClient(mounter mounter.Mounter, configs map[string]string, mountOption
 		metrics.IncreaseCounterForVolumeMountFailures()
 		return status.Errorf(codes.Internal, "unknown driver type - %v", irodsClientType)
 	}
+}
 
+// UnmountClient unmounts a fs client
+func UnmountClient(mounter mounter.Mounter, targetPath string) error {
+	err := mounter.UnmountForcefully(targetPath)
+	if err != nil {
+		metrics.IncreaseCounterForVolumeUnmountFailures()
+		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
+	}
+
+	metrics.IncreaseCounterForVolumeUnmount()
+	metrics.DecreaseCounterForActiveVolumeMount()
 	return nil
 }

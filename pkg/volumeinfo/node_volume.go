@@ -11,17 +11,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type NodeVolumeStatus string
+
 const (
 	nodeVolumeSaveFileName string = "node_volumes.json"
+
+	NodeVolumeStatusStage string = "stage"
 )
 
 // NodeVolume class, used by node to track created volumes
 type NodeVolume struct {
-	ID                        string `yaml:"id" json:"id"`
-	StagingMountPath          string `yaml:"staging_mount_path" json:"staging_mount_path"`
-	MountPath                 string `yaml:"mount_path" json:"mount_path"`
-	DynamicVolumeProvisioning bool   `yaml:"dynamic_volume_provisioning" json:"dynamic_volume_provisioning"`
-	StageVolume               bool   `yaml:"stage_volume" json:"stage_volume"`
+	ID                        string            `yaml:"id" json:"id"`
+	StagingMountPath          string            `yaml:"staging_mount_path" json:"staging_mount_path"`
+	MountPath                 string            `yaml:"mount_path" json:"mount_path"`
+	StagingMountOptions       []string          `yaml:"staging_mount_options" json:"staging_mount_options"`
+	MountOptions              []string          `yaml:"mount_options" json:"mount_options"`
+	ClientConfig              map[string]string `yaml:"client_config" json:"client_config"`
+	DynamicVolumeProvisioning bool              `yaml:"dynamic_volume_provisioning" json:"dynamic_volume_provisioning"`
+	StageVolume               bool              `yaml:"stage_volume" json:"stage_volume"`
 }
 
 // NodeVolumeManager manages node volumes
