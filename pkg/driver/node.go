@@ -65,6 +65,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 			MountPath:                 "",
 			StagingMountOptions:       []string{},
 			MountOptions:              []string{},
+			ClientType:                "",
 			ClientConfig:              map[string]string{},
 			DynamicVolumeProvisioning: false,
 			StageVolume:               true,
@@ -128,7 +129,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	klog.V(5).Infof("NodeStageVolume: mounting %s", targetPath)
 
 	// mount
-	err = client.MountClient(driver.mounter, configs, mountOptions, targetPath)
+	err = client.MountClient(driver.mounter, volID, configs, mountOptions, targetPath)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +142,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		MountPath:                 "",
 		StagingMountOptions:       mountOptions,
 		MountOptions:              []string{},
+		ClientType:                string(client.GetClientType(configs)),
 		ClientConfig:              redactConfig(configs),
 		DynamicVolumeProvisioning: true,
 		StageVolume:               true,
@@ -257,7 +259,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 		// mount
 		klog.V(5).Infof("NodePublishVolume: mounting %s", targetPath)
-		err = client.MountClient(driver.mounter, configs, mountOptions, targetPath)
+		err = client.MountClient(driver.mounter, volID, configs, mountOptions, targetPath)
 		if err != nil {
 			return nil, err
 		}
@@ -276,6 +278,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 				MountPath:                 targetPath,
 				StagingMountOptions:       []string{},
 				MountOptions:              mountOptions,
+				ClientType:                string(client.GetClientType(configs)),
 				ClientConfig:              redactConfig(configs),
 				DynamicVolumeProvisioning: false,
 				StageVolume:               false,
@@ -283,6 +286,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		} else {
 			nodeVolume.MountPath = targetPath
 			nodeVolume.MountOptions = mountOptions
+			nodeVolume.ClientType = string(client.GetClientType(configs))
 			nodeVolume.ClientConfig = redactConfig(configs)
 		}
 
@@ -312,7 +316,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		klog.Errorf("Unable to find node volume %s in the node volume manager, but we continue anyway", volID)
 	} else {
 		if !nodeVolume.StageVolume {
-			// if the volume is added at NodeStageVolume, delete here
+			// if the volume is added at NodePublishVolume, delete here
 			_, err := driver.nodeVolumeManager.Pop(volID)
 			if err != nil {
 				return nil, err
@@ -345,10 +349,24 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	}
 
 	// unmount
-	klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", targetPath)
-	err = client.UnmountClient(driver.mounter, targetPath)
-	if err != nil {
-		return nil, err
+	if nodeVolume.DynamicVolumeProvisioning {
+		// unmount bind
+		klog.V(5).Infof("NodeUnpublishVolume: bind unmounting %s", targetPath)
+		err = driver.mounter.UnmountForcefully(targetPath)
+		if err != nil {
+			metrics.IncreaseCounterForVolumeUnmountFailures()
+			return nil, status.Errorf(codes.Internal, "failed to unmount %q: %v", targetPath, err)
+		}
+
+		metrics.IncreaseCounterForVolumeUnmount()
+		metrics.DecreaseCounterForActiveVolumeMount()
+	} else {
+		// unmountClient
+		klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", targetPath)
+		err = client.UnmountClient(driver.mounter, volID, client.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = os.Remove(targetPath)
@@ -412,7 +430,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	}
 
 	klog.V(5).Infof("NodeUnstageVolume: unmounting %s", targetPath)
-	err = client.UnmountClient(driver.mounter, targetPath)
+	err = client.UnmountClient(driver.mounter, volID, client.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
 	if err != nil {
 		return nil, err
 	}

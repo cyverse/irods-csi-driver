@@ -2,7 +2,6 @@ package client
 
 import (
 	"os"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,15 +29,7 @@ const (
 
 // GetClientType returns iRODS Client value from param map
 func GetClientType(params map[string]string) ClientType {
-	irodsClient := ""
-	for k, v := range params {
-		if strings.ToLower(k) == "client" {
-			irodsClient = v
-			break
-		}
-	}
-
-	return GetValidClientType(irodsClient)
+	return GetValidClientType(params["client"])
 }
 
 // IsValidClientType checks if given client string is valid
@@ -70,13 +61,13 @@ func GetValidClientType(client string) ClientType {
 }
 
 // MountClient mounts a fs client
-func MountClient(mounter mounter.Mounter, configs map[string]string, mountOptions []string, targetPath string) error {
+func MountClient(mounter mounter.Mounter, volID string, configs map[string]string, mountOptions []string, targetPath string) error {
 	irodsClientType := GetClientType(configs)
 	switch irodsClientType {
 	case IrodsFuseClientType:
 		klog.V(5).Infof("mounting %s", irodsClientType)
 
-		if err := irods.Mount(mounter, configs, mountOptions, targetPath); err != nil {
+		if err := irods.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			metrics.IncreaseCounterForVolumeMountFailures()
 			return err
@@ -88,7 +79,7 @@ func MountClient(mounter mounter.Mounter, configs map[string]string, mountOption
 	case WebdavClientType:
 		klog.V(5).Infof("mounting %s", irodsClientType)
 
-		if err := webdav.Mount(mounter, configs, mountOptions, targetPath); err != nil {
+		if err := webdav.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			metrics.IncreaseCounterForVolumeMountFailures()
 			return err
@@ -100,7 +91,7 @@ func MountClient(mounter mounter.Mounter, configs map[string]string, mountOption
 	case NfsClientType:
 		klog.V(5).Infof("mounting %s", irodsClientType)
 
-		if err := nfs.Mount(mounter, configs, mountOptions, targetPath); err != nil {
+		if err := nfs.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			metrics.IncreaseCounterForVolumeMountFailures()
 			return err
@@ -116,14 +107,43 @@ func MountClient(mounter mounter.Mounter, configs map[string]string, mountOption
 }
 
 // UnmountClient unmounts a fs client
-func UnmountClient(mounter mounter.Mounter, targetPath string) error {
-	err := mounter.UnmountForcefully(targetPath)
-	if err != nil {
-		metrics.IncreaseCounterForVolumeUnmountFailures()
-		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
-	}
+func UnmountClient(mounter mounter.Mounter, volID string, irodsClientType ClientType, configs map[string]string, targetPath string) error {
+	switch irodsClientType {
+	case IrodsFuseClientType:
+		klog.V(5).Infof("unmounting %s", irodsClientType)
 
-	metrics.IncreaseCounterForVolumeUnmount()
-	metrics.DecreaseCounterForActiveVolumeMount()
-	return nil
+		if err := irods.Unmount(mounter, volID, configs, targetPath); err != nil {
+			metrics.IncreaseCounterForVolumeUnmountFailures()
+			return err
+		}
+
+		metrics.IncreaseCounterForVolumeUnmount()
+		metrics.DecreaseCounterForActiveVolumeMount()
+		return nil
+	case WebdavClientType:
+		klog.V(5).Infof("unmounting %s", irodsClientType)
+
+		if err := webdav.Unmount(mounter, volID, configs, targetPath); err != nil {
+			metrics.IncreaseCounterForVolumeUnmountFailures()
+			return err
+		}
+
+		metrics.IncreaseCounterForVolumeUnmount()
+		metrics.DecreaseCounterForActiveVolumeMount()
+		return nil
+	case NfsClientType:
+		klog.V(5).Infof("unmounting %s", irodsClientType)
+
+		if err := nfs.Unmount(mounter, volID, configs, targetPath); err != nil {
+			metrics.IncreaseCounterForVolumeUnmountFailures()
+			return err
+		}
+
+		metrics.IncreaseCounterForVolumeUnmount()
+		metrics.DecreaseCounterForActiveVolumeMount()
+		return nil
+	default:
+		metrics.IncreaseCounterForVolumeUnmountFailures()
+		return status.Errorf(codes.Internal, "unknown driver type - %v", irodsClientType)
+	}
 }

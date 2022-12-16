@@ -9,7 +9,7 @@ import (
 	"k8s.io/klog"
 )
 
-func Mount(mounter mounter.Mounter, configs map[string]string, mntOptions []string, targetPath string) error {
+func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mntOptions []string, targetPath string) error {
 	irodsConnectionInfo, err := GetConnectionInfo(configs)
 	if err != nil {
 		return err
@@ -33,5 +33,13 @@ func Mount(mounter mounter.Mounter, configs map[string]string, mntOptions []stri
 		return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
 
+	return nil
+}
+
+func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, targetPath string) error {
+	err := mounter.UnmountForcefully(targetPath)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
+	}
 	return nil
 }

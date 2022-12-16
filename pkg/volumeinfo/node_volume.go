@@ -26,6 +26,7 @@ type NodeVolume struct {
 	MountPath                 string            `yaml:"mount_path" json:"mount_path"`
 	StagingMountOptions       []string          `yaml:"staging_mount_options" json:"staging_mount_options"`
 	MountOptions              []string          `yaml:"mount_options" json:"mount_options"`
+	ClientType                string            `yaml:"client_type" json:"client_type"`
 	ClientConfig              map[string]string `yaml:"client_config" json:"client_config"`
 	DynamicVolumeProvisioning bool              `yaml:"dynamic_volume_provisioning" json:"dynamic_volume_provisioning"`
 	StageVolume               bool              `yaml:"stage_volume" json:"stage_volume"`

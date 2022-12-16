@@ -59,7 +59,8 @@ type IRODSFSConfig struct {
 	Profile            bool `yaml:"profile,omitempty"`
 	ProfileServicePort int  `yaml:"profile_service_port,omitempty"`
 
-	AllowOther bool `yaml:"allow_other,omitempty"`
+	AllowOther bool   `yaml:"allow_other,omitempty"`
+	InstanceID string `yaml:"instanceid,omitempty"`
 }
 
 // NewDefaultIRODSFSConfig creates default IRODSFSConfig
@@ -78,7 +79,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		GID:               -1,
 		SystemUser:        "",
 
-		DataRootPath: "/var/lib/irodsfs",
+		DataRootPath: "/storage",
 
 		LogPath: "", // use default
 
@@ -98,5 +99,6 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		ProfileServicePort: 0,
 
 		AllowOther: true,
+		InstanceID: "",
 	}
 }

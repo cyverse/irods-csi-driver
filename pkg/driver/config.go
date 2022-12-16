@@ -166,7 +166,11 @@ func mergeConfig(driverConfig *common.Config, driverSecrets map[string]string, v
 	}
 
 	if len(driverConfig.PoolServiceEndpoint) > 0 {
-		configs["poolendpoint"] = driverConfig.PoolServiceEndpoint
+		configs[normalizeConfigKey("poolendpoint")] = driverConfig.PoolServiceEndpoint
+	}
+
+	if len(driverConfig.StoragePath) > 0 {
+		configs[normalizeConfigKey("storagepath")] = driverConfig.StoragePath
 	}
 
 	return configs
