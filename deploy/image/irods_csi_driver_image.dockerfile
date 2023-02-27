@@ -16,6 +16,7 @@ ARG CSI_DRIVER_SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver"
 ARG IRODS_FUSE_DIR="/opt/irodsfs"
 ARG FUSE_NFS_DIR="/opt/fuse-nfs"
 ARG DEBIAN_FRONTEND=noninteractive
+ARG IRODSFS_VER=v0.8.8
 
 # Setup Utility Packages
 RUN apt-get update && \
@@ -27,12 +28,12 @@ RUN apt-get install -y nfs-common davfs2
 ### Install irodsfs
 RUN mkdir -p /tmp/irodsfs && \
     mkdir -p /var/lib/irodsfs
-RUN curl -L https://github.com/cyverse/irodsfs/releases/download/v0.8.4/irodsfs-v0.8.4-linux-amd64.tar.gz --output /tmp/irodsfs/irodsfs.tar.gz
+RUN curl -L https://github.com/cyverse/irodsfs/releases/download/${IRODSFS_VER}/irodsfs-${IRODSFS_VER}-linux-amd64.tar.gz --output /tmp/irodsfs/irodsfs.tar.gz
 RUN tar zxvf /tmp/irodsfs/irodsfs.tar.gz -C /tmp/irodsfs && \
     cp /tmp/irodsfs/irodsfs /usr/bin && \
     rm -rf /tmp/irodsfs
 
-ADD https://raw.githubusercontent.com/cyverse/irodsfs/v0.8.4/mount_exec/mount.irodsfs \
+ADD https://raw.githubusercontent.com/cyverse/irodsfs/${IRODSFS_VER}/mount_exec/mount.irodsfs \
   /sbin/mount.irodsfs
 RUN chmod +x /sbin/mount.irodsfs
 
