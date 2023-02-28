@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
+	"golang.org/x/xerrors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
@@ -102,10 +103,10 @@ func makeIrodsFuseLiteDataRootPath(dataRootPath string) error {
 			// not exist, make one
 			err = os.MkdirAll(dataRootPath, os.FileMode(0755))
 			if err != nil {
-				return fmt.Errorf("failed to create a irodsfs data root path %s", dataRootPath)
+				return xerrors.Errorf("failed to create a irodsfs data root path %s: %w", dataRootPath, err)
 			}
 		} else {
-			return fmt.Errorf("failed to access a irodsfs data root path %s", dataRootPath)
+			return xerrors.Errorf("failed to access a irodsfs data root path %s: %w", dataRootPath, err)
 		}
 	}
 	return nil
@@ -115,7 +116,7 @@ func deleteIrodsFuseLiteData(dataRootPath string) error {
 	// delete irodsfs data
 	err := os.RemoveAll(dataRootPath)
 	if err != nil {
-		return fmt.Errorf("failed to delete a irodsfs data root path %s", dataRootPath)
+		return xerrors.Errorf("failed to delete a irodsfs data root path %s: %w", dataRootPath, err)
 	}
 	return nil
 }

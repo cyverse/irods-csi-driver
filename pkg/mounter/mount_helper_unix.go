@@ -22,12 +22,12 @@ limitations under the License.
 package mounter
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
 
+	"golang.org/x/xerrors"
 	utilio "k8s.io/utils/io"
 )
 
@@ -103,27 +103,27 @@ func ParseMountInfo(filename string) ([]MountInfo, error) {
 		// See `man proc` for authoritative description of format of the file.
 		fields := strings.Fields(line)
 		if len(fields) < expectedAtLeastNumFieldsPerMountInfo {
-			return nil, fmt.Errorf("wrong number of fields in (expected at least %d, got %d): %s", expectedAtLeastNumFieldsPerMountInfo, len(fields), line)
+			return nil, xerrors.Errorf("wrong number of fields in (expected at least %d, got %d), line %s", expectedAtLeastNumFieldsPerMountInfo, len(fields), line)
 		}
 		id, err := strconv.Atoi(fields[0])
 		if err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("failed to atoi '%s': %w", fields[0], err)
 		}
 		parentID, err := strconv.Atoi(fields[1])
 		if err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("failed to atoi '%s': %w", fields[1], err)
 		}
 		mm := strings.Split(fields[2], ":")
 		if len(mm) != 2 {
-			return nil, fmt.Errorf("parsing '%s' failed: unexpected minor:major pair %s", line, mm)
+			return nil, xerrors.Errorf("failed to parse '%s', unexpected minor-major pair %v", fields[2], mm)
 		}
 		major, err := strconv.Atoi(mm[0])
 		if err != nil {
-			return nil, fmt.Errorf("parsing '%s' failed: unable to parse major device id, err:%v", mm[0], err)
+			return nil, xerrors.Errorf("failed to parse '%s', unalbe to parse major device id: %w", mm[0], err)
 		}
 		minor, err := strconv.Atoi(mm[1])
 		if err != nil {
-			return nil, fmt.Errorf("parsing '%s' failed: unable to parse minor device id, err:%v", mm[1], err)
+			return nil, xerrors.Errorf("failed to parse '%s', unable to parse minor device id: %w", mm[1], err)
 		}
 
 		info := MountInfo{
@@ -143,7 +143,7 @@ func ParseMountInfo(filename string) ([]MountInfo, error) {
 		// Parse the rest 3 fields.
 		i++
 		if len(fields)-i < 3 {
-			return nil, fmt.Errorf("expect 3 fields in %s, got %d", line, len(fields)-i)
+			return nil, xerrors.Errorf("expect 3 fields in %s, got %d", line, len(fields)-i)
 		}
 		info.FsType = fields[i]
 		info.Source = fields[i+1]

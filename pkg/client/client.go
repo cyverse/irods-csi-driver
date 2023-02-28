@@ -102,7 +102,7 @@ func MountClient(mounter mounter.Mounter, volID string, configs map[string]strin
 		return nil
 	default:
 		metrics.IncreaseCounterForVolumeMountFailures()
-		return status.Errorf(codes.Internal, "unknown driver type - %v", irodsClientType)
+		return status.Errorf(codes.Internal, "unknown driver type '%v'", irodsClientType)
 	}
 }
 
@@ -144,6 +144,6 @@ func UnmountClient(mounter mounter.Mounter, volID string, irodsClientType Client
 		return nil
 	default:
 		metrics.IncreaseCounterForVolumeUnmountFailures()
-		return status.Errorf(codes.Internal, "unknown driver type - %v", irodsClientType)
+		return status.Errorf(codes.Internal, "unknown driver type '%v'", irodsClientType)
 	}
 }

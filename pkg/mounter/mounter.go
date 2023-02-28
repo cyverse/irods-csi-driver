@@ -38,7 +38,6 @@ limitations under the License.
 package mounter
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -48,6 +47,7 @@ import (
 	"syscall"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"golang.org/x/xerrors"
 	"k8s.io/klog/v2"
 	utilio "k8s.io/utils/io"
 	"k8s.io/utils/mount"
@@ -144,7 +144,7 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 		stdin, err := command.StdinPipe()
 		if err != nil {
 			klog.Errorf("Accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s\n", err, mountCmd, mountArgsLogStr)
-			return fmt.Errorf("accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s", err, mountCmd, mountArgsLogStr)
+			return xerrors.Errorf("accessing stdin failed, Mounting command '%s', Mounting arguments '%s': %w", mountCmd, mountArgsLogStr, err)
 		}
 
 		for _, stdinValue := range stdinValues {
@@ -157,7 +157,7 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 	output, err := command.CombinedOutput()
 	if err != nil {
 		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, mountArgsLogStr, string(output))
-		return fmt.Errorf("mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s", err, mountCmd, mountArgsLogStr, string(output))
+		return xerrors.Errorf("mount failed, Mounting command '%s', Mounting arguments '%s', Output '%s': %w", mountCmd, mountArgsLogStr, string(output), err)
 	}
 	return err
 }
@@ -220,7 +220,7 @@ func (mounter *NodeMounter) Unmount(target string) error {
 	command := exec.Command("umount", target)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))
+		return xerrors.Errorf("unmount failed, Unmounting arguments '%s', Output '%s': %w", target, string(output), err)
 	}
 	return nil
 }
@@ -238,7 +238,7 @@ func (mounter *NodeMounter) UnmountForcefully(target string) error {
 				commandForce := exec.Command("umount", "-f", target)
 				outputForce, errForce := commandForce.CombinedOutput()
 				if errForce != nil {
-					return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(outputForce))
+					return xerrors.Errorf("unmount failed, Unmounting arguments '%s', Output '%s': %w", target, string(outputForce), err)
 				}
 				return nil
 			}
@@ -246,7 +246,7 @@ func (mounter *NodeMounter) UnmountForcefully(target string) error {
 			// if the mount is not busy but failed -> fall below
 		}
 
-		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))
+		return xerrors.Errorf("unmount failed, Unmounting arguments '%s', Output '%s': %w", target, string(output), err)
 	}
 	return nil
 }
@@ -276,7 +276,7 @@ func parseProcMounts(content []byte) ([]mount.MountPoint, error) {
 		fields := strings.Fields(line)
 		if len(fields) != expectedNumFieldsPerLine {
 			// Do not log line in case it contains sensitive Mount options
-			return nil, fmt.Errorf("wrong number of fields (expected %d, got %d)", expectedNumFieldsPerLine, len(fields))
+			return nil, xerrors.Errorf("wrong number of fields (expected %d, got %d)", expectedNumFieldsPerLine, len(fields))
 		}
 
 		mp := mount.MountPoint{
@@ -338,7 +338,7 @@ func (mounter *NodeMounter) GetMountRefs(pathname string) ([]string, error) {
 		klog.Warningf("GetMountRefs found corrupted mount at %s, treating as unmounted path", pathname)
 		return []string{}, nil
 	} else if pathErr != nil {
-		return nil, fmt.Errorf("error checking path %s: %v", pathname, pathErr)
+		return nil, xerrors.Errorf("error checking path %s: %w", pathname, pathErr)
 	}
 	realpath, err := filepath.EvalSymlinks(pathname)
 	if err != nil {
@@ -381,7 +381,7 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 	}
 
 	if rootPath == "" || major == -1 || minor == -1 {
-		return nil, fmt.Errorf("failed to get root path and major:minor for %s", hostSource)
+		return nil, xerrors.Errorf("failed to get root path and major-minor for %s", hostSource)
 	}
 
 	var refs []string

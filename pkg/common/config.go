@@ -19,12 +19,13 @@ limitations under the License.
 package common
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
 // Config holds the parameters list which can be configured
@@ -41,7 +42,7 @@ type Config struct {
 func ParseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", "", fmt.Errorf("could not parse endpoint: %v", err)
+		return "", "", xerrors.Errorf("failed to parse endpoint %s: %w", endpoint, err)
 	}
 
 	addr := path.Join(u.Host, filepath.FromSlash(u.Path))
@@ -53,10 +54,10 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 		addr = path.Join("/", addr)
 		err := os.Remove(addr)
 		if err != nil && !os.IsNotExist(err) {
-			return "", "", fmt.Errorf("could not remove unix domain socket %q: %v", addr, err)
+			return "", "", xerrors.Errorf("failed to remove unix domain socket %q: %w", addr, err)
 		}
 	default:
-		return "", "", fmt.Errorf("unsupported protocol: %s", scheme)
+		return "", "", xerrors.Errorf("unsupported protocol: %s", scheme)
 	}
 
 	return scheme, addr, nil
@@ -66,7 +67,7 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 func ParsePoolServiceEndpoint(endpoint string) (string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", fmt.Errorf("could not parse endpoint: %v", err)
+		return "", xerrors.Errorf("could not parse endpoint %s: %w", endpoint, err)
 	}
 
 	scheme := strings.ToLower(u.Scheme)
@@ -80,8 +81,8 @@ func ParsePoolServiceEndpoint(endpoint string) (string, error) {
 		if len(u.Host) > 0 {
 			return u.Host, nil
 		}
-		return "", fmt.Errorf("unknown host: %s", u.Host)
+		return "", xerrors.Errorf("unknown host: %s", u.Host)
 	default:
-		return "", fmt.Errorf("unsupported protocol: %s", scheme)
+		return "", xerrors.Errorf("unsupported protocol: %s", scheme)
 	}
 }
