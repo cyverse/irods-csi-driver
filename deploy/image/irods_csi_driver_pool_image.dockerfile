@@ -12,7 +12,7 @@ LABEL version="0.1"
 LABEL description="iRODS CSI Driver Pool Image"
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IRODSFS_POOL_VER=v0.6.5
+ARG IRODSFS_POOL_VER=v0.6.10
 
 # Setup Utility Packages
 RUN apt-get update && \

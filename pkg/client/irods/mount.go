@@ -80,7 +80,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 }
 
 func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, targetPath string) error {
-	err := mounter.UnmountForcefully(targetPath)
+	err := mounter.FuseUnmount(targetPath)
 	if err != nil {
 		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
 	}
