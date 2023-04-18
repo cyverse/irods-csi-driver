@@ -6,6 +6,9 @@ spec:
   accessModes:
     - ReadWriteMany
   storageClassName: irods-sc
+  selector:
+    matchLabels:
+      vol-name: irods-irodsfuse-pv
   resources:
     requests:
       storage: 5Gi
