@@ -70,7 +70,7 @@ type Mounter interface {
 	mount.Interface
 	GetDeviceName(mountPath string) (string, int, error)
 	MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string, stdinValues []string) error
-	FuseUnmount(target string) error
+	FuseUnmount(target string, lazy bool) error
 }
 
 type NodeMounter struct {
@@ -226,9 +226,17 @@ func (mounter *NodeMounter) Unmount(target string) error {
 }
 
 // FuseUnmount unmounts the fuse target.
-func (mounter *NodeMounter) FuseUnmount(target string) error {
+func (mounter *NodeMounter) FuseUnmount(target string, lazy bool) error {
 	klog.V(4).Infof("Unmounting %s", target)
-	command := exec.Command("fusermount", "-u", target)
+
+	cmdArgs := []string{"-u"}
+	if lazy {
+		cmdArgs = append(cmdArgs, "-z")
+	}
+
+	cmdArgs = append(cmdArgs, target)
+
+	command := exec.Command("fusermount", cmdArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		return xerrors.Errorf("fusermount failed, Unmounting arguments '%s', Output '%s': %w", target, string(output), err)

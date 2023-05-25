@@ -73,6 +73,9 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 
 	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
 	if err := mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+		// umount the volume to ensure no leftovers
+		mounter.FuseUnmount(targetPath, true)
+
 		return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
 
@@ -80,7 +83,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 }
 
 func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, targetPath string) error {
-	err := mounter.FuseUnmount(targetPath)
+	err := mounter.FuseUnmount(targetPath, true)
 	if err != nil {
 		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
 	}

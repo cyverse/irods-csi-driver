@@ -106,6 +106,13 @@ func MountClient(mounter mounter.Mounter, volID string, configs map[string]strin
 	}
 }
 
+// ClearFailedMount clears failed fs client mount
+func ClearFailedMount(mounter mounter.Mounter, targetPath string) {
+	klog.V(5).Infof("unmounting %s", targetPath)
+
+	mounter.FuseUnmount(targetPath, true)
+}
+
 // UnmountClient unmounts a fs client
 func UnmountClient(mounter mounter.Mounter, volID string, irodsClientType ClientType, configs map[string]string, targetPath string) error {
 	switch irodsClientType {

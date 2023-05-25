@@ -121,7 +121,11 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	if !notMountPoint {
 		metrics.IncreaseCounterForVolumeMountFailures()
-		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted", targetPath)
+
+		// clear failed mount point
+		client.ClearFailedMount(driver.mounter, targetPath)
+
+		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted, cleared", targetPath)
 	}
 
 	// merge params
@@ -211,7 +215,11 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	if !notMountPoint {
 		metrics.IncreaseCounterForVolumeMountFailures()
-		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted", targetPath)
+
+		// clear failed mount point
+		client.ClearFailedMount(driver.mounter, targetPath)
+
+		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted, cleared", targetPath)
 	}
 
 	if isDynamicVolumeProvisioningMode(req.GetVolumeContext()) {
