@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/container-storage-interface/spec v1.2.0
-	github.com/cyverse/go-irodsclient v0.10.4
+	github.com/cyverse/go-irodsclient v0.12.2
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/xid v1.3.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
@@ -28,7 +28,7 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
