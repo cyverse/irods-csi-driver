@@ -16,7 +16,7 @@ ARG CSI_DRIVER_SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver"
 ARG IRODS_FUSE_DIR="/opt/irodsfs"
 ARG FUSE_NFS_DIR="/opt/fuse-nfs"
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IRODSFS_VER=v0.8.13
+ARG IRODSFS_VER=v0.8.14
 
 # Setup Utility Packages
 RUN apt-get update && \
