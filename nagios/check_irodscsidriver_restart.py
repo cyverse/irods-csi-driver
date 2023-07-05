@@ -1,0 +1,54 @@
+#! /usr/bin/python3
+
+
+### ======================================================================= ###
+###     A Nagios plugin to check irods csi driver restart                   ###
+###     Uses: ./check_irodscsidriver_restart.py                            ###
+### ======================================================================= ###
+
+import os, sys
+
+pipe = os.popen("kubectl get pods -n irods-csi-driver -o wide --no-headers")
+
+restarted_pods = []
+stopped_pods = []
+
+for line in pipe:
+    fields = line.strip().split()
+    if len(fields) < 9:
+        continue
+    
+    podname = fields[0].strip()
+    status = fields[2].strip()
+    restarts = int(fields[3].strip())
+    node = fields[6].strip()
+
+    if restarts > 0:
+        # this will have some additional strings '(232d ago)'
+        node = fields[8].strip()
+
+    if not podname.startswith("irods-csi-driver-node"):
+        continue
+
+    if restarts > 0:
+        restarted_pods.append(node)
+        continue
+
+    if status.lower() not in ["running"]:
+        stopped_pods.append(node)
+        continue
+
+if len(restarted_pods) == 0 and len(stopped_pods) == 0:
+    print("OK - iRODS CSI Driver is running well.")
+    sys.exit(0)
+elif len(stopped_pods) > 0:
+    print_pods = ', '.join(stopped_pods)
+    print("CRITICAL - iRODS CSI Drivers are not running on [%s] nodes." % print_pods)
+    sys.exit(2)
+elif len(restarted_pods) > 0:
+    print_pods = ', '.join(restarted_pods)
+    print("WARNING - iRODS CSI Drivers are restarted on [%s] nodes. Check irodsfs mounts." % print_pods)
+    sys.exit(1)
+else:
+    print("UKNOWN - iRODS CSI Driver status unknown")
+    sys.exit(3)
