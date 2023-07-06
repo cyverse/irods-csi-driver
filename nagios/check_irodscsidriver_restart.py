@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#! /usr/bin/python
 
 
 ### ======================================================================= ###
@@ -8,7 +8,15 @@
 
 import os, sys
 
-pipe = os.popen("kubectl get pods -n irods-csi-driver -o wide --no-headers")
+kubecommand = "kubectl get pods -n irods-csi-driver -o wide --no-headers"
+kubeconf = ""
+if len(sys.argv) >= 2:
+    kubeconf = sys.argv[1]
+
+if len(kubeconf) > 0:
+    kubecommand = kubecommand + " --kubeconfig=" + kubeconf
+
+pipe = os.popen(kubecommand)
 
 restarted_pods = []
 stopped_pods = []
