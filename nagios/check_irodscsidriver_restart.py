@@ -16,7 +16,8 @@ parser.add_argument("--kubeconfig", dest="kubeconfig", type=str, help="kubernete
 args = parser.parse_args()
 
 hostname = ""
-if len(args.hostname) > 0:
+
+if args.hostname:
     hostname = args.hostname
 else:
     hostname = os.getenv("HOSTNAME")
@@ -29,7 +30,7 @@ if len(hostname) == 0:
 kubecommand = "kubectl get pods -n irods-csi-driver -o wide --no-headers --field-selector spec.nodeName=%s" % hostname
 
 kubeconf = ""
-if len(args.kubeconfig) > 0:
+if args.kubeconfig:
     kubeconf = args.kubeconfig
 
 if len(kubeconf) > 0:
