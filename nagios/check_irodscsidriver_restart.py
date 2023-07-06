@@ -19,6 +19,7 @@ if len(kubeconf) > 0:
 pipe = os.popen(kubecommand)
 
 restarted_pods = []
+restarted_toomany_pods = []
 stopped_pods = []
 
 for line in pipe:
@@ -39,13 +40,17 @@ for line in pipe:
     if not podname.startswith("irods-csi-driver-node"):
         continue
 
-    if restarts > 0:
-        restarted_pods.append(node)
-        continue
-
     if status.lower() not in ["running"]:
         stopped_pods.append(node)
         continue
+
+    if restarts > 0:
+        restarted_pods.append(node)
+
+        if restarts > 10:
+            restarted_toomany_pods.append(node)
+        continue
+    
 
 if len(restarted_pods) == 0 and len(stopped_pods) == 0:
     print("OK - iRODS CSI Driver is running well.")
@@ -53,6 +58,10 @@ if len(restarted_pods) == 0 and len(stopped_pods) == 0:
 elif len(stopped_pods) > 0:
     print_pods = ', '.join(stopped_pods)
     print("CRITICAL - iRODS CSI Drivers are not running on [%s] nodes." % print_pods)
+    sys.exit(2)
+elif len(restarted_toomany_pods) > 0:
+    print_pods = ', '.join(restarted_toomany_pods)
+    print("CRITICAL - iRODS CSI Drivers are restarted more than 10 times on [%s] nodes. Check irodsfs mounts." % print_pods)
     sys.exit(2)
 elif len(restarted_pods) > 0:
     print_pods = ', '.join(restarted_pods)
