@@ -29,11 +29,12 @@ for line in pipe:
     podname = fields[0].strip()
     status = fields[2].strip()
     restarts = int(fields[3].strip())
-    node = fields[6].strip()
+    node = "%s(%s)" % (fields[6].strip(), fields[5].strip())
 
-    if restarts > 0:
-        # this will have some additional strings '(232d ago)'
-        node = fields[8].strip()
+    if fields[4].startswith("("):
+        for i in range(4, 7):
+            if fields[i].strip().endswith(")"):
+                node = "%s(%s)" % (fields[i+3].strip(), fields[i+2].strip())
 
     if not podname.startswith("irods-csi-driver-node"):
         continue
