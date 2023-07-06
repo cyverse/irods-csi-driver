@@ -7,12 +7,30 @@
 ### ======================================================================= ###
 
 import os, sys
+import argparse
 
-hostname = os.getenv("HOSTNAME")
+parser = argparse.ArgumentParser()
+parser.add_argument("--hostname", dest="hostname", type=str, help="current node's hostname")
+parser.add_argument("--kubeconfig", dest="kubeconfig", type=str, help="kubernetes configuration filepath")
+
+args = parser.parse_args()
+
+hostname = ""
+if len(args.hostname) > 0:
+    hostname = args.hostname
+else:
+    hostname = os.getenv("HOSTNAME")
+
+if len(hostname) == 0:
+    print("UKNOWN - Hostname not given")
+    sys.exit(3)
+
+
 kubecommand = "kubectl get pods -n irods-csi-driver -o wide --no-headers --field-selector spec.nodeName=%s" % hostname
+
 kubeconf = ""
-if len(sys.argv) >= 2:
-    kubeconf = sys.argv[1]
+if len(args.kubeconfig) > 0:
+    kubeconf = args.kubeconfig
 
 if len(kubeconf) > 0:
     kubecommand = kubecommand + " --kubeconfig=" + kubeconf
