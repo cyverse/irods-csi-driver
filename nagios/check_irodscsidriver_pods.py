@@ -21,6 +21,16 @@ def get_hostnames():
     
     return hostnames
 
+def get_hostnames_for(hostname):
+    hostnames = []
+    hostnames.append(hostname)
+
+    fqdn = socket.getfqdn(hostname)
+    if hostname != fqdn:
+        hostnames.append(fqdn)
+
+    return hostnames
+
 def get_kube_pods_status(hostnames):
     kubepods = []
     for hostname in hostnames:
@@ -73,7 +83,7 @@ def check_kube_pods(hostnames):
     if len(running_pods) == 1 and len(restarted_pods) == 0 and len(stopped_pods) == 0:
         return 0, "OK - iRODS CSI Driver is running well."
     elif len(running_pods) == 0:
-        return 2, "CRITICAL - iRODS CSI Drivers are not running. No pods running."
+        return 2, "CRITICAL - iRODS CSI Drivers are not running. No pods is running."
     elif len(running_pods) > 1:
         print_pods = ', '.join(running_pods)
         return 2, "CRITICAL - iRODS CSI Drivers are running, but more than 1. Running pods are [%s]." % print_pods
@@ -103,7 +113,7 @@ if args.kubeconfig:
 hostnames = []
 
 if args.hostname:
-    hostnames.append(args.hostname)
+    hostnames = get_hostnames_for(args.hostname)
 else:
     hostnames = get_hostnames()
 
