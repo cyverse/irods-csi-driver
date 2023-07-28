@@ -104,10 +104,10 @@ def check_kube_pods(hostnames, restart_critical, restart_warning, kubeconf=""):
         return 2, "CRITICAL - iRODS CSI Drivers are not running. Failed pods are [%s]" % print_pods
     elif len(critical_pods) > 0:
         print_pods = ', '.join(critical_pods)
-        return 2, "CRITICAL - iRODS CSI Drivers are restarted more than 10 times. Restarted pods are [%s]" % print_pods
+        return 2, "CRITICAL - iRODS CSI Drivers are restarted more than %d times. Restarted pods are [%s]" % (restart_critical, print_pods)
     elif len(warning_pods) > 0:
         print_pods = ', '.join(warning_pods)
-        return 1, "WARNING - iRODS CSI Drivers are restarted. Restarted pods are [%s]" % print_pods
+        return 1, "WARNING - iRODS CSI Drivers are restarted more than %d times. Restarted pods are [%s]" % (restart_warning, print_pods)
     else:
         return 3, "UKNOWN - iRODS CSI Driver status unknown"
 
