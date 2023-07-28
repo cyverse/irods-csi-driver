@@ -70,12 +70,12 @@ def get_kube_pods_status(hostnames, kubeconf=""):
 
     return kubepods
 
-def check_kube_pods(hostnames, kubeconf=""):
+def check_kube_pods(hostnames, restart_critical, restart_warning, kubeconf=""):
     kubepods = get_kube_pods_status(hostnames, kubeconf)
 
     running_pods = []
-    restarted_pods = []
-    restarted_toomany_pods = []
+    warning_pods = []
+    critical_pods = []
     stopped_pods = []
 
     for pod in kubepods:
@@ -84,31 +84,30 @@ def check_kube_pods(hostnames, kubeconf=""):
         if status.lower() in ["running"]:
             running_pods.append(msg)
 
-            if restarts > 10:
-                restarted_toomany_pods.append(msg)
-            elif restarts > 0:
-                restarted_pods.append(msg)
-            
+            if restarts > restart_critical:
+                critical_pods.append(msg)
+            elif restarts > restart_warning:
+                warning_pods.append(msg)
         else:
             stopped_pods.append(msg)
 
 
-    if len(running_pods) == 1 and len(restarted_pods) == 0 and len(stopped_pods) == 0:
-        return 0, "OK - iRODS CSI Driver is running well."
+    if len(running_pods) == 1 and len(warning_pods) == 0 and len(critical_pods) == 0 and len(stopped_pods) == 0:
+        return 0, "OK - iRODS CSI Driver is running well"
     elif len(running_pods) == 0:
-        return 2, "CRITICAL - iRODS CSI Drivers are not running. No pods is running."
+        return 2, "CRITICAL - iRODS CSI Drivers are not running. No pods is running"
     elif len(running_pods) > 1:
         print_pods = ', '.join(running_pods)
-        return 2, "CRITICAL - iRODS CSI Drivers are running, but more than 1. Running pods are [%s]." % print_pods
+        return 2, "CRITICAL - iRODS CSI Drivers are running, but more than 1. Running pods are [%s]" % print_pods
     elif len(stopped_pods) > 0:
         print_pods = ', '.join(stopped_pods)
-        return 2, "CRITICAL - iRODS CSI Drivers are not running. Failed pods are [%s]." % print_pods
-    elif len(restarted_toomany_pods) > 0:
-        print_pods = ', '.join(restarted_toomany_pods)
-        return 2, "CRITICAL - iRODS CSI Drivers are restarted more than 10 times. Restarted pods are [%s]. Check irodsfs mounts." % print_pods
-    elif len(restarted_pods) > 0:
-        print_pods = ', '.join(restarted_pods)
-        return 1, "WARNING - iRODS CSI Drivers are restarted. Restarted pods are [%s]. Check irodsfs mounts." % print_pods
+        return 2, "CRITICAL - iRODS CSI Drivers are not running. Failed pods are [%s]" % print_pods
+    elif len(critical_pods) > 0:
+        print_pods = ', '.join(critical_pods)
+        return 2, "CRITICAL - iRODS CSI Drivers are restarted more than 10 times. Restarted pods are [%s]" % print_pods
+    elif len(warning_pods) > 0:
+        print_pods = ', '.join(warning_pods)
+        return 1, "WARNING - iRODS CSI Drivers are restarted. Restarted pods are [%s]" % print_pods
     else:
         return 3, "UKNOWN - iRODS CSI Driver status unknown"
 
@@ -116,6 +115,8 @@ def check_kube_pods(hostnames, kubeconf=""):
 parser = argparse.ArgumentParser()
 parser.add_argument("--hostname", dest="hostname", type=str, help="current node's hostname")
 parser.add_argument("--kubeconfig", dest="kubeconfig", type=str, help="kubernetes configuration filepath")
+parser.add_argument("--restart_critical", dest="restart_critical", type=int, default=10, help="set the number of pod restarts to be considered critical")
+parser.add_argument("--restart_warning", dest="restart_warning", type=int, default=3, help="set the number of pod restarts to be considered warning")
 
 args = parser.parse_args()
 
@@ -134,6 +135,14 @@ if len(hostnames) == 0:
     print("UKNOWN - Hostname not given")
     sys.exit(3)
 
-error_code, msg = check_kube_pods(hostnames, kubeconf)
+restart_critical = 10
+if args.restart_critical:
+    restart_critical = args.restart_critical
+
+restart_warning = 3
+if args.restart_warning:
+    restart_warning = args.restart_warning
+
+error_code, msg = check_kube_pods(hostnames, restart_critical, restart_warning, kubeconf)
 print(msg)
 sys.exit(error_code)
