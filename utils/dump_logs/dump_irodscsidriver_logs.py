@@ -24,6 +24,9 @@ def get_kube_controller_pods(kubeconf=""):
     pipe = os.popen(kubecommand)
     for line in pipe:
         podname = line.strip()
+        if podname.startswith("pod/"):
+            podname = podname[4:]
+
         kubepods.append(podname)
 
     return kubepods
@@ -35,6 +38,9 @@ def get_kube_node_pods(kubeconf=""):
     pipe = os.popen(kubecommand)
     for line in pipe:
         podname = line.strip()
+        if podname.startswith("pod/"):
+            podname = podname[4:]
+
         kubepods.append(podname)            
 
     return kubepods
