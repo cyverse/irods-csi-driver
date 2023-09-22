@@ -19,37 +19,23 @@ except ImportError:
 
 def get_kube_controller_pods(kubeconf=""):
     kubepods = []
-    kubecommand = "kubectl get pods -n irods-csi-driver --no-headers --ignore-not-found -l app.kubernetes.io/instance=irods-csi-driver-controller" + kubeconf
+    kubecommand = "kubectl get pods -n irods-csi-driver --no-headers --ignore-not-found -l app.kubernetes.io/instance=irods-csi-driver-controller --field-selector status.phase=Running -o name" + kubeconf
     
     pipe = os.popen(kubecommand)
     for line in pipe:
-        fields = line.strip().split()
-        if len(fields) < 5:
-            continue
-
-        podname = fields[0].strip()
-        status = fields[2].strip()
-        
-        if status == "Running":
-            kubepods.append(podname)
+        podname = line.strip()
+        kubepods.append(podname)
 
     return kubepods
 
 def get_kube_node_pods(kubeconf=""):
     kubepods = []
-    kubecommand = "kubectl get pods -n irods-csi-driver --no-headers --ignore-not-found -l app.kubernetes.io/instance=irods-csi-driver-node" + kubeconf
+    kubecommand = "kubectl get pods -n irods-csi-driver --no-headers --ignore-not-found -l app.kubernetes.io/instance=irods-csi-driver-node --field-selector status.phase=Running -o name" + kubeconf
     
     pipe = os.popen(kubecommand)
     for line in pipe:
-        fields = line.strip().split()
-        if len(fields) < 5:
-            continue
-
-        podname = fields[0].strip()
-        status = fields[2].strip()
-        
-        if status == "Running":
-            kubepods.append(podname)
+        podname = line.strip()
+        kubepods.append(podname)            
 
     return kubepods
 
