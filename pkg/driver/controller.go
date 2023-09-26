@@ -26,7 +26,7 @@ import (
 	"context"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/cyverse/irods-csi-driver/pkg/client"
+	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
 	"github.com/cyverse/irods-csi-driver/pkg/metrics"
 	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
@@ -80,8 +80,8 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	///////////////////////////////////////////////////////////
 	// We only support irodsfs for dynamic volume provisioning
 	///////////////////////////////////////////////////////////
-	irodsClientType := client.GetClientType(configs)
-	if irodsClientType != client.IrodsFuseClientType {
+	irodsClientType := client_common.GetClientType(configs)
+	if irodsClientType != client_common.IrodsFuseClientType {
 		metrics.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported driver type - %v", irodsClientType)
 	}

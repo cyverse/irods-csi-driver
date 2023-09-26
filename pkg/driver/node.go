@@ -32,6 +32,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/cyverse/irods-csi-driver/pkg/client"
+	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/metrics"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
@@ -146,7 +147,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		MountPath:                 "",
 		StagingMountOptions:       mountOptions,
 		MountOptions:              []string{},
-		ClientType:                string(client.GetClientType(configs)),
+		ClientType:                string(client_common.GetClientType(configs)),
 		ClientConfig:              redactConfig(configs),
 		DynamicVolumeProvisioning: true,
 		StageVolume:               true,
@@ -286,7 +287,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 				MountPath:                 targetPath,
 				StagingMountOptions:       []string{},
 				MountOptions:              mountOptions,
-				ClientType:                string(client.GetClientType(configs)),
+				ClientType:                string(client_common.GetClientType(configs)),
 				ClientConfig:              redactConfig(configs),
 				DynamicVolumeProvisioning: false,
 				StageVolume:               false,
@@ -294,7 +295,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		} else {
 			nodeVolume.MountPath = targetPath
 			nodeVolume.MountOptions = mountOptions
-			nodeVolume.ClientType = string(client.GetClientType(configs))
+			nodeVolume.ClientType = string(client_common.GetClientType(configs))
 			nodeVolume.ClientConfig = redactConfig(configs)
 		}
 
@@ -382,7 +383,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	} else {
 		// unmountClient
 		klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", targetPath)
-		err = client.UnmountClient(driver.mounter, volID, client.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
+		err = client.UnmountClient(driver.mounter, volID, client_common.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
 		if err != nil {
 			return nil, err
 		}
@@ -460,7 +461,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 		metrics.DecreaseCounterForActiveVolumeMount()
 	} else {
 		klog.V(5).Infof("NodeUnstageVolume: unmounting %s", targetPath)
-		err = client.UnmountClient(driver.mounter, volID, client.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
+		err = client.UnmountClient(driver.mounter, volID, client_common.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
 		if err != nil {
 			return nil, err
 		}

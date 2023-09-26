@@ -57,6 +57,7 @@ Please check out `examples` for more information.
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plain text |
 | url | URL | "https://data.cyverse.org/dav/iplant/home/irods_user" |
+| config | additional config parameters in comma-separated kv pairs to be passed to 'davfs2.conf' | "key1=val1,key2=val2" |
 
 Mounts **url**
 

@@ -2,6 +2,7 @@ package webdav
 
 import (
 	"net/url"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,6 +17,7 @@ type WebDAVConnectionInfo struct {
 	URL      string
 	User     string
 	Password string
+	Config   map[string]string
 }
 
 // SetAnonymousUser sets anonymous user
@@ -37,6 +39,15 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *WebDAVConnecti
 			connInfo.Password = v
 		case "url":
 			connInfo.URL = v
+		case "config":
+			connInfo.Config = map[string]string{}
+			configStrings := strings.Split(v, ",")
+			for _, configString := range configStrings {
+				configKV := strings.Split(strings.TrimSpace(configString), "=")
+				if len(configKV) == 2 {
+					connInfo.Config[strings.TrimSpace(configKV[0])] = strings.TrimSpace(configKV[1])
+				}
+			}
 		default:
 			// ignore
 		}

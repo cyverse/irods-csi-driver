@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc/codes"
@@ -34,7 +35,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	irodsFsConfig := NewDefaultIRODSFSConfig()
 
 	// create irodsfs dataroot
-	dataRootPath := getConfigDataRootPath(configs, volID)
+	dataRootPath := client_common.GetConfigDataRootPath(configs, volID)
 	err = makeIrodsFuseLiteDataRootPath(dataRootPath)
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
@@ -89,7 +90,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 	}
 
 	// manage logs
-	dataRootPath := getConfigDataRootPath(configs, volID)
+	dataRootPath := client_common.GetConfigDataRootPath(configs, volID)
 	err = deleteIrodsFuseLiteData(dataRootPath)
 	if err != nil {
 		klog.V(5).Infof("Error deleting iRODS FUSE Lite data at %s - ignoring", dataRootPath)

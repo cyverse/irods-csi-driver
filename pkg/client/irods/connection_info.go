@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"google.golang.org/grpc/codes"
@@ -167,7 +168,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 		return nil, status.Error(codes.InvalidArgument, "Argument clientUser must be a non-anonymous user")
 	}
 
-	if getConfigEnforceProxyAccess(configs) {
+	if client_common.GetConfigEnforceProxyAccess(configs) {
 		// we don't allow anonymous user
 		if connInfo.IsAnonymousUser() {
 			return nil, status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
@@ -225,7 +226,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 		return nil, status.Error(codes.InvalidArgument, "Argument path and path_mappings are empty, one must be given")
 	}
 
-	whitelist := getConfigMountPathWhitelist(configs)
+	whitelist := client_common.GetConfigMountPathWhitelist(configs)
 	for _, mapping := range connInfo.PathMappings {
 		if !mounter.IsMountPathAllowed(whitelist, mapping.IRODSPath) {
 			return nil, status.Errorf(codes.InvalidArgument, "Argument path %s is not allowed to mount", mapping.IRODSPath)
