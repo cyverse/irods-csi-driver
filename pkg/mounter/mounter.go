@@ -131,10 +131,36 @@ func (mounter *NodeMounter) MountSensitive2(source string, sourceMasked string, 
 	return mounter.doMount(defaultMountCommand, source, sourceMasked, target, fstype, options, sensitiveOptions, stdinValues)
 }
 
+func (mounter *NodeMounter) ensureMtab() error {
+	// creating /etc/mtab
+	pathExists, pathErr := PathExists("/etc/mtab")
+	if pathErr != nil {
+		klog.Errorf("File /etc/mtab not accessible: %v", pathErr)
+		return xerrors.Errorf("file /etc/mtab not accessible: %w", pathErr)
+	}
+
+	if !pathExists {
+		klog.V(4).Info("Creating /etc/mtab")
+		symlinkErr := os.Symlink("/proc/mounts", "/etc/mtab")
+		if symlinkErr != nil {
+			klog.Errorf("Symlink failed: %v", symlinkErr)
+			return xerrors.Errorf("symlink failed: %v", symlinkErr)
+		}
+	}
+	return nil
+}
+
 // doMount runs the mount command. mounterPath is the path to mounter binary if containerized mounter is used.
 // sensitiveOptions is an extension of options except they will not be logged (because they may contain sensitive material)
 func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string, stdinValues []string) error {
 	mountArgs, mountArgsLogStr := MakeMountArgsSensitive(source, sourceMasked, target, fstype, options, sensitiveOptions)
+
+	// Ensure /etc/mtab, this is requred by file system client
+	// in containerd runtime, /etc/mtab file is missing
+	err := mounter.ensureMtab()
+	if err != nil {
+		return err
+	}
 
 	// Logging with sensitive mount options removed.
 	klog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgsLogStr)
@@ -143,7 +169,7 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 	if stdinValues != nil {
 		stdin, err := command.StdinPipe()
 		if err != nil {
-			klog.Errorf("Accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s\n", err, mountCmd, mountArgsLogStr)
+			klog.Errorf("Accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s", err, mountCmd, mountArgsLogStr)
 			return xerrors.Errorf("accessing stdin failed, Mounting command '%s', Mounting arguments '%s': %w", mountCmd, mountArgsLogStr, err)
 		}
 
@@ -156,7 +182,7 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 
 	output, err := command.CombinedOutput()
 	if err != nil {
-		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, mountArgsLogStr, string(output))
+		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s", err, mountCmd, mountArgsLogStr, string(output))
 		return xerrors.Errorf("mount failed, Mounting command '%s', Mounting arguments '%s', Output '%s': %w", mountCmd, mountArgsLogStr, string(output), err)
 	}
 	return err
