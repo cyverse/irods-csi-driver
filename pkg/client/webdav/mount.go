@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
@@ -88,6 +89,9 @@ func makeDavFSDataRootPath(dataRootPath string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// not exist, make one
+			oldMask := syscall.Umask(0)
+			defer syscall.Umask(oldMask)
+
 			err = os.MkdirAll(dataRootPath, os.FileMode(0777))
 			if err != nil {
 				return xerrors.Errorf("failed to create a davfs data root path %s: %w", dataRootPath, err)
@@ -111,6 +115,9 @@ func makeDavFSCachePath(dataRootPath string) error {
 		if os.IsNotExist(err) {
 			// not exist, make one
 			// cache dir must have permission 0777
+			oldMask := syscall.Umask(0)
+			defer syscall.Umask(oldMask)
+
 			err = os.MkdirAll(cachePath, os.FileMode(0777))
 			if err != nil {
 				return xerrors.Errorf("failed to create a davfs cache path %s: %w", cachePath, err)
@@ -119,6 +126,7 @@ func makeDavFSCachePath(dataRootPath string) error {
 			return xerrors.Errorf("failed to access a davfs cache path %s: %w", cachePath, err)
 		}
 	}
+
 	return nil
 }
 

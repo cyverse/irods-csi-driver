@@ -3,6 +3,7 @@ package irods
 import (
 	"fmt"
 	"os"
+	"syscall"
 
 	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
@@ -105,7 +106,10 @@ func makeIrodsFuseLiteDataRootPath(dataRootPath string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// not exist, make one
-			err = os.MkdirAll(dataRootPath, os.FileMode(0755))
+			oldMask := syscall.Umask(0)
+			defer syscall.Umask(oldMask)
+
+			err = os.MkdirAll(dataRootPath, os.FileMode(0777))
 			if err != nil {
 				return xerrors.Errorf("failed to create a irodsfs data root path %s: %w", dataRootPath, err)
 			}

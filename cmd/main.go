@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"syscall"
 
 	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/cyverse/irods-csi-driver/pkg/driver"
@@ -54,7 +55,10 @@ func main() {
 		if err != nil {
 			if os.IsNotExist(err) {
 				// not exist, make one
-				err = os.MkdirAll(conf.StoragePath, os.FileMode(0755))
+				oldMask := syscall.Umask(0)
+				defer syscall.Umask(oldMask)
+
+				err = os.MkdirAll(conf.StoragePath, os.FileMode(0777))
 				if err != nil {
 					klog.Fatalf("Failed to create a storage path %s", conf.StoragePath)
 				}
