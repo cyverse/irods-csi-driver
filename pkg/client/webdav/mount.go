@@ -88,7 +88,7 @@ func makeDavFSDataRootPath(dataRootPath string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// not exist, make one
-			err = os.MkdirAll(dataRootPath, os.FileMode(0755))
+			err = os.MkdirAll(dataRootPath, os.FileMode(0777))
 			if err != nil {
 				return xerrors.Errorf("failed to create a davfs data root path %s: %w", dataRootPath, err)
 			}
@@ -110,7 +110,8 @@ func makeDavFSCachePath(dataRootPath string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// not exist, make one
-			err = os.MkdirAll(cachePath, os.FileMode(0755))
+			// cache dir must have permission 0777
+			err = os.MkdirAll(cachePath, os.FileMode(0777))
 			if err != nil {
 				return xerrors.Errorf("failed to create a davfs cache path %s: %w", cachePath, err)
 			}
