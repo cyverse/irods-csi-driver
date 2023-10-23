@@ -49,7 +49,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
-	configOption := fmt.Sprintf("-o conf=%s", configPath)
+	configOption := fmt.Sprintf("conf=%s", configPath)
 	mountOptions = append(mountOptions, configOption)
 
 	mountOptions = append(mountOptions, mntOptions...)
