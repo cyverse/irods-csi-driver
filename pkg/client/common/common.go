@@ -61,14 +61,19 @@ func GetConfigEnforceProxyAccess(configs map[string]string) bool {
 
 // GetConfigMountPathWhitelist returns a whitelist of collections that users can mount
 func GetConfigMountPathWhitelist(configs map[string]string) []string {
-	whitelist := configs["mountpathwhitelist"]
+	if whitelist, ok := configs["mountpathwhitelist"]; ok {
+		if len(whitelist) > 0 {
+			whitelistItems := strings.Split(whitelist, ",")
+			for idx := range whitelistItems {
+				item := strings.TrimSpace(whitelistItems[idx])
+				if len(item) == 0 {
+					item = "/"
+				}
 
-	whitelistItems := strings.Split(whitelist, ",")
-	if len(whitelistItems) > 0 {
-		for idx := range whitelistItems {
-			whitelistItems[idx] = strings.TrimSpace(whitelistItems[idx])
+				whitelistItems[idx] = item
+			}
+			return whitelistItems
 		}
-		return whitelistItems
 	}
 
 	return []string{"/"}
