@@ -4,6 +4,7 @@ import (
 	"time"
 
 	irodsclient_fs "github.com/cyverse/go-irodsclient/fs"
+	irodsclient_connection "github.com/cyverse/go-irodsclient/irods/connection"
 	irodsclient_types "github.com/cyverse/go-irodsclient/irods/types"
 )
 
@@ -52,16 +53,12 @@ func TestConnection(conn *IRODSFSConnectionInfo) error {
 		return err
 	}
 
-	oneMin := 1 * time.Minute
-	oneHour := 1 * time.Hour
-	fourMB := 4 * 1024 * 1024
-	fsConfig := irodsclient_fs.NewFileSystemConfig(applicationName, oneHour, oneMin, oneMin, 1, fourMB, oneMin, oneMin, nil, true, false)
-	filesystem, err := irodsclient_fs.NewFileSystem(account, fsConfig)
+	irodsConn := irodsclient_connection.NewIRODSConnection(account, 5*time.Minute, applicationName)
+	err = irodsConn.Connect()
 	if err != nil {
 		return err
 	}
 
-	defer filesystem.Release()
-
+	irodsConn.Disconnect()
 	return nil
 }
