@@ -11,7 +11,7 @@ require (
 	github.com/rs/xid v1.3.0
 	github.com/sirupsen/logrus v1.8.1
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.2.0
