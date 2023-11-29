@@ -48,7 +48,7 @@ spec:
             - name: storage-volume
               mountPath: /storage
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v1.6.0
+          image: registry.k8s.io/sig-storage/csi-provisioner:v3.1.0
           args:
             - --timeout=5m
             - --csi-address=$(ADDRESS)

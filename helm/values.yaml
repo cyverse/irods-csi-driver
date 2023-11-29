@@ -30,8 +30,8 @@ controllerService:
 
   csiProvisioner:
     image:
-      repository: quay.io/k8scsi/csi-provisioner
-      tag: v1.6.0
+      repository: registry.k8s.io/sig-storage/csi-provisioner
+      tag: v3.1.0
       pullPolicy: IfNotPresent
 
     extraArgs:
@@ -80,8 +80,8 @@ nodeService:
 
   csiDriverRegistrar:
     image:
-      repository: quay.io/k8scsi/csi-node-driver-registrar
-      tag: v1.1.0
+      repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
+      tag: v2.9.2
       pullPolicy: IfNotPresent
 
     extraArgs:
@@ -93,8 +93,8 @@ nodeService:
 
   livenessProbe:
     image:
-      repository: quay.io/k8scsi/livenessprobe
-      tag: v1.1.0
+      repository: registry.k8s.io/sig-storage/livenessprobe
+      tag: v2.11.0
       pullPolicy: IfNotPresent
 
     resources: {}
