@@ -107,7 +107,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	}
 
 	if !pathExist {
-		klog.V(5).Infof("NodeStageVolume: creating dir %s", targetPath)
+		klog.V(5).Infof("NodeStageVolume: creating dir %q", targetPath)
 		if err := mounter.MakeDir(targetPath); err != nil {
 			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
@@ -122,16 +122,12 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	if !notMountPoint {
 		metrics.IncreaseCounterForVolumeMountFailures()
-
-		// clear failed mount point
-		client.ClearFailedMount(driver.mounter, targetPath)
-
-		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted, cleared", targetPath)
+		return nil, status.Errorf(codes.Internal, "Staging target path %q is already mounted", targetPath)
 	}
 
 	// merge params
 	configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
-	klog.V(5).Infof("NodeStageVolume: mounting %s", targetPath)
+	klog.V(5).Infof("NodeStageVolume: mounting %q", targetPath)
 
 	// mount
 	err = client.MountClient(driver.mounter, volID, configs, mountOptions, targetPath)
@@ -139,7 +135,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return nil, err
 	}
 
-	klog.V(5).Infof("NodeStageVolume: %s was mounted", targetPath)
+	klog.V(5).Infof("NodeStageVolume: %q was mounted", targetPath)
 
 	nodeVolume := &volumeinfo.NodeVolume{
 		ID:                        volID,
@@ -201,7 +197,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	if !pathExist {
-		klog.V(5).Infof("NodePublishVolume: creating dir %s", targetPath)
+		klog.V(5).Infof("NodePublishVolume: creating dir %q", targetPath)
 		if err := mounter.MakeDir(targetPath); err != nil {
 			metrics.IncreaseCounterForVolumeMountFailures()
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", targetPath, err)
@@ -216,11 +212,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	if !notMountPoint {
 		metrics.IncreaseCounterForVolumeMountFailures()
-
-		// clear failed mount point
-		client.ClearFailedMount(driver.mounter, targetPath)
-
-		return nil, status.Errorf(codes.Internal, "Staging target path %s is already mounted, cleared", targetPath)
+		return nil, status.Errorf(codes.Internal, "Staging target path %q is already mounted", targetPath)
 	}
 
 	if isDynamicVolumeProvisioningMode(req.GetVolumeContext()) {
@@ -232,7 +224,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			return nil, status.Error(codes.InvalidArgument, "Staging target path not provided")
 		}
 
-		klog.V(5).Infof("NodePublishVolume: bind mounting %s", targetPath)
+		klog.V(5).Infof("NodePublishVolume: bind mounting %q", targetPath)
 		if err := mounter.MountBind(driver.mounter, stagingTargetPath, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
 			metrics.IncreaseCounterForVolumeMountFailures()
@@ -248,7 +240,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 		if nodeVolume == nil {
 			metrics.IncreaseCounterForVolumeMountFailures()
-			return nil, status.Errorf(codes.InvalidArgument, "Unable to find node volume %s", volID)
+			return nil, status.Errorf(codes.InvalidArgument, "Unable to find node volume %q", volID)
 		}
 
 		nodeVolume.MountPath = targetPath
@@ -267,7 +259,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
 
 		// mount
-		klog.V(5).Infof("NodePublishVolume: mounting %s", targetPath)
+		klog.V(5).Infof("NodePublishVolume: mounting %q", targetPath)
 		err = client.MountClient(driver.mounter, volID, configs, mountOptions, targetPath)
 		if err != nil {
 			return nil, err
@@ -306,7 +298,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 	}
 
-	klog.V(5).Infof("NodePublishVolume: %s was mounted", targetPath)
+	klog.V(5).Infof("NodePublishVolume: %q was mounted", targetPath)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
@@ -322,7 +314,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	nodeVolume := driver.nodeVolumeManager.Get(volID)
 	if nodeVolume == nil {
-		klog.Errorf("Unable to find node volume %s in the node volume manager, but we continue anyway", volID)
+		klog.Errorf("Unable to find node volume %q in the node volume manager, but we continue anyway", volID)
 	} else {
 		if !nodeVolume.StageVolume {
 			// if the volume is added at NodePublishVolume, delete here
@@ -353,14 +345,14 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	// is not staged to the staging_target_path, the Plugin MUST
 	// reply 0 OK.
 	if refCount == 0 {
-		klog.V(5).Infof("NodeUnpublishVolume: %s target not mounted", targetPath)
+		klog.V(5).Infof("NodeUnpublishVolume: %q target not mounted", targetPath)
 		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
 
 	// unmount
 	if nodeVolume == nil {
 		// unknown, lost record
-		klog.V(5).Infof("NodeUnpublishVolume: unmounting unknown volume %s", targetPath)
+		klog.V(5).Infof("NodeUnpublishVolume: unmounting unknown volume %q", targetPath)
 		err = driver.mounter.Unmount(targetPath)
 		if err != nil {
 			metrics.IncreaseCounterForVolumeUnmountFailures()
@@ -371,7 +363,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		metrics.DecreaseCounterForActiveVolumeMount()
 	} else if nodeVolume.DynamicVolumeProvisioning {
 		// unmount bind
-		klog.V(5).Infof("NodeUnpublishVolume: bind unmounting %s", targetPath)
+		klog.V(5).Infof("NodeUnpublishVolume: bind unmounting %q", targetPath)
 		err = driver.mounter.Unmount(targetPath)
 		if err != nil {
 			metrics.IncreaseCounterForVolumeUnmountFailures()
@@ -382,7 +374,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		metrics.DecreaseCounterForActiveVolumeMount()
 	} else {
 		// unmountClient
-		klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", targetPath)
+		klog.V(5).Infof("NodeUnpublishVolume: unmounting %q", targetPath)
 		err = client.UnmountClient(driver.mounter, volID, client_common.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
 		if err != nil {
 			return nil, err
@@ -395,7 +387,7 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	klog.V(5).Infof("NodeUnpublishVolume: unmounted %s", targetPath)
+	klog.V(5).Infof("NodeUnpublishVolume: unmounted %q", targetPath)
 
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
@@ -411,7 +403,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 
 	nodeVolume := driver.nodeVolumeManager.Get(volID)
 	if nodeVolume == nil {
-		klog.V(5).Infof("Unable to find node volume %s in the node volume manager, but we continue anyway", volID)
+		klog.V(3).Infof("Unable to find node volume %q in the node volume manager, but we continue anyway", volID)
 	} else {
 		// delete here
 		_, err := driver.nodeVolumeManager.Pop(volID)
@@ -445,12 +437,12 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	// is not staged to the staging_target_path, the Plugin MUST
 	// reply 0 OK.
 	if refCount == 0 {
-		klog.V(5).Infof("NodeUnstageVolume: %s target not mounted", targetPath)
+		klog.V(5).Infof("NodeUnstageVolume: %q target not mounted", targetPath)
 		return &csi.NodeUnstageVolumeResponse{}, nil
 	}
 
 	if nodeVolume == nil {
-		klog.V(5).Infof("NodeUnstageVolume: unmounting unknown volume %s", targetPath)
+		klog.V(5).Infof("NodeUnstageVolume: unmounting unknown volume %q", targetPath)
 		err = driver.mounter.Unmount(targetPath)
 		if err != nil {
 			metrics.IncreaseCounterForVolumeUnmountFailures()
@@ -460,14 +452,14 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 		metrics.IncreaseCounterForVolumeUnmount()
 		metrics.DecreaseCounterForActiveVolumeMount()
 	} else {
-		klog.V(5).Infof("NodeUnstageVolume: unmounting %s", targetPath)
+		klog.V(5).Infof("NodeUnstageVolume: unmounting %q", targetPath)
 		err = client.UnmountClient(driver.mounter, volID, client_common.GetValidClientType(nodeVolume.ClientType), nodeVolume.ClientConfig, targetPath)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	klog.V(5).Infof("NodeUnstageVolume: unmounted %s", targetPath)
+	klog.V(5).Infof("NodeUnstageVolume: unmounted %q", targetPath)
 
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }

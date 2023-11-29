@@ -83,7 +83,7 @@ func GetConnectionInfo(configs map[string]string) (*WebDAVConnectionInfo, error)
 	// check
 	_, err = url.ParseRequestURI(connInfo.URL)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "Invalid URL - %s", connInfo.URL)
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid URL - %q", connInfo.URL)
 	}
 
 	return &connInfo, nil

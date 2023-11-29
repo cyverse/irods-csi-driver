@@ -43,7 +43,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	klog.V(1).Infof("Driver version: %s", common.GetDriverVersion())
+	klog.V(1).Infof("Driver version: %q", common.GetDriverVersion())
 
 	if conf.NodeID == "" {
 		// exit automatically
@@ -60,10 +60,10 @@ func main() {
 
 				err = os.MkdirAll(conf.StoragePath, os.FileMode(0777))
 				if err != nil {
-					klog.Fatalf("Failed to create a storage path %s", conf.StoragePath)
+					klog.Fatalf("Failed to create a storage path %q", conf.StoragePath)
 				}
 			} else {
-				klog.Fatalf("Failed to access a storage path %s", conf.StoragePath)
+				klog.Fatalf("Failed to access a storage path %q", conf.StoragePath)
 			}
 		}
 	}
@@ -75,7 +75,7 @@ func main() {
 			prometheusExporterAddr := fmt.Sprintf(":%d", conf.PrometheusExporterPort)
 			http.Handle("/metrics", promhttp.Handler())
 
-			klog.Infof("Starting prometheus exporter at %s", prometheusExporterAddr)
+			klog.Infof("Starting prometheus exporter at %q", prometheusExporterAddr)
 			prometheusExporterServer = &http.Server{Addr: prometheusExporterAddr, Handler: nil}
 			prometheusExporterServer.ListenAndServe()
 		}()

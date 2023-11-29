@@ -42,7 +42,7 @@ type Config struct {
 func ParseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", "", xerrors.Errorf("failed to parse endpoint %s: %w", endpoint, err)
+		return "", "", xerrors.Errorf("failed to parse endpoint %q: %w", endpoint, err)
 	}
 
 	addr := path.Join(u.Host, filepath.FromSlash(u.Path))
@@ -57,7 +57,7 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 			return "", "", xerrors.Errorf("failed to remove unix domain socket %q: %w", addr, err)
 		}
 	default:
-		return "", "", xerrors.Errorf("unsupported protocol: %s", scheme)
+		return "", "", xerrors.Errorf("unsupported protocol: %q", scheme)
 	}
 
 	return scheme, addr, nil
@@ -67,7 +67,7 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 func ParsePoolServiceEndpoint(endpoint string) (string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", xerrors.Errorf("could not parse endpoint %s: %w", endpoint, err)
+		return "", xerrors.Errorf("could not parse endpoint %q: %w", endpoint, err)
 	}
 
 	scheme := strings.ToLower(u.Scheme)
@@ -81,8 +81,8 @@ func ParsePoolServiceEndpoint(endpoint string) (string, error) {
 		if len(u.Host) > 0 {
 			return u.Host, nil
 		}
-		return "", xerrors.Errorf("unknown host: %s", u.Host)
+		return "", xerrors.Errorf("unknown host: %q", u.Host)
 	default:
-		return "", xerrors.Errorf("unsupported protocol: %s", scheme)
+		return "", xerrors.Errorf("unsupported protocol: %q", scheme)
 	}
 }

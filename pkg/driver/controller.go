@@ -106,11 +106,11 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	// generate path
 	if !controllerConfig.NotCreateVolumeDir {
 		// create
-		klog.V(5).Infof("Creating a volume dir %s", controllerConfig.VolumePath)
+		klog.V(5).Infof("Creating a volume dir %q", controllerConfig.VolumePath)
 		err = irods.Mkdir(irodsConnectionInfo, controllerConfig.VolumePath)
 		if err != nil {
 			metrics.IncreaseCounterForVolumeMountFailures()
-			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %s : %v", controllerConfig.VolumePath, err)
+			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %q : %v", controllerConfig.VolumePath, err)
 		}
 	}
 
@@ -176,10 +176,10 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 	}
 
 	if !controllerVolume.RetainData {
-		klog.V(5).Infof("Deleting a volume dir %s", controllerVolume.Path)
+		klog.V(5).Infof("Deleting a volume dir %q", controllerVolume.Path)
 		err := irods.Rmdir(controllerVolume.ConnectionInfo, controllerVolume.Path)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %s : %v", controllerVolume.Path, err)
+			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %q : %v", controllerVolume.Path, err)
 		}
 	}
 

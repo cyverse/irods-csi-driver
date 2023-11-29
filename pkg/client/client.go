@@ -20,7 +20,7 @@ func MountClient(mounter mounter.Mounter, volID string, configs map[string]strin
 	irodsClientType := common.GetClientType(configs)
 	switch irodsClientType {
 	case common.IrodsFuseClientType:
-		klog.V(5).Infof("mounting %s", irodsClientType)
+		klog.V(5).Infof("mounting %q", irodsClientType)
 
 		if err := irods.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
@@ -32,7 +32,7 @@ func MountClient(mounter mounter.Mounter, volID string, configs map[string]strin
 		metrics.IncreaseCounterForActiveVolumeMount()
 		return nil
 	case common.WebdavClientType:
-		klog.V(5).Infof("mounting %s", irodsClientType)
+		klog.V(5).Infof("mounting %q", irodsClientType)
 
 		if err := webdav.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
@@ -44,7 +44,7 @@ func MountClient(mounter mounter.Mounter, volID string, configs map[string]strin
 		metrics.IncreaseCounterForActiveVolumeMount()
 		return nil
 	case common.NfsClientType:
-		klog.V(5).Infof("mounting %s", irodsClientType)
+		klog.V(5).Infof("mounting %q", irodsClientType)
 
 		if err := nfs.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
 			os.Remove(targetPath)
@@ -61,18 +61,11 @@ func MountClient(mounter mounter.Mounter, volID string, configs map[string]strin
 	}
 }
 
-// ClearFailedMount clears failed fs client mount
-func ClearFailedMount(mounter mounter.Mounter, targetPath string) {
-	klog.V(5).Infof("unmounting %s", targetPath)
-
-	mounter.FuseUnmount(targetPath, true)
-}
-
 // UnmountClient unmounts a fs client
 func UnmountClient(mounter mounter.Mounter, volID string, irodsClientType common.ClientType, configs map[string]string, targetPath string) error {
 	switch irodsClientType {
 	case common.IrodsFuseClientType:
-		klog.V(5).Infof("unmounting %s", irodsClientType)
+		klog.V(5).Infof("unmounting %q", irodsClientType)
 
 		if err := irods.Unmount(mounter, volID, configs, targetPath); err != nil {
 			metrics.IncreaseCounterForVolumeUnmountFailures()
@@ -83,7 +76,7 @@ func UnmountClient(mounter mounter.Mounter, volID string, irodsClientType common
 		metrics.DecreaseCounterForActiveVolumeMount()
 		return nil
 	case common.WebdavClientType:
-		klog.V(5).Infof("unmounting %s", irodsClientType)
+		klog.V(5).Infof("unmounting %q", irodsClientType)
 
 		if err := webdav.Unmount(mounter, volID, configs, targetPath); err != nil {
 			metrics.IncreaseCounterForVolumeUnmountFailures()
@@ -94,7 +87,7 @@ func UnmountClient(mounter mounter.Mounter, volID string, irodsClientType common
 		metrics.DecreaseCounterForActiveVolumeMount()
 		return nil
 	case common.NfsClientType:
-		klog.V(5).Infof("unmounting %s", irodsClientType)
+		klog.V(5).Infof("unmounting %q", irodsClientType)
 
 		if err := nfs.Unmount(mounter, volID, configs, targetPath); err != nil {
 			metrics.IncreaseCounterForVolumeUnmountFailures()

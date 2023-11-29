@@ -15,7 +15,7 @@ func MountBind(mounter Mounter, sourcePath string, mntOptions []string, targetPa
 	mountOptions = append(mountOptions, mntOptions...)
 	mountOptions = append(mountOptions, "bind")
 
-	klog.V(5).Infof("Mounting %s at %s with options %v", sourcePath, targetPath, mountOptions)
+	klog.V(5).Infof("Mounting %q at %q with options %v", sourcePath, targetPath, mountOptions)
 	if err := mounter.MountSensitive2(sourcePath, sourcePath, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
 		return status.Errorf(codes.Internal, "Could not mount %q (%q) at %q: %v", sourcePath, fsType, targetPath, err)
 	}

@@ -18,11 +18,11 @@ import (
 func readSecrets(secretPath string) (map[string]string, error) {
 	exist, err := mounter.PathExists(secretPath)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Secret path %s does not exist - %s", secretPath, err)
+		return nil, status.Errorf(codes.Internal, "Secret path %q does not exist - %q", secretPath, err)
 	}
 
 	if !exist {
-		return nil, status.Errorf(codes.NotFound, "Secret path %s does not exist", secretPath)
+		return nil, status.Errorf(codes.NotFound, "Secret path %q does not exist", secretPath)
 	}
 
 	secrets := make(map[string]string)
@@ -86,13 +86,13 @@ func getControllerConfigFromMap(params map[string]string, config *ControllerConf
 		case "retaindata":
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %q", k, err)
 			}
 			config.RetainData = retain
 		case "novolumedir":
 			novolumedir, err := strconv.ParseBool(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %q", k, err)
 			}
 			config.NotCreateVolumeDir = novolumedir
 		default:

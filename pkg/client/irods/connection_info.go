@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
+	irodsfs_common_vpath "github.com/cyverse/irodsfs-common/vpath"
+
 	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"google.golang.org/grpc/codes"
@@ -28,7 +30,7 @@ type IRODSFSConnectionInfo struct {
 	Resource          string
 	PoolEndpoint      string
 	MonitorURL        string
-	PathMappings      []IRODSFSPathMapping
+	PathMappings      []irodsfs_common_vpath.VPathMapping
 	NoPermissionCheck bool
 	UID               int
 	GID               int
@@ -36,6 +38,7 @@ type IRODSFSConnectionInfo struct {
 	MountTimeout      int
 	Profile           bool
 	ProfilePort       int
+	OverlayFS         bool
 }
 
 // SetAnonymousUser sets anonymous user
@@ -68,7 +71,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %q", k, err)
 			}
 			connInfo.Port = p
 		case "zone":
@@ -81,7 +84,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 			}
 
 			// mount a collection
-			connInfo.PathMappings = []IRODSFSPathMapping{
+			connInfo.PathMappings = []irodsfs_common_vpath.VPathMapping{
 				{
 					IRODSPath:    v,
 					MappingPath:  "/",
@@ -93,39 +96,45 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 		case "profile":
 			pb, err := strconv.ParseBool(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %q", k, err)
 			}
 			connInfo.Profile = pb
 		case "profileport":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %q", k, err)
 			}
 			connInfo.ProfilePort = p
+		case "overlayfs":
+			ob, err := strconv.ParseBool(v)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %q", k, err)
+			}
+			connInfo.OverlayFS = ob
 		case "monitorurl":
 			connInfo.MonitorURL = v
 		case "pathmappingjson":
-			connInfo.PathMappings = []IRODSFSPathMapping{}
+			connInfo.PathMappings = []irodsfs_common_vpath.VPathMapping{}
 			err := json.Unmarshal([]byte(v), &connInfo.PathMappings)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %q", k, err)
 			}
 		case "nopermissioncheck":
 			npc, err := strconv.ParseBool(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %q", k, err)
 			}
 			connInfo.NoPermissionCheck = npc
 		case "uid":
 			u, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid uid number - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid uid number - %q", k, err)
 			}
 			connInfo.UID = u
 		case "gid":
 			g, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %q", k, err)
 			}
 			connInfo.GID = g
 		case "systemuser":
@@ -133,7 +142,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 		case "mounttimeout":
 			t, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %s", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %q", k, err)
 			}
 			connInfo.MountTimeout = t
 		default:
@@ -179,7 +188,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 		}
 
 		if connInfo.User == connInfo.ClientUser {
-			return nil, status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %s, clientUser %s", connInfo.User, connInfo.ClientUser)
+			return nil, status.Errorf(codes.InvalidArgument, "Argument clientUser cannot be the same as user - user %q, clientUser %q", connInfo.User, connInfo.ClientUser)
 		}
 	} else {
 		if len(connInfo.ClientUser) == 0 {
@@ -218,7 +227,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 		// check
 		_, err := url.ParseRequestURI(connInfo.MonitorURL)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Invalid monitor URL - %s", connInfo.MonitorURL)
+			return nil, status.Errorf(codes.InvalidArgument, "Invalid monitor URL - %q", connInfo.MonitorURL)
 		}
 	}
 
@@ -229,7 +238,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 	whitelist := client_common.GetConfigMountPathWhitelist(configs)
 	for _, mapping := range connInfo.PathMappings {
 		if !mounter.IsMountPathAllowed(whitelist, mapping.IRODSPath) {
-			return nil, status.Errorf(codes.InvalidArgument, "Argument path %s is not allowed to mount", mapping.IRODSPath)
+			return nil, status.Errorf(codes.InvalidArgument, "Argument path %q is not allowed to mount", mapping.IRODSPath)
 		}
 	}
 

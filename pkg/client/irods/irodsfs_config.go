@@ -1,6 +1,10 @@
 package irods
 
-import "time"
+import (
+	"time"
+
+	irodsfs_common_vpath "github.com/cyverse/irodsfs-common/vpath"
+)
 
 // this structures must match to iRODS FUSE Lite Config
 // https://github.com/cyverse/irodsfs/blob/main/commons/config.go#L80
@@ -16,29 +20,19 @@ const (
 	MetadataCacheCleanupTimeDefault time.Duration = 5 * time.Minute
 )
 
-// PathMapping ...
-type IRODSFSPathMapping struct {
-	IRODSPath           string `yaml:"irods_path" json:"irods_path"`
-	MappingPath         string `yaml:"mapping_path" json:"mapping_path"`
-	ResourceType        string `yaml:"resource_type" json:"resource_type"` // file or dir
-	ReadOnly            bool   `yaml:"read_only" json:"read_only"`
-	CreateDir           bool   `yaml:"create_dir" json:"create_dir"`
-	IgnoreNotExistError bool   `yaml:"ignore_not_exist_error" json:"ignore_not_exist_error"`
-}
-
 type IRODSFSConfig struct {
-	Host              string               `yaml:"host"`
-	Port              int                  `yaml:"port"`
-	ProxyUser         string               `yaml:"proxy_user"`
-	ClientUser        string               `yaml:"client_user"`
-	Zone              string               `yaml:"zone"`
-	Password          string               `yaml:"password"`
-	Resource          string               `yaml:"resource,omitempty"`
-	PathMappings      []IRODSFSPathMapping `yaml:"path_mappings"`
-	NoPermissionCheck bool                 `yaml:"no_permission_check"`
-	UID               int                  `yaml:"uid"`
-	GID               int                  `yaml:"gid"`
-	SystemUser        string               `yaml:"system_user"`
+	Host              string                              `yaml:"host"`
+	Port              int                                 `yaml:"port"`
+	ProxyUser         string                              `yaml:"proxy_user"`
+	ClientUser        string                              `yaml:"client_user"`
+	Zone              string                              `yaml:"zone"`
+	Password          string                              `yaml:"password"`
+	Resource          string                              `yaml:"resource,omitempty"`
+	PathMappings      []irodsfs_common_vpath.VPathMapping `yaml:"path_mappings"`
+	NoPermissionCheck bool                                `yaml:"no_permission_check"`
+	UID               int                                 `yaml:"uid"`
+	GID               int                                 `yaml:"gid"`
+	SystemUser        string                              `yaml:"system_user"`
 
 	DataRootPath string `yaml:"data_root_path,omitempty"`
 
@@ -73,7 +67,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		Zone:              "",
 		Password:          "",
 		Resource:          "",
-		PathMappings:      []IRODSFSPathMapping{},
+		PathMappings:      []irodsfs_common_vpath.VPathMapping{},
 		NoPermissionCheck: false,
 		UID:               -1,
 		GID:               -1,

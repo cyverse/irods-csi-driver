@@ -28,7 +28,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 		mountOptions = append(mountOptions, fmt.Sprintf("port=%d", irodsConnectionInfo.Port))
 	}
 
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
+	klog.V(5).Infof("Mounting %q (%q) at %q with options %v", source, fsType, targetPath, mountOptions)
 	if err := mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
 		return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}

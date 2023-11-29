@@ -50,7 +50,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
-	configOption := fmt.Sprintf("conf=%s", configPath)
+	configOption := fmt.Sprintf("conf=%q", configPath)
 	mountOptions = append(mountOptions, configOption)
 
 	mountOptions = append(mountOptions, mntOptions...)
@@ -61,7 +61,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 		stdinArgs = append(stdinArgs, irodsConnectionInfo.Password)
 	}
 
-	klog.V(5).Infof("Mounting %s (%s) at %s with options %v", source, fsType, targetPath, mountOptions)
+	klog.V(5).Infof("Mounting %q (%q) at %q with options %v", source, fsType, targetPath, mountOptions)
 	if err := mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
 		return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", source, fsType, targetPath, err)
 	}
@@ -70,7 +70,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 }
 
 func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, targetPath string) error {
-	err := mounter.FuseUnmount(targetPath, true)
+	err := mounter.UnmountLazy(targetPath, true)
 	if err != nil {
 		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
 	}
@@ -78,7 +78,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 	dataRootPath := client_common.GetConfigDataRootPath(configs, volID)
 	err = deleteDavFSData(dataRootPath)
 	if err != nil {
-		klog.V(5).Infof("Error deleting davfs data at %s - ignoring", dataRootPath)
+		klog.V(3).Infof("Error deleting davfs data at %q - ignoring", dataRootPath)
 	}
 	return nil
 }
@@ -94,10 +94,10 @@ func makeDavFSDataRootPath(dataRootPath string) error {
 
 			err = os.MkdirAll(dataRootPath, os.FileMode(0777))
 			if err != nil {
-				return xerrors.Errorf("failed to create a davfs data root path %s: %w", dataRootPath, err)
+				return xerrors.Errorf("failed to create a davfs data root path %q: %w", dataRootPath, err)
 			}
 		} else {
-			return xerrors.Errorf("failed to access a davfs data root path %s: %w", dataRootPath, err)
+			return xerrors.Errorf("failed to access a davfs data root path %q: %w", dataRootPath, err)
 		}
 	}
 	return nil
@@ -120,10 +120,10 @@ func makeDavFSCachePath(dataRootPath string) error {
 
 			err = os.MkdirAll(cachePath, os.FileMode(0777))
 			if err != nil {
-				return xerrors.Errorf("failed to create a davfs cache path %s: %w", cachePath, err)
+				return xerrors.Errorf("failed to create a davfs cache path %q: %w", cachePath, err)
 			}
 		} else {
-			return xerrors.Errorf("failed to access a davfs cache path %s: %w", cachePath, err)
+			return xerrors.Errorf("failed to access a davfs cache path %q: %w", cachePath, err)
 		}
 	}
 
@@ -134,7 +134,7 @@ func deleteDavFSData(dataRootPath string) error {
 	// delete davfs data
 	err := os.RemoveAll(dataRootPath)
 	if err != nil {
-		return xerrors.Errorf("failed to delete a davfs data root path %s: %w", dataRootPath, err)
+		return xerrors.Errorf("failed to delete a davfs data root path %q: %w", dataRootPath, err)
 	}
 	return nil
 }

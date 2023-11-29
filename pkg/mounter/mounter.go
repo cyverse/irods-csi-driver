@@ -70,6 +70,7 @@ type Mounter interface {
 	mount.Interface
 	GetDeviceName(mountPath string) (string, int, error)
 	MountSensitive2(source string, sourceMasked string, target string, fstype string, options []string, sensitiveOptions []string, stdinValues []string) error
+	UnmountLazy(target string, lazy bool) error
 	FuseUnmount(target string, lazy bool) error
 }
 
@@ -163,14 +164,14 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 	}
 
 	// Logging with sensitive mount options removed.
-	klog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgsLogStr)
+	klog.V(4).Infof("Mounting cmd (%q) with arguments (%q)", mountCmd, mountArgsLogStr)
 	command := exec.Command(mountCmd, mountArgs...)
 
 	if stdinValues != nil {
 		stdin, err := command.StdinPipe()
 		if err != nil {
-			klog.Errorf("Accessing stdin failed: %v\nMounting command: %s\nMounting arguments: %s", err, mountCmd, mountArgsLogStr)
-			return xerrors.Errorf("accessing stdin failed, Mounting command '%s', Mounting arguments '%s': %w", mountCmd, mountArgsLogStr, err)
+			klog.Errorf("Accessing stdin failed: %v\nMounting command: %q\nMounting arguments: %q", err, mountCmd, mountArgsLogStr)
+			return xerrors.Errorf("accessing stdin failed, Mounting command '%q', Mounting arguments '%q': %w", mountCmd, mountArgsLogStr, err)
 		}
 
 		for _, stdinValue := range stdinValues {
@@ -182,8 +183,8 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 
 	output, err := command.CombinedOutput()
 	if err != nil {
-		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s", err, mountCmd, mountArgsLogStr, string(output))
-		return xerrors.Errorf("mount failed, Mounting command '%s', Mounting arguments '%s', Output '%s': %w", mountCmd, mountArgsLogStr, string(output), err)
+		klog.Errorf("Mount failed: %v\nMounting command: %q\nMounting arguments: %q\nOutput: %q", err, mountCmd, mountArgsLogStr, string(output))
+		return xerrors.Errorf("mount failed, Mounting command '%q', Mounting arguments '%q', Output '%q': %w", mountCmd, mountArgsLogStr, string(output), err)
 	}
 	return err
 }
@@ -240,20 +241,28 @@ func sanitizedOptionsForLogging(options []string, sensitiveOptions []string) str
 		sensitiveOptionsEnd
 }
 
-// Unmount unmounts the target.
-func (mounter *NodeMounter) Unmount(target string) error {
-	klog.V(4).Infof("Unmounting %s", target)
-	command := exec.Command("umount", target)
+// UnmountLazy unmounts the target.
+func (mounter *NodeMounter) UnmountLazy(target string, lazy bool) error {
+	klog.V(5).Infof("Unmounting %q", target)
+
+	cmdArgs := []string{}
+	if lazy {
+		cmdArgs = append(cmdArgs, "-l")
+	}
+
+	cmdArgs = append(cmdArgs, target)
+
+	command := exec.Command("umount", cmdArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		return xerrors.Errorf("umount failed, Unmounting arguments '%s', Output '%s': %w", target, string(output), err)
+		return xerrors.Errorf("umount failed, Unmounting arguments '%q', Output '%q': %w", target, string(output), err)
 	}
 	return nil
 }
 
 // FuseUnmount unmounts the fuse target.
 func (mounter *NodeMounter) FuseUnmount(target string, lazy bool) error {
-	klog.V(4).Infof("Unmounting %s", target)
+	klog.V(5).Infof("Unmounting %q", target)
 
 	cmdArgs := []string{"-u"}
 	if lazy {
@@ -265,7 +274,7 @@ func (mounter *NodeMounter) FuseUnmount(target string, lazy bool) error {
 	command := exec.Command("fusermount", cmdArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		return xerrors.Errorf("fusermount failed, Unmounting arguments '%s', Output '%s': %w", target, string(output), err)
+		return xerrors.Errorf("fusermount failed, Unmounting arguments '%q', Output '%q': %w", target, string(output), err)
 	}
 	return nil
 }
@@ -354,10 +363,10 @@ func (mounter *NodeMounter) GetMountRefs(pathname string) ([]string, error) {
 	if !pathExists {
 		return []string{}, nil
 	} else if IsCorruptedMount(pathErr) {
-		klog.Warningf("GetMountRefs found corrupted mount at %s, treating as unmounted path", pathname)
+		klog.Warningf("GetMountRefs found corrupted mount at %q, treating as unmounted path", pathname)
 		return []string{}, nil
 	} else if pathErr != nil {
-		return nil, xerrors.Errorf("error checking path %s: %w", pathname, pathErr)
+		return nil, xerrors.Errorf("error checking path %q: %w", pathname, pathErr)
 	}
 	realpath, err := filepath.EvalSymlinks(pathname)
 	if err != nil {
@@ -400,7 +409,7 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 	}
 
 	if rootPath == "" || major == -1 || minor == -1 {
-		return nil, xerrors.Errorf("failed to get root path and major-minor for %s", hostSource)
+		return nil, xerrors.Errorf("failed to get root path and major-minor for %q", hostSource)
 	}
 
 	var refs []string
