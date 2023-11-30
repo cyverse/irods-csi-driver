@@ -149,7 +149,9 @@ spec:
           secret:
             secretName: irods-csi-driver-global-secret
         - name: storage-volume
-          emptyDir: {}
+          hostPath:
+            path: /var/lib/kubelet/plugins/irods.csi.cyverse.org/storage
+            type: DirectoryOrCreate
       nodeSelector:
         kubernetes.io/os: linux
         kubernetes.io/arch: amd64
