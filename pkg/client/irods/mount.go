@@ -23,7 +23,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	// test connection creation to check account info is correct
 	err = TestConnection(irodsConnectionInfo)
 	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "Could not create iRODS Conenction with given access parameters - %q", err)
+		return status.Errorf(codes.InvalidArgument, "Could not create iRODS Conenction with given access parameters - %v", err)
 	}
 
 	fsType := "irodsfs"
@@ -109,7 +109,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	// mount overlayfs
 	if irodsConnectionInfo.OverlayFS {
 		overlayfsMountOptions := []string{}
-		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("lowerdir=%q,upperdir=%q,workdir=%q", overlayFSLowerPath, overlayFSUpperPath, overlayFSWorkDirPath))
+		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", overlayFSLowerPath, overlayFSUpperPath, overlayFSWorkDirPath))
 
 		overlayfsMountSensitiveOptions := []string{}
 
@@ -154,7 +154,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 		// delete workdir
 		err = deleteOverlayFSData(overlayFSWorkDirPath)
 		if err != nil {
-			klog.V(3).Infof("Error deleting overlayfs workdir data at %q - ignoring", overlayFSWorkDirPath)
+			klog.V(3).Infof("Error deleting overlayfs workdir data at %q, ignoring", overlayFSWorkDirPath)
 		}
 
 		klog.V(5).Infof("Unmounting %q (%q) at %q", "irodsfs", "irodsfs", irodsFSMountPath)
@@ -167,7 +167,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 
 		err = deleteIrodsFuseLiteData(dataRootPath)
 		if err != nil {
-			klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q - ignoring", dataRootPath)
+			klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q, ignoring", dataRootPath)
 		}
 
 		// sync
@@ -178,7 +178,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 
 			err = syncOverlayFS(irodsConnectionInfo, overlayFSUpperPath)
 			if err != nil {
-				klog.V(3).Infof("Error syncing overlayfs upper data at %q - ignoring", overlayFSUpperPath)
+				klog.V(3).Infof("Error syncing overlayfs upper data at %q, ignoring", overlayFSUpperPath)
 			}
 
 			klog.V(5).Infof("Done synching overlayfs at %q", overlayFSMountPath)
@@ -186,7 +186,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 			// delete upper
 			err = deleteOverlayFSData(overlayFSUpperPath)
 			if err != nil {
-				klog.V(3).Infof("Error deleting overlayfs upper data at %q - ignoring", overlayFSUpperPath)
+				klog.V(3).Infof("Error deleting overlayfs upper data at %q, ignoring", overlayFSUpperPath)
 			}
 		}()
 	} else {
@@ -200,7 +200,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 
 		err = deleteIrodsFuseLiteData(dataRootPath)
 		if err != nil {
-			klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q - ignoring", dataRootPath)
+			klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q, ignoring", dataRootPath)
 		}
 	}
 
@@ -264,7 +264,7 @@ func syncOverlayFS(connectionInfo *IRODSFSConnectionInfo, upperPath string) erro
 
 	err = syncher.Sync()
 	if err != nil {
-		return xerrors.Errorf("failed to sync overlayfs upper %q: %w", err, upperPath)
+		return xerrors.Errorf("failed to sync overlayfs upper %q: %w", upperPath, err)
 	}
 
 	syncher.Release()

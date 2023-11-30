@@ -89,20 +89,20 @@ func GetConfigDataRootPath(configs map[string]string, volID string) string {
 // GetConfigOverlayFSLowerPath returns a lower path for overlayfs
 func GetConfigOverlayFSLowerPath(configs map[string]string, volID string) string {
 	irodsClientType := GetClientType(configs)
-	name := fmt.Sprintf("%q-overlayfs-lower", volID)
+	name := fmt.Sprintf("%s-overlayfs-lower", volID)
 	return filepath.Join(configs["storagepath"], string(irodsClientType), name)
 }
 
 // GetConfigOverlayFSUpperPath returns a upper path for overlayfs
 func GetConfigOverlayFSUpperPath(configs map[string]string, volID string) string {
 	irodsClientType := GetClientType(configs)
-	name := fmt.Sprintf("%q-overlayfs-upper", volID)
+	name := fmt.Sprintf("%s-overlayfs-upper", volID)
 	return filepath.Join(configs["storagepath"], string(irodsClientType), name)
 }
 
 // GetConfigOverlayFSWorkDirPath returns a work dir path for overlayfs
 func GetConfigOverlayFSWorkDirPath(configs map[string]string, volID string) string {
 	irodsClientType := GetClientType(configs)
-	name := fmt.Sprintf("%q-overlayfs-workdir", volID)
+	name := fmt.Sprintf("%s-overlayfs-workdir", volID)
 	return filepath.Join(configs["storagepath"], string(irodsClientType), name)
 }

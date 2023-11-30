@@ -171,7 +171,7 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 		stdin, err := command.StdinPipe()
 		if err != nil {
 			klog.Errorf("Accessing stdin failed: %v\nMounting command: %q\nMounting arguments: %q", err, mountCmd, mountArgsLogStr)
-			return xerrors.Errorf("accessing stdin failed, Mounting command '%q', Mounting arguments '%q': %w", mountCmd, mountArgsLogStr, err)
+			return xerrors.Errorf("accessing stdin failed, Mounting command %q, Mounting arguments %q: %w", mountCmd, mountArgsLogStr, err)
 		}
 
 		for _, stdinValue := range stdinValues {
@@ -184,7 +184,7 @@ func (mounter *NodeMounter) doMount(mountCmd string, source string, sourceMasked
 	output, err := command.CombinedOutput()
 	if err != nil {
 		klog.Errorf("Mount failed: %v\nMounting command: %q\nMounting arguments: %q\nOutput: %q", err, mountCmd, mountArgsLogStr, string(output))
-		return xerrors.Errorf("mount failed, Mounting command '%q', Mounting arguments '%q', Output '%q': %w", mountCmd, mountArgsLogStr, string(output), err)
+		return xerrors.Errorf("mount failed, Mounting command %q, Mounting arguments %q, Output %q: %w", mountCmd, mountArgsLogStr, string(output), err)
 	}
 	return err
 }
@@ -255,7 +255,7 @@ func (mounter *NodeMounter) UnmountLazy(target string, lazy bool) error {
 	command := exec.Command("umount", cmdArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		return xerrors.Errorf("umount failed, Unmounting arguments '%q', Output '%q': %w", target, string(output), err)
+		return xerrors.Errorf("umount failed, Unmounting arguments %q, Output %q: %w", target, string(output), err)
 	}
 	return nil
 }
@@ -274,7 +274,7 @@ func (mounter *NodeMounter) FuseUnmount(target string, lazy bool) error {
 	command := exec.Command("fusermount", cmdArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		return xerrors.Errorf("fusermount failed, Unmounting arguments '%q', Output '%q': %w", target, string(output), err)
+		return xerrors.Errorf("fusermount failed, Unmounting arguments %q, Output %q: %w", target, string(output), err)
 	}
 	return nil
 }

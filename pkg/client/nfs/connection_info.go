@@ -22,7 +22,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *NFSConnectionI
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %v", k, err)
 			}
 			connInfo.Port = p
 		case "path":

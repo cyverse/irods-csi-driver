@@ -50,7 +50,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
-	configOption := fmt.Sprintf("conf=%q", configPath)
+	configOption := fmt.Sprintf("conf=%s", configPath)
 	mountOptions = append(mountOptions, configOption)
 
 	mountOptions = append(mountOptions, mntOptions...)
@@ -78,7 +78,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 	dataRootPath := client_common.GetConfigDataRootPath(configs, volID)
 	err = deleteDavFSData(dataRootPath)
 	if err != nil {
-		klog.V(3).Infof("Error deleting davfs data at %q - ignoring", dataRootPath)
+		klog.V(3).Infof("Error deleting davfs data at %q, ignoring", dataRootPath)
 	}
 	return nil
 }

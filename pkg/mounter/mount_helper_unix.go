@@ -107,23 +107,23 @@ func ParseMountInfo(filename string) ([]MountInfo, error) {
 		}
 		id, err := strconv.Atoi(fields[0])
 		if err != nil {
-			return nil, xerrors.Errorf("failed to atoi '%q': %w", fields[0], err)
+			return nil, xerrors.Errorf("failed to atoi %q: %w", fields[0], err)
 		}
 		parentID, err := strconv.Atoi(fields[1])
 		if err != nil {
-			return nil, xerrors.Errorf("failed to atoi '%q': %w", fields[1], err)
+			return nil, xerrors.Errorf("failed to atoi %q: %w", fields[1], err)
 		}
 		mm := strings.Split(fields[2], ":")
 		if len(mm) != 2 {
-			return nil, xerrors.Errorf("failed to parse '%q', unexpected minor-major pair %v", fields[2], mm)
+			return nil, xerrors.Errorf("failed to parse %q, unexpected minor-major pair %v", fields[2], mm)
 		}
 		major, err := strconv.Atoi(mm[0])
 		if err != nil {
-			return nil, xerrors.Errorf("failed to parse '%q', unalbe to parse major device id: %w", mm[0], err)
+			return nil, xerrors.Errorf("failed to parse %q, unalbe to parse major device id: %w", mm[0], err)
 		}
 		minor, err := strconv.Atoi(mm[1])
 		if err != nil {
-			return nil, xerrors.Errorf("failed to parse '%q', unable to parse minor device id: %w", mm[1], err)
+			return nil, xerrors.Errorf("failed to parse %q, unable to parse minor device id: %w", mm[1], err)
 		}
 
 		info := MountInfo{

@@ -179,7 +179,7 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 		klog.V(5).Infof("Deleting a volume dir %q", controllerVolume.Path)
 		err := irods.Rmdir(controllerVolume.ConnectionInfo, controllerVolume.Path)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %q : %v", controllerVolume.Path, err)
+			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %q: %v", controllerVolume.Path, err)
 		}
 	}
 

@@ -71,7 +71,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %v", k, err)
 			}
 			connInfo.Port = p
 		case "zone":
@@ -96,19 +96,19 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 		case "profile":
 			pb, err := strconv.ParseBool(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
 			}
 			connInfo.Profile = pb
 		case "profileport":
 			p, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %v", k, err)
 			}
 			connInfo.ProfilePort = p
 		case "overlayfs":
 			ob, err := strconv.ParseBool(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
 			}
 			connInfo.OverlayFS = ob
 		case "monitorurl":
@@ -117,24 +117,24 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 			connInfo.PathMappings = []irodsfs_common_vpath.VPathMapping{}
 			err := json.Unmarshal([]byte(v), &connInfo.PathMappings)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %v", k, err)
 			}
 		case "nopermissioncheck":
 			npc, err := strconv.ParseBool(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
 			}
 			connInfo.NoPermissionCheck = npc
 		case "uid":
 			u, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid uid number - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid uid number - %v", k, err)
 			}
 			connInfo.UID = u
 		case "gid":
 			g, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %v", k, err)
 			}
 			connInfo.GID = g
 		case "systemuser":
@@ -142,7 +142,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 		case "mounttimeout":
 			t, err := strconv.Atoi(v)
 			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %q", k, err)
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
 			}
 			connInfo.MountTimeout = t
 		default:
@@ -227,7 +227,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 		// check
 		_, err := url.ParseRequestURI(connInfo.MonitorURL)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Invalid monitor URL - %q", connInfo.MonitorURL)
+			return nil, status.Errorf(codes.InvalidArgument, "Invalid monitor URL %q", connInfo.MonitorURL)
 		}
 	}
 
