@@ -37,8 +37,7 @@ controllerService:
     extraArgs:
       - --timeout=5m
       - --v=5
-      - --enable-leader-election
-      - --leader-election-type=leases
+      - --leader-election
 
     securityContext: {}
 

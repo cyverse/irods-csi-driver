@@ -53,8 +53,7 @@ spec:
             - --timeout=5m
             - --csi-address=$(ADDRESS)
             - --v=5
-            - --enable-leader-election
-            - --leader-election-type=leases
+            - --leader-election
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
