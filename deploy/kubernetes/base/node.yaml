@@ -101,7 +101,7 @@ spec:
               name: prom-metrics
               protocol: TCP
         - name: csi-driver-registrar
-          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.9.2
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.9.1
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)

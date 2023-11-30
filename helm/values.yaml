@@ -81,7 +81,7 @@ nodeService:
   csiDriverRegistrar:
     image:
       repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
-      tag: v2.9.2
+      tag: v2.9.1
       pullPolicy: IfNotPresent
 
     extraArgs:
