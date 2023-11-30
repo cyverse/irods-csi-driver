@@ -73,24 +73,26 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 
 	// for overlayfs
 	overlayFSLowerPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
-	err = makeOverlayFSPath(overlayFSLowerPath)
-	if err != nil {
-		return status.Error(codes.Internal, err.Error())
-	}
 	overlayFSUpperPath := client_common.GetConfigOverlayFSUpperPath(configs, volID)
-	err = makeOverlayFSPath(overlayFSUpperPath)
-	if err != nil {
-		return status.Error(codes.Internal, err.Error())
-	}
 	overlayFSWorkDirPath := client_common.GetConfigOverlayFSWorkDirPath(configs, volID)
-	err = makeOverlayFSPath(overlayFSWorkDirPath)
-	if err != nil {
-		return status.Error(codes.Internal, err.Error())
-	}
-	overlayFSMountPath := targetPath
 
 	if irodsConnectionInfo.OverlayFS {
 		irodsFSMountPath = overlayFSLowerPath
+
+		err = makeOverlayFSPath(overlayFSLowerPath)
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+
+		err = makeOverlayFSPath(overlayFSUpperPath)
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+
+		err = makeOverlayFSPath(overlayFSWorkDirPath)
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	// mount irodsfs
@@ -108,6 +110,8 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 
 	// mount overlayfs
 	if irodsConnectionInfo.OverlayFS {
+		overlayFSMountPath := targetPath
+
 		overlayfsMountOptions := []string{}
 		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", overlayFSLowerPath, overlayFSUpperPath, overlayFSWorkDirPath))
 
