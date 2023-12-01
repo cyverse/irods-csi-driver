@@ -113,7 +113,10 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 		overlayFSMountPath := targetPath
 
 		overlayfsMountOptions := []string{}
-		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", overlayFSLowerPath, overlayFSUpperPath, overlayFSWorkDirPath))
+		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("lowerdir=%s", overlayFSLowerPath))
+		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("upperdir=%s", overlayFSUpperPath))
+		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("workdir=%s", overlayFSWorkDirPath))
+		overlayfsMountOptions = append(overlayfsMountOptions, "xino=off")
 
 		overlayfsMountSensitiveOptions := []string{}
 
