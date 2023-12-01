@@ -62,6 +62,7 @@ spec:
               mountPath: /secrets
             - name: storage-volume
               mountPath: /storage
+              mountPropagation: Bidirectional
           ports:
             - containerPort: 9810
               name: healthz
