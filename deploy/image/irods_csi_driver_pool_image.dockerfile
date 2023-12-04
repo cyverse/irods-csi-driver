@@ -6,7 +6,7 @@
 ##############################################
 # irods-csi-driver-pool image
 ##############################################
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 LABEL maintainer="Illyoung Choi <iychoi@email.arizona.edu>"
 LABEL version="0.1"
 LABEL description="iRODS CSI Driver Pool Image"

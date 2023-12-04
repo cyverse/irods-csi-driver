@@ -6,7 +6,7 @@
 ##############################################
 # irods-csi-driver image
 ##############################################
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 LABEL maintainer="Illyoung Choi <iychoi@email.arizona.edu>"
 LABEL version="0.1"
 LABEL description="iRODS CSI Driver Image"
@@ -16,7 +16,7 @@ ARG CSI_DRIVER_SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver"
 ARG IRODS_FUSE_DIR="/opt/irodsfs"
 ARG FUSE_NFS_DIR="/opt/fuse-nfs"
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IRODSFS_VER=v0.9.1
+ARG IRODSFS_VER=v0.9.3
 
 # Setup Utility Packages
 RUN apt-get update && \
