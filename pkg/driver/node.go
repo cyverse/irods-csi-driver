@@ -144,7 +144,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		StagingMountOptions:       mountOptions,
 		MountOptions:              []string{},
 		ClientType:                string(client_common.GetClientType(configs)),
-		ClientConfig:              redactConfig(configs),
+		ClientConfig:              configs,
 		DynamicVolumeProvisioning: true,
 		StageVolume:               true,
 	}
@@ -280,7 +280,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 				StagingMountOptions:       []string{},
 				MountOptions:              mountOptions,
 				ClientType:                string(client_common.GetClientType(configs)),
-				ClientConfig:              redactConfig(configs),
+				ClientConfig:              configs,
 				DynamicVolumeProvisioning: false,
 				StageVolume:               false,
 			}
@@ -288,7 +288,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			nodeVolume.MountPath = targetPath
 			nodeVolume.MountOptions = mountOptions
 			nodeVolume.ClientType = string(client_common.GetClientType(configs))
-			nodeVolume.ClientConfig = redactConfig(configs)
+			nodeVolume.ClientConfig = configs
 		}
 
 		err = driver.nodeVolumeManager.Put(nodeVolume)

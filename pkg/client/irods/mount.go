@@ -21,6 +21,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	}
 
 	// test connection creation to check account info is correct
+	klog.V(5).Infof("Testing iRODS connection")
 	err = TestConnection(irodsConnectionInfo)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "Could not create iRODS Conenction with given access parameters - %v", err)

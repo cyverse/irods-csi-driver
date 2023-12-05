@@ -33,18 +33,20 @@ type NodeVolume struct {
 
 // NodeVolumeManager manages node volumes
 type NodeVolumeManager struct {
+	encryptKey   string
 	savefilePath string
 	volumes      map[string]*NodeVolume
 	mutex        sync.Mutex
 }
 
 // NewNodeVolumeManager creates ControllerVolumeManager
-func NewNodeVolumeManager(saveDirPath string) (*NodeVolumeManager, error) {
+func NewNodeVolumeManager(encryptKey string, saveDirPath string) (*NodeVolumeManager, error) {
 	if saveDirPath == "" {
 		saveDirPath = "/"
 	}
 
 	manager := &NodeVolumeManager{
+		encryptKey:   encryptKey,
 		savefilePath: path.Join(saveDirPath, nodeVolumeSaveFileName),
 		volumes:      map[string]*NodeVolume{},
 		mutex:        sync.Mutex{},

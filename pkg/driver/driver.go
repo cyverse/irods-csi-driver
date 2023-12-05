@@ -58,33 +58,16 @@ type Driver struct {
 
 // NewDriver returns new driver
 func NewDriver(conf *common.Config) (*Driver, error) {
-	controllerVolumeManager, err := volumeinfo.NewControllerVolumeManager(conf.StoragePath)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeVolumeManager, err := volumeinfo.NewNodeVolumeManager(conf.StoragePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Driver{
+	driver := &Driver{
 		config:  conf,
 		mounter: mounter.NewNodeMounter(),
 		secrets: make(map[string]string),
 
-		controllerVolumeManager: controllerVolumeManager,
-		nodeVolumeManager:       nodeVolumeManager,
-	}, nil
-}
-
-// Run runs the driver service
-func (driver *Driver) Run() error {
-	scheme, addr, err := common.ParseEndpoint(driver.config.Endpoint)
-	if err != nil {
-		return err
+		controllerVolumeManager: nil,
+		nodeVolumeManager:       nil,
 	}
 
+	// update secrets
 	driver.secrets = make(map[string]string)
 	secrets, err := readSecrets(driver.config.SecretPath)
 	if err == nil {
@@ -93,6 +76,34 @@ func (driver *Driver) Run() error {
 		for k, v := range secrets {
 			driver.secrets[k] = v
 		}
+	}
+
+	volumeEncryptKey := "irodscsidriver_volume_2ce02bee-74ea-4b18-a440-472d9771f778"
+	if secret, ok := driver.secrets["volume_encrypt_key"]; ok {
+		volumeEncryptKey = secret
+	}
+
+	controllerVolumeManager, err := volumeinfo.NewControllerVolumeManager(volumeEncryptKey, conf.StoragePath)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeVolumeManager, err := volumeinfo.NewNodeVolumeManager(volumeEncryptKey, conf.StoragePath)
+	if err != nil {
+		return nil, err
+	}
+
+	driver.controllerVolumeManager = controllerVolumeManager
+	driver.nodeVolumeManager = nodeVolumeManager
+
+	return driver, nil
+}
+
+// Run runs the driver service
+func (driver *Driver) Run() error {
+	scheme, addr, err := common.ParseEndpoint(driver.config.Endpoint)
+	if err != nil {
+		return err
 	}
 
 	listener, err := net.Listen(scheme, addr)

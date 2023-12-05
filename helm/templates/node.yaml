@@ -162,7 +162,9 @@ spec:
           secret:
             secretName: {{ include "helm.fullname" . }}-global-secret
         - name: storage-volume
-          emptyDir: {}
+          hostPath:
+            path: /var/lib/kubelet/plugins/irods.csi.cyverse.org/storage
+            type: DirectoryOrCreate
       {{- with .Values.nodeService.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

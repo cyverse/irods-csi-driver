@@ -27,18 +27,20 @@ type ControllerVolume struct {
 
 // ControllerVolumeManager manages controller volumes
 type ControllerVolumeManager struct {
+	encryptKey   string
 	savefilePath string
 	volumes      map[string]*ControllerVolume
 	mutex        sync.Mutex
 }
 
 // NewControllerVolumeManager creates ControllerVolumeManager
-func NewControllerVolumeManager(saveDirPath string) (*ControllerVolumeManager, error) {
+func NewControllerVolumeManager(encryptKey string, saveDirPath string) (*ControllerVolumeManager, error) {
 	if saveDirPath == "" {
 		saveDirPath = "/"
 	}
 
 	manager := &ControllerVolumeManager{
+		encryptKey:   encryptKey,
 		savefilePath: path.Join(saveDirPath, controllerVolumeSaveFileName),
 		volumes:      map[string]*ControllerVolume{},
 		mutex:        sync.Mutex{},
@@ -58,7 +60,13 @@ func (manager *ControllerVolumeManager) save() error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	return os.WriteFile(manager.savefilePath, jsonBytes, 0644)
+	// encrypt data
+	encryptedBytes, err := encrypt(jsonBytes, []byte(manager.encryptKey))
+	if err != nil {
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	return os.WriteFile(manager.savefilePath, encryptedBytes, 0644)
 }
 
 func (manager *ControllerVolumeManager) load() error {
@@ -76,7 +84,13 @@ func (manager *ControllerVolumeManager) load() error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	return json.Unmarshal(jsonBytes, &manager.volumes)
+	// decrypt data
+	decryptedBytes, err := decrypt(jsonBytes, []byte(manager.encryptKey))
+	if err != nil {
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	return json.Unmarshal(decryptedBytes, &manager.volumes)
 }
 
 // Get returns the volume with given id
