@@ -13,8 +13,8 @@ import (
 	irodsfs_common_irods "github.com/cyverse/irodsfs-common/irods"
 	irodsfs_common_vpath "github.com/cyverse/irodsfs-common/vpath"
 	"github.com/pkg/xattr"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/xerrors"
+	"k8s.io/klog"
 )
 
 const (
@@ -79,12 +79,7 @@ func (syncher *OverlayFSSyncher) GetUpperLayerPath() string {
 
 // Sync syncs upper layer data to lower layer
 func (syncher *OverlayFSSyncher) Sync() error {
-	logger := log.WithFields(log.Fields{
-		"package":  "syncher",
-		"function": "syncWhiteout",
-	})
-
-	logger.Debugf("sync'ing path %q", syncher.upperLayerPath)
+	klog.V(5).Infof("sync'ing path %q", syncher.upperLayerPath)
 
 	walkFunc := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -99,7 +94,7 @@ func (syncher *OverlayFSSyncher) Sync() error {
 
 			syncErr := syncher.syncDir(path)
 			if syncErr != nil {
-				logger.WithError(syncErr).Debugf("failed to sync dir %q", path)
+				klog.V(3).Infof("failed to sync dir %q, %s", path, syncErr)
 				return nil
 			}
 		} else {
@@ -107,13 +102,13 @@ func (syncher *OverlayFSSyncher) Sync() error {
 			if d.Type()&os.ModeCharDevice != 0 {
 				syncErr := syncher.syncWhiteout(path)
 				if syncErr != nil {
-					logger.WithError(syncErr).Debugf("failed to sync whiteout %q", path)
+					klog.V(3).Infof("failed to sync whiteout %q, %s", path, syncErr)
 					return nil
 				}
 			} else {
 				syncErr := syncher.syncFile(path)
 				if syncErr != nil {
-					logger.WithError(syncErr).Debugf("failed to sync file %q", path)
+					klog.V(3).Infof("failed to sync file %q, %s", path, syncErr)
 					return nil
 				}
 			}
@@ -151,12 +146,7 @@ func (syncher *OverlayFSSyncher) getIRODSPath(localPath string) (string, error) 
 }
 
 func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
-	logger := log.WithFields(log.Fields{
-		"package":  "syncher",
-		"function": "syncWhiteout",
-	})
-
-	logger.Debugf("processing whiteout file %q", path)
+	klog.V(5).Infof("processing whiteout file %q", path)
 
 	irodsPath, err := syncher.getIRODSPath(path)
 	if err != nil {
@@ -167,7 +157,7 @@ func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
 	if err != nil {
 		if irodsclient_types.IsFileNotFoundError(err) {
 			// not exist
-			logger.Debugf("file or dir %q not exist", irodsPath)
+			klog.V(5).Infof("file or dir %q not exist", irodsPath)
 			// suppress warning
 			return nil
 		}
@@ -175,7 +165,7 @@ func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
 		return xerrors.Errorf("failed to stat %q: %w", irodsPath, err)
 	}
 
-	logger.Debugf("deleting file or dir %q", irodsPath)
+	klog.V(5).Infof("deleting file or dir %q", irodsPath)
 
 	// remove
 	if entry.IsDir() {
@@ -194,12 +184,7 @@ func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
 }
 
 func (syncher *OverlayFSSyncher) syncFile(path string) error {
-	logger := log.WithFields(log.Fields{
-		"package":  "syncher",
-		"function": "syncFile",
-	})
-
-	logger.Debugf("processing new or updated file %q", path)
+	klog.V(5).Infof("processing new or updated file %q", path)
 
 	irodsPath, err := syncher.getIRODSPath(path)
 	if err != nil {
@@ -216,7 +201,7 @@ func (syncher *OverlayFSSyncher) syncFile(path string) error {
 		// if it is a dir, remove first
 		// if it is a file, overwrite
 		if entry.IsDir() {
-			logger.Debugf("deleting dir %q", irodsPath)
+			klog.V(5).Infof("deleting dir %q", irodsPath)
 
 			err = syncher.irodsFsClient.RemoveDir(irodsPath, true, true)
 			if err != nil {
@@ -225,7 +210,7 @@ func (syncher *OverlayFSSyncher) syncFile(path string) error {
 		}
 	}
 
-	logger.Debugf("copying file %q", irodsPath)
+	klog.V(5).Infof("copying file %q", irodsPath)
 
 	// upload the file
 	err = syncher.irodsFsClient.UploadFileParallel(path, irodsPath, "", 0, false, nil)
@@ -237,12 +222,7 @@ func (syncher *OverlayFSSyncher) syncFile(path string) error {
 }
 
 func (syncher *OverlayFSSyncher) syncDir(path string) error {
-	logger := log.WithFields(log.Fields{
-		"package":  "syncher",
-		"function": "syncDir",
-	})
-
-	logger.Debugf("processing dir %q", path)
+	klog.V(5).Infof("processing dir %q", path)
 
 	irodsPath, err := syncher.getIRODSPath(path)
 	if err != nil {
@@ -253,7 +233,7 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 	xattrVal, err := xattr.Get(path, overlayFSOpaqueXAttr)
 	if err == nil {
 		xattrValStr := string(xattrVal)
-		logger.Debugf("xattr for path %q: %q = %q", path, overlayFSOpaqueXAttr, xattrValStr)
+		klog.V(5).Infof("xattr for path %q: %q = %q", path, overlayFSOpaqueXAttr, xattrValStr)
 
 		if strings.ToLower(xattrValStr) == "y" {
 			opaqueDir = true
@@ -264,7 +244,7 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 	if err != nil {
 		if irodsclient_types.IsFileNotFoundError(err) {
 			// not exist
-			logger.Debugf("making dir %q", irodsPath)
+			klog.V(5).Infof("making dir %q", irodsPath)
 
 			err = syncher.irodsFsClient.MakeDir(irodsPath, true)
 			if err != nil {
@@ -282,14 +262,14 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 	// if it is a dir, merge or remove
 	if !entry.IsDir() {
 		// file
-		logger.Debugf("deleting file %q", irodsPath)
+		klog.V(5).Infof("deleting file %q", irodsPath)
 
 		err = syncher.irodsFsClient.RemoveFile(irodsPath, true)
 		if err != nil {
 			return xerrors.Errorf("failed to remove file %q: %w", irodsPath, err)
 		}
 
-		logger.Debugf("making dir %q", irodsPath)
+		klog.V(5).Infof("making dir %q", irodsPath)
 
 		err = syncher.irodsFsClient.MakeDir(irodsPath, true)
 		if err != nil {
@@ -302,7 +282,7 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 	// merge or remove
 	if opaqueDir {
 		// remove
-		logger.Debugf("emptying dir %q", irodsPath)
+		klog.V(5).Infof("emptying dir %q", irodsPath)
 
 		err = syncher.clearDirEntries(irodsPath)
 		if err != nil {
@@ -310,7 +290,7 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 		}
 	} else {
 		// merge
-		logger.Debugf("merging dir %q", irodsPath)
+		klog.V(5).Infof("merging dir %q", irodsPath)
 	}
 
 	return nil

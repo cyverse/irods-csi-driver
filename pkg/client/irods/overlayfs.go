@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog"
 )
 
 // OverlayFSDriverType is a overlayfs driver type
@@ -32,14 +32,9 @@ func GetOverlayFSDriverType(driver string) OverlayFSDriverType {
 
 // IsOverlayDriverSupported returns if overlay driver is supported
 func IsOverlayDriverSupported() bool {
-	logger := log.WithFields(log.Fields{
-		"package":  "irods",
-		"function": "IsOverlayDriverSupported",
-	})
-
 	info, err := client_common.GetKernelInfo()
 	if err != nil {
-		logger.Error(err)
+		klog.V(3).Infof("failed to get kernel info %s", err)
 		return false
 	}
 

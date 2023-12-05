@@ -78,7 +78,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 	dataRootPath := client_common.GetConfigDataRootPath(configs, volID)
 	err = deleteDavFSData(dataRootPath)
 	if err != nil {
-		klog.V(3).Infof("Error deleting davfs data at %q, ignoring", dataRootPath)
+		klog.V(3).Infof("Error deleting davfs data at %q, %s, ignoring", dataRootPath, err)
 	}
 	return nil
 }
