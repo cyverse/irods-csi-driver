@@ -89,6 +89,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	if !IsOverlayDriverSupported() {
 		// kernel does not support overlay driver
 		// use fuse-overlayfs
+		klog.V(5).Infof("Host kernel does not support stable overlay fs, going to use fuse-overlayfs")
 		irodsConnectionInfo.OverlayFSDriver = FuseOverlayFSDriverType
 	}
 
