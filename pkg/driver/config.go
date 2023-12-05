@@ -2,7 +2,7 @@ package driver
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -27,7 +27,7 @@ func readSecrets(secretPath string) (map[string]string, error) {
 
 	secrets := make(map[string]string)
 
-	files, err := ioutil.ReadDir(secretPath)
+	files, err := os.ReadDir(secretPath)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func readSecrets(secretPath string) (map[string]string, error) {
 		if !file.IsDir() {
 			k := path.Base(file.Name())
 			fullPath := path.Join(secretPath, k)
-			content, readErr := ioutil.ReadFile(fullPath)
+			content, readErr := os.ReadFile(fullPath)
 			if readErr == nil {
 				contentString := string(content)
 				v := strings.TrimSpace(contentString)

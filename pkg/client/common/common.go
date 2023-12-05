@@ -41,7 +41,7 @@ func IsValidClientType(client string) bool {
 
 // GetValidClientType checks if given client string is valid
 func GetValidClientType(client string) ClientType {
-	switch client {
+	switch strings.ToLower(client) {
 	case string(IrodsFuseClientType):
 		return IrodsFuseClientType
 	case string(WebdavClientType):

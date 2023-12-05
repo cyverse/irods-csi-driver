@@ -18,6 +18,11 @@ ARG FUSE_NFS_DIR="/opt/fuse-nfs"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG IRODSFS_VER=v0.9.3
 
+### Install dumb-init
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
+    /usr/bin/dumb-init
+RUN chmod +x /usr/bin/dumb-init
+
 # Setup Utility Packages
 RUN apt-get update && \
     apt-get install -y wget curl fuse apt-transport-https lsb-release gnupg
@@ -25,22 +30,25 @@ RUN apt-get update && \
 # Setup NFS Client and WebDAV Client
 RUN apt-get install -y nfs-common davfs2
 
+### Install fuse-overlayfs
+ADD https://github.com/containers/fuse-overlayfs/releases/download/v1.13/fuse-overlayfs-x86_64 \
+    /usr/bin/fuse-overlayfs
+RUN chmod +x /usr/bin/fuse-overlayfs
+
+ADD mount_exec/mount.fuseoverlayfs /sbin/mount.fuseoverlayfs
+RUN chmod +x /sbin/mount.fuseoverlayfs
+
 ### Install irodsfs
 RUN mkdir -p /tmp/irodsfs && \
     mkdir -p /var/lib/irodsfs
-RUN curl -L https://github.com/cyverse/irodsfs/releases/download/${IRODSFS_VER}/irodsfs-${IRODSFS_VER}-linux-amd64.tar.gz --output /tmp/irodsfs/irodsfs.tar.gz
+ADD https://github.com/cyverse/irodsfs/releases/download/${IRODSFS_VER}/irodsfs-${IRODSFS_VER}-linux-amd64.tar.gz \
+    /tmp/irodsfs/irodsfs.tar.gz
 RUN tar zxvf /tmp/irodsfs/irodsfs.tar.gz -C /tmp/irodsfs && \
     cp /tmp/irodsfs/irodsfs /usr/bin && \
     rm -rf /tmp/irodsfs
 
-ADD https://raw.githubusercontent.com/cyverse/irodsfs/${IRODSFS_VER}/mount_exec/mount.irodsfs \
-  /sbin/mount.irodsfs
+ADD mount_exec/mount.irodsfs /sbin/mount.irodsfs
 RUN chmod +x /sbin/mount.irodsfs
-
-### Install dumb-init
-ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
-  /usr/bin/dumb-init
-RUN chmod +x /usr/bin/dumb-init
 
 WORKDIR /opt/
 

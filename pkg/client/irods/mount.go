@@ -69,30 +69,33 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	// passing configuration yaml via STDIN
 	stdinArgs = append(stdinArgs, string(irodsFsConfigBytes))
 
-	irodsFSMountPath := targetPath
+	if !irodsConnectionInfo.OverlayFS {
+		// mount irodsfs
+		mountOptions = append(mountOptions, mntOptions...)
+		mountOptions = append(mountOptions, fmt.Sprintf("mounttimeout=%d", irodsConnectionInfo.MountTimeout))
+		mountOptions = append(mountOptions, "config=-") // read configuration yaml via STDIN
 
-	// for overlayfs
+		klog.V(5).Infof("Mounting %q (%q) at %q with options %v", source, fsType, targetPath, mountOptions)
+		if err := mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+			// umount the volume to ensure no leftovers
+			mounter.UnmountLazy(targetPath, true)
+
+			return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", source, fsType, targetPath, err)
+		}
+		return nil
+	}
+
+	// mount irodsfs and overlayfs
+	if !IsOverlayDriverSupported() {
+		// kernel does not support overlay driver
+		// use fuse-overlayfs
+		irodsConnectionInfo.OverlayFSDriver = FuseOverlayFSDriverType
+	}
+
 	overlayFSLowerPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
-	overlayFSUpperPath := client_common.GetConfigOverlayFSUpperPath(configs, volID)
-	overlayFSWorkDirPath := client_common.GetConfigOverlayFSWorkDirPath(configs, volID)
-
-	if irodsConnectionInfo.OverlayFS {
-		irodsFSMountPath = overlayFSLowerPath
-
-		err = makeOverlayFSPath(overlayFSLowerPath)
-		if err != nil {
-			return status.Error(codes.Internal, err.Error())
-		}
-
-		err = makeOverlayFSPath(overlayFSUpperPath)
-		if err != nil {
-			return status.Error(codes.Internal, err.Error())
-		}
-
-		err = makeOverlayFSPath(overlayFSWorkDirPath)
-		if err != nil {
-			return status.Error(codes.Internal, err.Error())
-		}
+	err = makeOverlayFSPath(overlayFSLowerPath)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
 	}
 
 	// mount irodsfs
@@ -100,33 +103,102 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	mountOptions = append(mountOptions, fmt.Sprintf("mounttimeout=%d", irodsConnectionInfo.MountTimeout))
 	mountOptions = append(mountOptions, "config=-") // read configuration yaml via STDIN
 
-	klog.V(5).Infof("Mounting %q (%q) at %q with options %v", source, fsType, irodsFSMountPath, mountOptions)
-	if err := mounter.MountSensitive2(source, source, irodsFSMountPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+	klog.V(5).Infof("Mounting %q (%q) at %q with options %v", source, fsType, overlayFSLowerPath, mountOptions)
+	if err := mounter.MountSensitive2(source, source, overlayFSLowerPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
 		// umount the volume to ensure no leftovers
-		mounter.UnmountLazy(irodsFSMountPath, true)
+		mounter.UnmountLazy(overlayFSLowerPath, true)
 
-		return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", source, fsType, irodsFSMountPath, err)
+		return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", source, fsType, overlayFSLowerPath, err)
 	}
 
-	// mount overlayfs
-	if irodsConnectionInfo.OverlayFS {
-		overlayFSMountPath := targetPath
-
-		overlayfsMountOptions := []string{}
-		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("lowerdir=%s", overlayFSLowerPath))
-		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("upperdir=%s", overlayFSUpperPath))
-		overlayfsMountOptions = append(overlayfsMountOptions, fmt.Sprintf("workdir=%s", overlayFSWorkDirPath))
-		overlayfsMountOptions = append(overlayfsMountOptions, "xino=off")
-
-		overlayfsMountSensitiveOptions := []string{}
-
-		klog.V(5).Infof("Mounting %q (%q) at %q with options %v", "overlay", "overlay", overlayFSMountPath, overlayfsMountOptions)
-		if err := mounter.MountSensitive("overlay", overlayFSMountPath, "overlay", overlayfsMountOptions, overlayfsMountSensitiveOptions); err != nil {
-			// umount the volume to ensure no leftovers
-			mounter.Unmount(overlayFSMountPath)
-
-			return status.Errorf(codes.Internal, "Failed to mount %q (%q) at %q: %v", "overlay", "overlay", overlayFSMountPath, err)
+	if irodsConnectionInfo.OverlayFSDriver == FuseOverlayFSDriverType {
+		err = mountFuseOverlayFS(mounter, irodsConnectionInfo, volID, configs, targetPath)
+		if err != nil {
+			return err
 		}
+	} else {
+		err = mountOverlay(mounter, irodsConnectionInfo, volID, configs, targetPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func mountOverlay(mounter mounter.Mounter, irodsConnectionInfo *IRODSFSConnectionInfo, volID string, configs map[string]string, mountPath string) error {
+	lowerPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
+	upperPath := client_common.GetConfigOverlayFSUpperPath(configs, volID)
+	workdirPath := client_common.GetConfigOverlayFSWorkDirPath(configs, volID)
+
+	// lower is already created
+	err := makeOverlayFSPath(upperPath)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	err = makeOverlayFSPath(workdirPath)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	mountOptions := []string{}
+	mountOptions = append(mountOptions, fmt.Sprintf("lowerdir=%s", lowerPath))
+	mountOptions = append(mountOptions, fmt.Sprintf("upperdir=%s", upperPath))
+	mountOptions = append(mountOptions, fmt.Sprintf("workdir=%s", workdirPath))
+	mountOptions = append(mountOptions, "xino=off")
+
+	mountSensitiveOptions := []string{}
+
+	klog.V(5).Infof("Mounting overlay at %q with options %v", mountPath, mountOptions)
+	if err := mounter.MountSensitive("overlay", mountPath, "overlay", mountOptions, mountSensitiveOptions); err != nil {
+		// umount the volume to ensure no leftovers
+		mounter.Unmount(mountPath)
+
+		return status.Errorf(codes.Internal, "Failed to mount overlay at %q: %v", mountPath, err)
+	}
+
+	return nil
+}
+
+func mountFuseOverlayFS(mounter mounter.Mounter, irodsConnectionInfo *IRODSFSConnectionInfo, volID string, configs map[string]string, mountPath string) error {
+	lowerPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
+	upperPath := client_common.GetConfigOverlayFSUpperPath(configs, volID)
+	workdirPath := client_common.GetConfigOverlayFSWorkDirPath(configs, volID)
+
+	err := makeOverlayFSPath(lowerPath)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	err = makeOverlayFSPath(upperPath)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	err = makeOverlayFSPath(workdirPath)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	mountOptions := []string{}
+	mountOptions = append(mountOptions, fmt.Sprintf("lowerdir=%s", lowerPath))
+	mountOptions = append(mountOptions, fmt.Sprintf("upperdir=%s", upperPath))
+	mountOptions = append(mountOptions, fmt.Sprintf("workdir=%s", workdirPath))
+	mountOptions = append(mountOptions, fmt.Sprintf("squash_to_uid=%d", irodsConnectionInfo.UID))
+	mountOptions = append(mountOptions, fmt.Sprintf("squash_to_gid=%d", irodsConnectionInfo.GID))
+	mountOptions = append(mountOptions, "static_nlink")
+	mountOptions = append(mountOptions, "noacl")
+
+	mountSensitiveOptions := []string{}
+	stdinArgs := []string{}
+
+	klog.V(5).Infof("Mounting fuse-overlayfs at %q with options %v", mountPath, mountOptions)
+	if err := mounter.MountSensitive2("fuseoverlayfs", "fuseoverlayfs", mountPath, "fuseoverlayfs", mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
+		// umount the volume to ensure no leftovers
+		mounter.UnmountLazy(mountPath, true)
+
+		return status.Errorf(codes.Internal, "Failed to mount fuse-overlayfs at %q: %v", mountPath, err)
 	}
 
 	return nil
@@ -138,77 +210,88 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 		return err
 	}
 
-	irodsFSMountPath := targetPath
 	dataRootPath := client_common.GetConfigDataRootPath(configs, volID)
 
-	// for overlayfs
-	overlayFSLowerPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
-	overlayFSUpperPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
-	overlayFSWorkDirPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
-	overlayFSMountPath := targetPath
+	if !irodsConnectionInfo.OverlayFS {
+		// unmount irodsfs
+		klog.V(5).Infof("Unmounting irodsfs at %q", targetPath)
 
-	if irodsConnectionInfo.OverlayFS {
-		// overlayfs
-		irodsFSMountPath = overlayFSLowerPath
-
-		klog.V(5).Infof("Unmounting %q (%q) at %q", "overlay", "overlay", overlayFSMountPath)
-
-		err = mounter.UnmountLazy(overlayFSMountPath, true)
+		err = mounter.UnmountLazy(targetPath, true)
 		if err != nil {
-			return status.Errorf(codes.Internal, "Failed to unmount %q: %v", overlayFSMountPath, err)
-		}
-
-		// delete workdir
-		err = deleteOverlayFSData(overlayFSWorkDirPath)
-		if err != nil {
-			klog.V(3).Infof("Error deleting overlayfs workdir data at %q, ignoring", overlayFSWorkDirPath)
-		}
-
-		klog.V(5).Infof("Unmounting %q (%q) at %q", "irodsfs", "irodsfs", irodsFSMountPath)
-
-		// irodsfs
-		err = mounter.UnmountLazy(irodsFSMountPath, true)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Failed to unmount %q: %v", irodsFSMountPath, err)
+			return status.Errorf(codes.Internal, "Failed to unmount %q: %v", targetPath, err)
 		}
 
 		err = deleteIrodsFuseLiteData(dataRootPath)
 		if err != nil {
 			klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q, ignoring", dataRootPath)
 		}
+		return nil
+	}
 
-		// sync
-		// this takes some time if there were a lot of file changes
-		// so we will do this asynchronously
-		go func() {
-			klog.V(5).Infof("Synching overlayfs at %q", overlayFSMountPath)
+	// unmount irodsfs and overlayfs
+	err = unmountOverlayFS(mounter, irodsConnectionInfo, volID, configs, targetPath)
+	if err != nil {
+		return err
+	}
 
-			err = syncOverlayFS(irodsConnectionInfo, overlayFSUpperPath)
-			if err != nil {
-				klog.V(3).Infof("Error syncing overlayfs upper data at %q, ignoring", overlayFSUpperPath)
-			}
+	lowerPath := client_common.GetConfigOverlayFSLowerPath(configs, volID)
+	upperPath := client_common.GetConfigOverlayFSUpperPath(configs, volID)
 
-			klog.V(5).Infof("Done synching overlayfs at %q", overlayFSMountPath)
+	klog.V(5).Infof("Unmounting irodsfs at %q", lowerPath)
 
-			// delete upper
-			err = deleteOverlayFSData(overlayFSUpperPath)
-			if err != nil {
-				klog.V(3).Infof("Error deleting overlayfs upper data at %q, ignoring", overlayFSUpperPath)
-			}
-		}()
-	} else {
-		// it is safe to unmount now
-		klog.V(5).Infof("Unmounting %q (%q) at %q", "irodsfs", "irodsfs", irodsFSMountPath)
+	err = mounter.UnmountLazy(lowerPath, true)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", lowerPath, err)
+	}
 
-		err = mounter.UnmountLazy(irodsFSMountPath, true)
+	err = deleteIrodsFuseLiteData(dataRootPath)
+	if err != nil {
+		klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q, ignoring", dataRootPath)
+	}
+
+	err = deleteOverlayFSData(lowerPath)
+	if err != nil {
+		klog.V(3).Infof("Error deleting overlayfs lower data at %q, ignoring", lowerPath)
+	}
+
+	// sync
+	// this takes some time if there were a lot of file changes
+	// so we will do this asynchronously
+	go func() {
+		klog.V(5).Infof("Synching overlayfs upper data at %q", upperPath)
+
+		err = syncOverlayFS(irodsConnectionInfo, upperPath)
 		if err != nil {
-			return status.Errorf(codes.Internal, "Failed to unmount %q: %v", irodsFSMountPath, err)
+			klog.V(3).Infof("Error syncing overlayfs upper data at %q, ignoring", upperPath)
 		}
 
-		err = deleteIrodsFuseLiteData(dataRootPath)
+		klog.V(5).Infof("Done synching overlayfs upper data at %q", upperPath)
+
+		// delete upper
+		err = deleteOverlayFSData(upperPath)
 		if err != nil {
-			klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q, ignoring", dataRootPath)
+			klog.V(3).Infof("Error deleting overlayfs upper data at %q, ignoring", upperPath)
 		}
+	}()
+
+	return nil
+}
+
+func unmountOverlayFS(mounter mounter.Mounter, irodsConnectionInfo *IRODSFSConnectionInfo, volID string, configs map[string]string, mountPath string) error {
+	workdirPath := client_common.GetConfigOverlayFSWorkDirPath(configs, volID)
+
+	// overlayfs
+	klog.V(5).Infof("Unmounting overlayfs at %q", mountPath)
+
+	err := mounter.UnmountLazy(mountPath, true)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to unmount %q: %v", mountPath, err)
+	}
+
+	// delete workdir
+	err = deleteOverlayFSData(workdirPath)
+	if err != nil {
+		klog.V(3).Infof("Error deleting overlayfs workdir data at %q, ignoring", workdirPath)
 	}
 
 	return nil

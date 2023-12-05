@@ -2,7 +2,6 @@ package volumeinfo
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path"
 	"sync"
@@ -65,7 +64,7 @@ func (manager *NodeVolumeManager) save() error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	return ioutil.WriteFile(manager.savefilePath, jsonBytes, 0644)
+	return os.WriteFile(manager.savefilePath, jsonBytes, 0644)
 }
 
 func (manager *NodeVolumeManager) load() error {
@@ -78,7 +77,7 @@ func (manager *NodeVolumeManager) load() error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	jsonBytes, err := ioutil.ReadFile(manager.savefilePath)
+	jsonBytes, err := os.ReadFile(manager.savefilePath)
 	if err != nil {
 		return status.Errorf(codes.Internal, err.Error())
 	}

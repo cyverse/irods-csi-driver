@@ -39,6 +39,7 @@ type IRODSFSConnectionInfo struct {
 	Profile           bool
 	ProfilePort       int
 	OverlayFS         bool
+	OverlayFSDriver   OverlayFSDriverType
 }
 
 // SetAnonymousUser sets anonymous user
@@ -111,6 +112,8 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
 			}
 			connInfo.OverlayFS = ob
+		case "overlayfsdriver":
+			connInfo.OverlayFSDriver = GetOverlayFSDriverType(v)
 		case "monitorurl":
 			connInfo.MonitorURL = v
 		case "pathmappingjson":
@@ -162,6 +165,10 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 	err := getConnectionInfoFromMap(configs, &connInfo)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(connInfo.OverlayFSDriver) == 0 {
+		connInfo.OverlayFSDriver = OverlayDriverType
 	}
 
 	if len(connInfo.User) == 0 {
