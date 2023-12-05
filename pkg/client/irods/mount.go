@@ -225,7 +225,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 
 		err = deleteIrodsFuseLiteData(dataRootPath)
 		if err != nil {
-			klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q, %s, ignoring", dataRootPath, err)
+			klog.Errorf("Error deleting iRODS FUSE Lite data at %q, %s, ignoring", dataRootPath, err)
 		}
 		return nil
 	}
@@ -248,12 +248,12 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 
 	err = deleteIrodsFuseLiteData(dataRootPath)
 	if err != nil {
-		klog.V(3).Infof("Error deleting iRODS FUSE Lite data at %q, %s, ignoring", dataRootPath, err)
+		klog.Errorf("Error deleting iRODS FUSE Lite data at %q, %s, ignoring", dataRootPath, err)
 	}
 
 	err = deleteOverlayFSData(lowerPath)
 	if err != nil {
-		klog.V(3).Infof("Error deleting overlayfs lower data at %q, %s, ignoring", lowerPath, err)
+		klog.Errorf("Error deleting overlayfs lower data at %q, %s, ignoring", lowerPath, err)
 	}
 
 	// sync
@@ -264,7 +264,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 
 		err = syncOverlayFS(irodsConnectionInfo, upperPath)
 		if err != nil {
-			klog.V(3).Infof("Error syncing overlayfs upper data at %q, %s, ignoring", upperPath, err)
+			klog.Errorf("Error syncing overlayfs upper data at %q, %s, ignoring", upperPath, err)
 		}
 
 		klog.V(5).Infof("Done synching overlayfs upper data at %q", upperPath)
@@ -272,7 +272,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 		// delete upper
 		err = deleteOverlayFSData(upperPath)
 		if err != nil {
-			klog.V(3).Infof("Error deleting overlayfs upper data at %q, %s, ignoring", upperPath, err)
+			klog.Errorf("Error deleting overlayfs upper data at %q, %s, ignoring", upperPath, err)
 		}
 	}()
 
@@ -293,7 +293,7 @@ func unmountOverlayFS(mounter mounter.Mounter, irodsConnectionInfo *IRODSFSConne
 	// delete workdir
 	err = deleteOverlayFSData(workdirPath)
 	if err != nil {
-		klog.V(3).Infof("Error deleting overlayfs workdir data at %q, %s, ignoring", workdirPath, err)
+		klog.Errorf("Error deleting overlayfs workdir data at %q, %s, ignoring", workdirPath, err)
 	}
 
 	return nil

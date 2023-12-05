@@ -9,6 +9,7 @@ import (
 	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog"
 )
 
 const (
@@ -48,7 +49,8 @@ func NewControllerVolumeManager(encryptKey string, saveDirPath string) (*Control
 
 	err := manager.load()
 	if err != nil {
-		return nil, err
+		klog.Errorf("failed to access volume file %q, %s. ignoring...", manager.savefilePath, err)
+		return manager, nil
 	}
 
 	return manager, nil
@@ -76,6 +78,7 @@ func (manager *ControllerVolumeManager) load() error {
 			// file not exist
 			return nil
 		}
+
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
@@ -84,13 +87,23 @@ func (manager *ControllerVolumeManager) load() error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
+	if len(jsonBytes) > 0 && json.Valid(jsonBytes) {
+		// plaintext json
+		return json.Unmarshal(jsonBytes, &manager.volumes)
+	}
+
 	// decrypt data
 	decryptedBytes, err := decrypt(jsonBytes, []byte(manager.encryptKey))
 	if err != nil {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	return json.Unmarshal(decryptedBytes, &manager.volumes)
+	if len(decryptedBytes) > 0 && json.Valid(decryptedBytes) {
+		// plaintext json
+		return json.Unmarshal(decryptedBytes, &manager.volumes)
+	}
+
+	return nil
 }
 
 // Get returns the volume with given id

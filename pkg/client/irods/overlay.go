@@ -94,7 +94,7 @@ func (syncher *OverlayFSSyncher) Sync() error {
 
 			syncErr := syncher.syncDir(path)
 			if syncErr != nil {
-				klog.V(3).Infof("failed to sync dir %q, %s", path, syncErr)
+				klog.Errorf("failed to sync dir %q, %s", path, syncErr)
 				return nil
 			}
 		} else {
@@ -102,13 +102,13 @@ func (syncher *OverlayFSSyncher) Sync() error {
 			if d.Type()&os.ModeCharDevice != 0 {
 				syncErr := syncher.syncWhiteout(path)
 				if syncErr != nil {
-					klog.V(3).Infof("failed to sync whiteout %q, %s", path, syncErr)
+					klog.Errorf("failed to sync whiteout %q, %s", path, syncErr)
 					return nil
 				}
 			} else {
 				syncErr := syncher.syncFile(path)
 				if syncErr != nil {
-					klog.V(3).Infof("failed to sync file %q, %s", path, syncErr)
+					klog.Errorf("failed to sync file %q, %s", path, syncErr)
 					return nil
 				}
 			}
@@ -157,7 +157,7 @@ func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
 	if err != nil {
 		if irodsclient_types.IsFileNotFoundError(err) {
 			// not exist
-			klog.V(5).Infof("file or dir %q not exist", irodsPath)
+			klog.Errorf("file or dir %q not exist", irodsPath)
 			// suppress warning
 			return nil
 		}

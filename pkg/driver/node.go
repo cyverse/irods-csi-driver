@@ -403,7 +403,7 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 
 	nodeVolume := driver.nodeVolumeManager.Get(volID)
 	if nodeVolume == nil {
-		klog.V(3).Infof("Unable to find node volume %q in the node volume manager, but we continue anyway", volID)
+		klog.Errorf("Unable to find node volume %q in the node volume manager, but we continue anyway", volID)
 	} else {
 		// delete here
 		_, err := driver.nodeVolumeManager.Pop(volID)

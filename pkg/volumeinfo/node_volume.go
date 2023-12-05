@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog"
 )
 
 type NodeVolumeStatus string
@@ -54,7 +55,8 @@ func NewNodeVolumeManager(encryptKey string, saveDirPath string) (*NodeVolumeMan
 
 	err := manager.load()
 	if err != nil {
-		return nil, err
+		klog.Errorf("failed to access volume file %q, %s. ignoring...", manager.savefilePath, err)
+		return manager, nil
 	}
 
 	return manager, nil
@@ -66,7 +68,13 @@ func (manager *NodeVolumeManager) save() error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	return os.WriteFile(manager.savefilePath, jsonBytes, 0644)
+	// encrypt data
+	encryptedBytes, err := encrypt(jsonBytes, []byte(manager.encryptKey))
+	if err != nil {
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	return os.WriteFile(manager.savefilePath, encryptedBytes, 0644)
 }
 
 func (manager *NodeVolumeManager) load() error {
@@ -76,6 +84,7 @@ func (manager *NodeVolumeManager) load() error {
 			// file not exist
 			return nil
 		}
+
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
@@ -84,7 +93,23 @@ func (manager *NodeVolumeManager) load() error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	return json.Unmarshal(jsonBytes, &manager.volumes)
+	if len(jsonBytes) > 0 && json.Valid(jsonBytes) {
+		// plaintext json
+		return json.Unmarshal(jsonBytes, &manager.volumes)
+	}
+
+	// decrypt data
+	decryptedBytes, err := decrypt(jsonBytes, []byte(manager.encryptKey))
+	if err != nil {
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	if len(decryptedBytes) > 0 && json.Valid(decryptedBytes) {
+		// plaintext json
+		return json.Unmarshal(decryptedBytes, &manager.volumes)
+	}
+
+	return json.Unmarshal(decryptedBytes, &manager.volumes)
 }
 
 // Get returns the volume with given id

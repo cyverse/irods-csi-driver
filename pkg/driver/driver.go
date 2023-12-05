@@ -79,8 +79,11 @@ func NewDriver(conf *common.Config) (*Driver, error) {
 	}
 
 	volumeEncryptKey := "irodscsidriver_volume_2ce02bee-74ea-4b18-a440-472d9771f778"
-	if secret, ok := driver.secrets["volume_encrypt_key"]; ok {
-		volumeEncryptKey = secret
+	for k, v := range driver.secrets {
+		if normalizeConfigKey(k) == "volumeencryptkey" {
+			volumeEncryptKey = v
+			break
+		}
 	}
 
 	controllerVolumeManager, err := volumeinfo.NewControllerVolumeManager(volumeEncryptKey, conf.StoragePath)
@@ -129,12 +132,12 @@ func (driver *Driver) Run() error {
 	csi.RegisterControllerServer(driver.server, driver)
 	csi.RegisterNodeServer(driver.server, driver)
 
-	klog.Infof("Listening for connections on address: %#v", listener.Addr())
+	klog.V(3).Infof("Listening for connections on address: %#v", listener.Addr())
 	return driver.server.Serve(listener)
 }
 
 // Stop stops the driver service
 func (driver *Driver) Stop() {
-	klog.Infof("Stopping server")
+	klog.V(3).Infof("Stopping server")
 	driver.server.Stop()
 }

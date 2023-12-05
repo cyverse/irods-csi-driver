@@ -34,7 +34,7 @@ func GetOverlayFSDriverType(driver string) OverlayFSDriverType {
 func IsOverlayDriverSupported() bool {
 	info, err := client_common.GetKernelInfo()
 	if err != nil {
-		klog.V(3).Infof("failed to get kernel info %s", err)
+		klog.Errorf("failed to get kernel info %s", err)
 		return false
 	}
 
