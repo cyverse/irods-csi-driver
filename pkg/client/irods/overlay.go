@@ -79,6 +79,13 @@ func (syncher *OverlayFSSyncher) GetUpperLayerPath() string {
 
 // Sync syncs upper layer data to lower layer
 func (syncher *OverlayFSSyncher) Sync() error {
+	logger := log.WithFields(log.Fields{
+		"package":  "syncher",
+		"function": "syncWhiteout",
+	})
+
+	logger.Debugf("sync'ing path %q", syncher.upperLayerPath)
+
 	walkFunc := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return xerrors.Errorf("failed to walk %q: %w", path, err)
@@ -92,19 +99,22 @@ func (syncher *OverlayFSSyncher) Sync() error {
 
 			syncErr := syncher.syncDir(path)
 			if syncErr != nil {
-				return syncErr
+				logger.WithError(syncErr).Debugf("failed to sync dir %q", path)
+				return nil
 			}
 		} else {
 			// file
 			if d.Type()&os.ModeCharDevice != 0 {
 				syncErr := syncher.syncWhiteout(path)
 				if syncErr != nil {
-					return syncErr
+					logger.WithError(syncErr).Debugf("failed to sync whiteout %q", path)
+					return nil
 				}
 			} else {
 				syncErr := syncher.syncFile(path)
 				if syncErr != nil {
-					return syncErr
+					logger.WithError(syncErr).Debugf("failed to sync file %q", path)
+					return nil
 				}
 			}
 		}
