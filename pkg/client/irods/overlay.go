@@ -19,6 +19,7 @@ import (
 
 const (
 	overlayFSOpaqueXAttr string = "trusted.overlay.opaque"
+	fuseOverlayFSOpaqueDir
 )
 
 // OverlayFSSyncher is a struct for OverlayFSSyncher
@@ -99,6 +100,10 @@ func (syncher *OverlayFSSyncher) Sync() error {
 			}
 		} else {
 			// file
+			if syncher.isIgnoredFile(path) {
+				return nil
+			}
+
 			if d.Type()&os.ModeCharDevice != 0 {
 				syncErr := syncher.syncWhiteout(path)
 				if syncErr != nil {
@@ -143,6 +148,16 @@ func (syncher *OverlayFSSyncher) getIRODSPath(localPath string) (string, error) 
 	}
 
 	return irodsPath, nil
+}
+
+func (syncher *OverlayFSSyncher) isIgnoredFile(path string) bool {
+	filename := filepath.Base(path)
+	// ignore fuse-overlayfs whiteout files
+	// it also uses xattr so we can just ignore them
+	if strings.HasPrefix(filename, ".wh.") && strings.HasSuffix(filename, ".opq") {
+		return true
+	}
+	return false
 }
 
 func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
