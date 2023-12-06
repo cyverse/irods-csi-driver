@@ -52,3 +52,7 @@ push-release:
 .PHONY: helm
 helm:
 	helm lint helm && helm package helm
+
+.PHONY: all
+all: image image-release push push-release helm
+
