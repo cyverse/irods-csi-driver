@@ -142,6 +142,11 @@ func (syncher *OverlayFSSyncher) getIRODSPath(localPath string) (string, error) 
 		return "", xerrors.Errorf("failed to find closest vpath entry for path %q", vpath)
 	}
 
+	if entry.Type == irodsfs_common_vpath.VPathVirtualDir {
+		// read-only
+		return "", nil
+	}
+
 	irodsPath, err := entry.GetIRODSPath(vpath)
 	if err != nil {
 		return "", xerrors.Errorf("failed to get iRODS path for path %q: %w", vpath, err)
@@ -166,6 +171,11 @@ func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
 	irodsPath, err := syncher.getIRODSPath(path)
 	if err != nil {
 		return err
+	}
+
+	if len(irodsPath) == 0 {
+		klog.V(5).Infof("ignoring %q as it's not writable", path)
+		return nil
 	}
 
 	entry, err := syncher.irodsFsClient.Stat(irodsPath)
@@ -206,6 +216,11 @@ func (syncher *OverlayFSSyncher) syncFile(path string) error {
 		return err
 	}
 
+	if len(irodsPath) == 0 {
+		klog.V(5).Infof("ignoring %q as it's not writable", path)
+		return nil
+	}
+
 	entry, err := syncher.irodsFsClient.Stat(irodsPath)
 	if err != nil {
 		if !irodsclient_types.IsFileNotFoundError(err) {
@@ -242,6 +257,11 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 	irodsPath, err := syncher.getIRODSPath(path)
 	if err != nil {
 		return err
+	}
+
+	if len(irodsPath) == 0 {
+		klog.V(5).Infof("ignoring %q as it's not writable", path)
+		return nil
 	}
 
 	opaqueDir := false
