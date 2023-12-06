@@ -7,8 +7,17 @@ import (
 	"io"
 )
 
+func getEncryptionKey(key []byte) []byte {
+	aesKey := make([]byte, 32)
+
+	// length must be 32 bytes for AES-256
+	copy(aesKey, key)
+	return aesKey
+}
+
 func encrypt(plaintext []byte, key []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+	aesKey := getEncryptionKey(key)
+	block, err := aes.NewCipher(aesKey)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +42,8 @@ func encrypt(plaintext []byte, key []byte) ([]byte, error) {
 
 func decrypt(encryptedtext []byte, key []byte) ([]byte, error) {
 	//Create a new Cipher Block from the key
-	block, err := aes.NewCipher(key)
+	aesKey := getEncryptionKey(key)
+	block, err := aes.NewCipher(aesKey)
 	if err != nil {
 		return nil, err
 	}
