@@ -198,7 +198,7 @@ func (driver *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Co
 
 // ControllerGetCapabilities returns capabilities
 func (driver *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
-	klog.V(4).Infof("ControllerGetCapabilities: called with args %#v", req)
+	//klog.V(4).Infof("ControllerGetCapabilities: called with args %#v", req)
 
 	var caps []*csi.ControllerServiceCapability
 	for _, cap := range controllerCaps {

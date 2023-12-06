@@ -476,7 +476,7 @@ func (driver *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 
 // NodeGetCapabilities returns capabilities
 func (driver *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
-	klog.V(4).Infof("NodeGetCapabilities: called with args %+v", req)
+	//klog.V(4).Infof("NodeGetCapabilities: called with args %+v", req)
 	var caps []*csi.NodeServiceCapability
 	for _, cap := range nodeCaps {
 		c := &csi.NodeServiceCapability{
