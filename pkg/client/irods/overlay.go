@@ -1,6 +1,7 @@
 package irods
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -99,7 +100,8 @@ func (syncher *OverlayFSSyncher) Sync() error {
 		if currentDirPath != parentDirPath {
 			// new dir
 			// wait until other jobs are done
-			scheduleErr := syncher.parallelJobManager.ScheduleBarrier(parentDirPath)
+			taskName := fmt.Sprintf("barrier - %q", parentDirPath)
+			scheduleErr := syncher.parallelJobManager.ScheduleBarrier(taskName)
 			if scheduleErr != nil {
 				klog.Errorf("failed to schedule barrier task for %q, %s", path, scheduleErr)
 				return nil
@@ -123,7 +125,8 @@ func (syncher *OverlayFSSyncher) Sync() error {
 				return nil
 			}
 
-			scheduleErr := syncher.parallelJobManager.Schedule(path, dirSyncTask, 1)
+			taskName := fmt.Sprintf("sync dir - %q", path)
+			scheduleErr := syncher.parallelJobManager.Schedule(taskName, dirSyncTask, 1)
 			if scheduleErr != nil {
 				klog.Errorf("failed to schedule dir sync task for %q, %s", path, scheduleErr)
 				return nil
@@ -144,7 +147,8 @@ func (syncher *OverlayFSSyncher) Sync() error {
 					return nil
 				}
 
-				scheduleErr := syncher.parallelJobManager.Schedule(path, whiteoutSyncTask, 1)
+				taskName := fmt.Sprintf("sync whiteout - %q", path)
+				scheduleErr := syncher.parallelJobManager.Schedule(taskName, whiteoutSyncTask, 1)
 				if scheduleErr != nil {
 					klog.Errorf("failed to schedule whiteout sync task for %q, %s", path, scheduleErr)
 					return nil
@@ -159,7 +163,8 @@ func (syncher *OverlayFSSyncher) Sync() error {
 					return nil
 				}
 
-				scheduleErr := syncher.parallelJobManager.Schedule(path, fileSyncTask, 1)
+				taskName := fmt.Sprintf("sync file - %q", path)
+				scheduleErr := syncher.parallelJobManager.Schedule(taskName, fileSyncTask, 1)
 				if scheduleErr != nil {
 					klog.Errorf("failed to schedule file sync task for %q, %s", path, scheduleErr)
 					return nil
