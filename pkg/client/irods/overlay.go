@@ -27,6 +27,7 @@ type OverlayFSSyncher struct {
 	irodsConnectionInfo *IRODSFSConnectionInfo
 	irodsFsClient       *irodsclient_fs.FileSystem
 	irodsFsVPathManager *irodsfs_common_vpath.VPathManager
+	parallelJobManager  *ParallelJobManager
 	upperLayerPath      string
 }
 
@@ -53,6 +54,8 @@ func NewOverlayFSSyncher(irodsConnInfo *IRODSFSConnectionInfo, upper string) (*O
 		return nil, xerrors.Errorf("failed to create Virtual Path Manager: %w", err)
 	}
 
+	parallelJobManager := NewParallelJobManager(4)
+
 	absUpper, err := filepath.Abs(upper)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to get abs upper path for %q: %w", upper, err)
@@ -62,6 +65,7 @@ func NewOverlayFSSyncher(irodsConnInfo *IRODSFSConnectionInfo, upper string) (*O
 		irodsConnectionInfo: irodsConnInfo,
 		irodsFsClient:       fsClientDirect.GetFSClient(),
 		irodsFsVPathManager: vpathManager,
+		parallelJobManager:  parallelJobManager,
 		upperLayerPath:      absUpper,
 	}, nil
 }
@@ -82,9 +86,26 @@ func (syncher *OverlayFSSyncher) GetUpperLayerPath() string {
 func (syncher *OverlayFSSyncher) Sync() error {
 	klog.V(5).Infof("sync'ing path %q", syncher.upperLayerPath)
 
+	syncher.parallelJobManager.Start()
+
+	currentDirPath := ""
+
 	walkFunc := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return xerrors.Errorf("failed to walk %q: %w", path, err)
+		}
+
+		parentDirPath := filepath.Dir(path)
+		if currentDirPath != parentDirPath {
+			// new dir
+			// wait until other jobs are done
+			scheduleErr := syncher.parallelJobManager.ScheduleBarrier(parentDirPath)
+			if scheduleErr != nil {
+				klog.Errorf("failed to schedule barrier task for %q, %s", path, scheduleErr)
+				return nil
+			}
+
+			currentDirPath = parentDirPath
 		}
 
 		if d.IsDir() {
@@ -93,9 +114,18 @@ func (syncher *OverlayFSSyncher) Sync() error {
 				return nil
 			}
 
-			syncErr := syncher.syncDir(path)
-			if syncErr != nil {
-				klog.Errorf("failed to sync dir %q, %s", path, syncErr)
+			dirSyncTask := func(job *ParallelJob) error {
+				syncErr := syncher.syncDir(path)
+				if syncErr != nil {
+					klog.Errorf("failed to sync dir %q, %s", path, syncErr)
+					return nil
+				}
+				return nil
+			}
+
+			scheduleErr := syncher.parallelJobManager.Schedule(path, dirSyncTask, 1)
+			if scheduleErr != nil {
+				klog.Errorf("failed to schedule dir sync task for %q, %s", path, scheduleErr)
 				return nil
 			}
 		} else {
@@ -105,15 +135,33 @@ func (syncher *OverlayFSSyncher) Sync() error {
 			}
 
 			if d.Type()&os.ModeCharDevice != 0 {
-				syncErr := syncher.syncWhiteout(path)
-				if syncErr != nil {
-					klog.Errorf("failed to sync whiteout %q, %s", path, syncErr)
+				whiteoutSyncTask := func(job *ParallelJob) error {
+					syncErr := syncher.syncWhiteout(path)
+					if syncErr != nil {
+						klog.Errorf("failed to sync whiteout %q, %s", path, syncErr)
+						return nil
+					}
+					return nil
+				}
+
+				scheduleErr := syncher.parallelJobManager.Schedule(path, whiteoutSyncTask, 1)
+				if scheduleErr != nil {
+					klog.Errorf("failed to schedule whiteout sync task for %q, %s", path, scheduleErr)
 					return nil
 				}
 			} else {
-				syncErr := syncher.syncFile(path)
-				if syncErr != nil {
-					klog.Errorf("failed to sync file %q, %s", path, syncErr)
+				fileSyncTask := func(job *ParallelJob) error {
+					syncErr := syncher.syncFile(path)
+					if syncErr != nil {
+						klog.Errorf("failed to sync file %q, %s", path, syncErr)
+						return nil
+					}
+					return nil
+				}
+
+				scheduleErr := syncher.parallelJobManager.Schedule(path, fileSyncTask, 1)
+				if scheduleErr != nil {
+					klog.Errorf("failed to schedule file sync task for %q, %s", path, scheduleErr)
 					return nil
 				}
 			}
@@ -124,6 +172,12 @@ func (syncher *OverlayFSSyncher) Sync() error {
 	err := filepath.WalkDir(syncher.upperLayerPath, walkFunc)
 	if err != nil {
 		return xerrors.Errorf("failed to walk dir %q: %w", syncher.upperLayerPath, err)
+	}
+
+	syncher.parallelJobManager.DoneScheduling()
+	err = syncher.parallelJobManager.Wait()
+	if err != nil {
+		klog.Error(err)
 	}
 
 	return nil
