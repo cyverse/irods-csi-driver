@@ -1,6 +1,7 @@
 package irods
 
 import (
+	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
@@ -25,6 +26,7 @@ const (
 
 // OverlayFSSyncher is a struct for OverlayFSSyncher
 type OverlayFSSyncher struct {
+	volumeID            string
 	irodsConnectionInfo *IRODSFSConnectionInfo
 	irodsFsClient       *irodsclient_fs.FileSystem
 	irodsFsVPathManager *irodsfs_common_vpath.VPathManager
@@ -33,7 +35,7 @@ type OverlayFSSyncher struct {
 }
 
 // NewOverlayFSSyncher creates a new OverlayFSSyncher
-func NewOverlayFSSyncher(irodsConnInfo *IRODSFSConnectionInfo, upper string) (*OverlayFSSyncher, error) {
+func NewOverlayFSSyncher(volumeID string, irodsConnInfo *IRODSFSConnectionInfo, upper string) (*OverlayFSSyncher, error) {
 	irodsAccount, err := GetIRODSAccount(irodsConnInfo)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to get irods account: %w", err)
@@ -63,6 +65,7 @@ func NewOverlayFSSyncher(irodsConnInfo *IRODSFSConnectionInfo, upper string) (*O
 	}
 
 	return &OverlayFSSyncher{
+		volumeID:            volumeID,
 		irodsConnectionInfo: irodsConnInfo,
 		irodsFsClient:       fsClientDirect.GetFSClient(),
 		irodsFsVPathManager: vpathManager,
@@ -83,27 +86,40 @@ func (syncher *OverlayFSSyncher) GetUpperLayerPath() string {
 	return syncher.upperLayerPath
 }
 
+func (syncher *OverlayFSSyncher) getStatusFilePath() string {
+	return fmt.Sprintf("/%s/home/%s/.%s.overlayfs.sync.lock", syncher.irodsConnectionInfo.Zone, syncher.irodsConnectionInfo.ClientUser, syncher.volumeID)
+}
+
 // Sync syncs upper layer data to lower layer
 func (syncher *OverlayFSSyncher) Sync() error {
-	klog.V(5).Infof("sync'ing path %q", syncher.upperLayerPath)
+	klog.V(5).Infof("sync'ing path %q for volume %q", syncher.upperLayerPath, syncher.volumeID)
 
 	syncher.parallelJobManager.Start()
+
+	statusFile := syncher.getStatusFilePath()
+
+	// create status file
+	buff := bytes.Buffer{}
+	err := syncher.irodsFsClient.UploadFileFromBuffer(buff, statusFile, "", false, nil)
+	if err != nil {
+		return xerrors.Errorf("failed to create sync status file %q: %w", statusFile, err)
+	}
 
 	currentDirPath := ""
 
 	walkFunc := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return xerrors.Errorf("failed to walk %q: %w", path, err)
+			return xerrors.Errorf("failed to walk %q for volume %q: %w", path, syncher.volumeID, err)
 		}
 
 		parentDirPath := filepath.Dir(path)
 		if currentDirPath != parentDirPath {
 			// new dir
 			// wait until other jobs are done
-			taskName := fmt.Sprintf("barrier - %q", parentDirPath)
+			taskName := fmt.Sprintf("barrier - %q for volume %q", parentDirPath, syncher.volumeID)
 			scheduleErr := syncher.parallelJobManager.ScheduleBarrier(taskName)
 			if scheduleErr != nil {
-				klog.Errorf("failed to schedule barrier task for %q, %s", path, scheduleErr)
+				klog.Errorf("failed to schedule barrier task for %q, volume %q, %s", path, syncher.volumeID, scheduleErr)
 				return nil
 			}
 
@@ -119,16 +135,16 @@ func (syncher *OverlayFSSyncher) Sync() error {
 			dirSyncTask := func(job *ParallelJob) error {
 				syncErr := syncher.syncDir(path)
 				if syncErr != nil {
-					klog.Errorf("failed to sync dir %q, %s", path, syncErr)
+					klog.Errorf("failed to sync dir %q, volume %q, %s", path, syncher.volumeID, syncErr)
 					return nil
 				}
 				return nil
 			}
 
-			taskName := fmt.Sprintf("sync dir - %q", path)
+			taskName := fmt.Sprintf("sync dir - %q for volume %q", path, syncher.volumeID)
 			scheduleErr := syncher.parallelJobManager.Schedule(taskName, dirSyncTask, 1)
 			if scheduleErr != nil {
-				klog.Errorf("failed to schedule dir sync task for %q, %s", path, scheduleErr)
+				klog.Errorf("failed to schedule dir sync task for %q, volume %q, %s", path, syncher.volumeID, scheduleErr)
 				return nil
 			}
 		} else {
@@ -141,32 +157,32 @@ func (syncher *OverlayFSSyncher) Sync() error {
 				whiteoutSyncTask := func(job *ParallelJob) error {
 					syncErr := syncher.syncWhiteout(path)
 					if syncErr != nil {
-						klog.Errorf("failed to sync whiteout %q, %s", path, syncErr)
+						klog.Errorf("failed to sync whiteout %q, volume %q, %s", path, syncher.volumeID, syncErr)
 						return nil
 					}
 					return nil
 				}
 
-				taskName := fmt.Sprintf("sync whiteout - %q", path)
+				taskName := fmt.Sprintf("sync whiteout - %q for volume %q, ", path, syncher.volumeID)
 				scheduleErr := syncher.parallelJobManager.Schedule(taskName, whiteoutSyncTask, 1)
 				if scheduleErr != nil {
-					klog.Errorf("failed to schedule whiteout sync task for %q, %s", path, scheduleErr)
+					klog.Errorf("failed to schedule whiteout sync task for %q, volume %q, %s", path, syncher.volumeID, scheduleErr)
 					return nil
 				}
 			} else {
 				fileSyncTask := func(job *ParallelJob) error {
 					syncErr := syncher.syncFile(path)
 					if syncErr != nil {
-						klog.Errorf("failed to sync file %q, %s", path, syncErr)
+						klog.Errorf("failed to sync file %q, volume %q, %s", path, syncher.volumeID, syncErr)
 						return nil
 					}
 					return nil
 				}
 
-				taskName := fmt.Sprintf("sync file - %q", path)
+				taskName := fmt.Sprintf("sync file - %q for volume %q", path, syncher.volumeID)
 				scheduleErr := syncher.parallelJobManager.Schedule(taskName, fileSyncTask, 1)
 				if scheduleErr != nil {
-					klog.Errorf("failed to schedule file sync task for %q, %s", path, scheduleErr)
+					klog.Errorf("failed to schedule file sync task for %q, volume %q, %s", path, syncher.volumeID, scheduleErr)
 					return nil
 				}
 			}
@@ -174,15 +190,20 @@ func (syncher *OverlayFSSyncher) Sync() error {
 		return nil
 	}
 
-	err := filepath.WalkDir(syncher.upperLayerPath, walkFunc)
+	err = filepath.WalkDir(syncher.upperLayerPath, walkFunc)
 	if err != nil {
-		return xerrors.Errorf("failed to walk dir %q: %w", syncher.upperLayerPath, err)
+		return xerrors.Errorf("failed to walk dir %q for volume %q: %w", syncher.upperLayerPath, syncher.volumeID, err)
 	}
 
 	syncher.parallelJobManager.DoneScheduling()
 	err = syncher.parallelJobManager.Wait()
 	if err != nil {
 		klog.Error(err)
+	}
+
+	err = syncher.irodsFsClient.RemoveFile(statusFile, true)
+	if err != nil {
+		return xerrors.Errorf("failed to remove sync status file %q: %w", statusFile, err)
 	}
 
 	return nil

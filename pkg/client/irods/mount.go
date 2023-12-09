@@ -262,7 +262,7 @@ func Unmount(mounter mounter.Mounter, volID string, configs map[string]string, t
 	go func() {
 		klog.V(5).Infof("Synching overlayfs upper data at %q", upperPath)
 
-		err = syncOverlayFS(irodsConnectionInfo, upperPath)
+		err = syncOverlayFS(volID, irodsConnectionInfo, upperPath)
 		if err != nil {
 			klog.Errorf("Error syncing overlayfs upper data at %q, %s, ignoring", upperPath, err)
 		}
@@ -348,8 +348,8 @@ func deleteIrodsFuseLiteData(dataRootPath string) error {
 	return nil
 }
 
-func syncOverlayFS(connectionInfo *IRODSFSConnectionInfo, upperPath string) error {
-	syncher, err := NewOverlayFSSyncher(connectionInfo, upperPath)
+func syncOverlayFS(volumeID string, connectionInfo *IRODSFSConnectionInfo, upperPath string) error {
+	syncher, err := NewOverlayFSSyncher(volumeID, connectionInfo, upperPath)
 	if err != nil {
 		return xerrors.Errorf("failed to create a overlayfs syncher: %w", err)
 	}
