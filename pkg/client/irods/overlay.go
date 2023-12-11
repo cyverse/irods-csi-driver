@@ -1,7 +1,6 @@
 package irods
 
 import (
-	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
@@ -21,7 +20,7 @@ import (
 
 const (
 	overlayFSOpaqueXAttr string = "trusted.overlay.opaque"
-	fuseOverlayFSOpaqueDir
+	syncStatusFileSuffix string = ".csi.overlay.sync.log"
 )
 
 // OverlayFSSyncher is a struct for OverlayFSSyncher
@@ -87,23 +86,33 @@ func (syncher *OverlayFSSyncher) GetUpperLayerPath() string {
 }
 
 func (syncher *OverlayFSSyncher) getStatusFilePath() string {
-	return fmt.Sprintf("/%s/home/%s/.%s.overlayfs.sync.lock", syncher.irodsConnectionInfo.Zone, syncher.irodsConnectionInfo.ClientUser, syncher.volumeID)
+	return fmt.Sprintf("/%s/home/%s/.%s%s", syncher.irodsConnectionInfo.Zone, syncher.irodsConnectionInfo.ClientUser, syncher.volumeID, syncStatusFileSuffix)
 }
 
 // Sync syncs upper layer data to lower layer
 func (syncher *OverlayFSSyncher) Sync() error {
 	klog.V(5).Infof("sync'ing path %q for volume %q", syncher.upperLayerPath, syncher.volumeID)
 
+	entries, err := os.ReadDir(syncher.upperLayerPath)
+	if err != nil {
+		return xerrors.Errorf("failed to read dir entires for upperdir %q, volume %q: %w", syncher.upperLayerPath, syncher.volumeID, err)
+	}
+
+	if len(entries) == 0 {
+		klog.V(5).Infof("stop sync'ing path %q for volume %q, no updates to sync", syncher.upperLayerPath, syncher.volumeID)
+		return nil
+	}
+
 	syncher.parallelJobManager.Start()
 
 	statusFile := syncher.getStatusFilePath()
 
 	// create status file
-	buff := bytes.Buffer{}
-	err := syncher.irodsFsClient.UploadFileFromBuffer(buff, statusFile, "", false, nil)
+	statusFileHandle, err := syncher.irodsFsClient.OpenFile(statusFile, "", "w+") // write + truncate
 	if err != nil {
 		return xerrors.Errorf("failed to create sync status file %q: %w", statusFile, err)
 	}
+	defer statusFileHandle.Close()
 
 	currentDirPath := ""
 
@@ -133,7 +142,7 @@ func (syncher *OverlayFSSyncher) Sync() error {
 			}
 
 			dirSyncTask := func(job *ParallelJob) error {
-				syncErr := syncher.syncDir(path)
+				syncErr := syncher.syncDir(path, statusFileHandle)
 				if syncErr != nil {
 					klog.Errorf("failed to sync dir %q, volume %q, %s", path, syncher.volumeID, syncErr)
 					return nil
@@ -155,7 +164,7 @@ func (syncher *OverlayFSSyncher) Sync() error {
 
 			if d.Type()&os.ModeCharDevice != 0 {
 				whiteoutSyncTask := func(job *ParallelJob) error {
-					syncErr := syncher.syncWhiteout(path)
+					syncErr := syncher.syncWhiteout(path, statusFileHandle)
 					if syncErr != nil {
 						klog.Errorf("failed to sync whiteout %q, volume %q, %s", path, syncher.volumeID, syncErr)
 						return nil
@@ -171,7 +180,7 @@ func (syncher *OverlayFSSyncher) Sync() error {
 				}
 			} else {
 				fileSyncTask := func(job *ParallelJob) error {
-					syncErr := syncher.syncFile(path)
+					syncErr := syncher.syncFile(path, statusFileHandle)
 					if syncErr != nil {
 						klog.Errorf("failed to sync file %q, volume %q, %s", path, syncher.volumeID, syncErr)
 						return nil
@@ -199,11 +208,6 @@ func (syncher *OverlayFSSyncher) Sync() error {
 	err = syncher.parallelJobManager.Wait()
 	if err != nil {
 		klog.Error(err)
-	}
-
-	err = syncher.irodsFsClient.RemoveFile(statusFile, true)
-	if err != nil {
-		return xerrors.Errorf("failed to remove sync status file %q: %w", statusFile, err)
 	}
 
 	return nil
@@ -245,7 +249,7 @@ func (syncher *OverlayFSSyncher) isIgnoredFile(path string) bool {
 	return false
 }
 
-func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
+func (syncher *OverlayFSSyncher) syncWhiteout(path string, statusFileHandle *irodsclient_fs.FileHandle) error {
 	klog.V(5).Infof("processing whiteout file %q", path)
 
 	irodsPath, err := syncher.getIRODSPath(path)
@@ -258,15 +262,28 @@ func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
 		return nil
 	}
 
+	if statusFileHandle != nil {
+		msg := fmt.Sprintf("Processing whiteout %q\n", irodsPath)
+		statusFileHandle.Write([]byte(msg))
+	}
+
 	entry, err := syncher.irodsFsClient.Stat(irodsPath)
 	if err != nil {
 		if irodsclient_types.IsFileNotFoundError(err) {
 			// not exist
 			klog.Errorf("file or dir %q not exist", irodsPath)
 			// suppress warning
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Failed. file or dir %q not exist, ignored\n", irodsPath)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return nil
 		}
 
+		if statusFileHandle != nil {
+			msg := fmt.Sprintf("> Fail. failed to stat %q. %s\n", irodsPath, err)
+			statusFileHandle.Write([]byte(msg))
+		}
 		return xerrors.Errorf("failed to stat %q: %w", irodsPath, err)
 	}
 
@@ -276,19 +293,31 @@ func (syncher *OverlayFSSyncher) syncWhiteout(path string) error {
 	if entry.IsDir() {
 		err = syncher.irodsFsClient.RemoveDir(irodsPath, true, true)
 		if err != nil {
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Fail. failed to remove dir %q. %s\n", irodsPath, err)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return xerrors.Errorf("failed to remove dir %q: %w", irodsPath, err)
 		}
 	} else {
 		err = syncher.irodsFsClient.RemoveFile(irodsPath, true)
 		if err != nil {
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Fail. failed to remove file %q. %s\n", irodsPath, err)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return xerrors.Errorf("failed to remove file %q: %w", irodsPath, err)
 		}
 	}
 
+	if statusFileHandle != nil {
+		msg := fmt.Sprintf("> Done. processed whiteout %q\n", irodsPath)
+		statusFileHandle.Write([]byte(msg))
+	}
 	return nil
 }
 
-func (syncher *OverlayFSSyncher) syncFile(path string) error {
+func (syncher *OverlayFSSyncher) syncFile(path string, statusFileHandle *irodsclient_fs.FileHandle) error {
 	klog.V(5).Infof("processing new or updated file %q", path)
 
 	irodsPath, err := syncher.getIRODSPath(path)
@@ -301,9 +330,18 @@ func (syncher *OverlayFSSyncher) syncFile(path string) error {
 		return nil
 	}
 
+	if statusFileHandle != nil {
+		msg := fmt.Sprintf("Processing file %q\n", irodsPath)
+		statusFileHandle.Write([]byte(msg))
+	}
+
 	entry, err := syncher.irodsFsClient.Stat(irodsPath)
 	if err != nil {
 		if !irodsclient_types.IsFileNotFoundError(err) {
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Fail. failed to stat %q. %s\n", irodsPath, err)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return xerrors.Errorf("failed to stat %q: %w", irodsPath, err)
 		}
 	} else {
@@ -315,6 +353,10 @@ func (syncher *OverlayFSSyncher) syncFile(path string) error {
 
 			err = syncher.irodsFsClient.RemoveDir(irodsPath, true, true)
 			if err != nil {
+				if statusFileHandle != nil {
+					msg := fmt.Sprintf("> Fail. failed to remove dir %q. %s\n", irodsPath, err)
+					statusFileHandle.Write([]byte(msg))
+				}
 				return xerrors.Errorf("failed to remove dir %q: %w", irodsPath, err)
 			}
 		}
@@ -325,13 +367,21 @@ func (syncher *OverlayFSSyncher) syncFile(path string) error {
 	// upload the file
 	err = syncher.irodsFsClient.UploadFileParallel(path, irodsPath, "", 0, false, nil)
 	if err != nil {
+		if statusFileHandle != nil {
+			msg := fmt.Sprintf("> Fail. failed to upload file %q. %s\n", irodsPath, err)
+			statusFileHandle.Write([]byte(msg))
+		}
 		return xerrors.Errorf("failed to upload file %q: %w", irodsPath, err)
 	}
 
+	if statusFileHandle != nil {
+		msg := fmt.Sprintf("> Done. processed file %q\n", irodsPath)
+		statusFileHandle.Write([]byte(msg))
+	}
 	return nil
 }
 
-func (syncher *OverlayFSSyncher) syncDir(path string) error {
+func (syncher *OverlayFSSyncher) syncDir(path string, statusFileHandle *irodsclient_fs.FileHandle) error {
 	klog.V(5).Infof("processing dir %q", path)
 
 	irodsPath, err := syncher.getIRODSPath(path)
@@ -342,6 +392,11 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 	if len(irodsPath) == 0 {
 		klog.V(5).Infof("ignoring %q as it's not writable", path)
 		return nil
+	}
+
+	if statusFileHandle != nil {
+		msg := fmt.Sprintf("Processing dir %q\n", irodsPath)
+		statusFileHandle.Write([]byte(msg))
 	}
 
 	opaqueDir := false
@@ -363,13 +418,25 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 
 			err = syncher.irodsFsClient.MakeDir(irodsPath, true)
 			if err != nil {
+				if statusFileHandle != nil {
+					msg := fmt.Sprintf("> Fail. failed to make dir %q. %s\n", irodsPath, err)
+					statusFileHandle.Write([]byte(msg))
+				}
 				return xerrors.Errorf("failed to make dir %q: %w", irodsPath, err)
 			}
 
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Done. processed dir %q\n", irodsPath)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return nil
 		}
 
-		return xerrors.Errorf("failed to stat %q: %w", path, err)
+		if statusFileHandle != nil {
+			msg := fmt.Sprintf("> Fail. failed to stat %q. %s\n", irodsPath, err)
+			statusFileHandle.Write([]byte(msg))
+		}
+		return xerrors.Errorf("failed to stat %q: %w", irodsPath, err)
 	}
 
 	// exist
@@ -381,6 +448,10 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 
 		err = syncher.irodsFsClient.RemoveFile(irodsPath, true)
 		if err != nil {
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Fail. failed to remove file %q. %s\n", irodsPath, err)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return xerrors.Errorf("failed to remove file %q: %w", irodsPath, err)
 		}
 
@@ -388,9 +459,17 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 
 		err = syncher.irodsFsClient.MakeDir(irodsPath, true)
 		if err != nil {
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Fail. failed to make dir %q. %s\n", irodsPath, err)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return xerrors.Errorf("failed to make dir %q: %w", irodsPath, err)
 		}
 
+		if statusFileHandle != nil {
+			msg := fmt.Sprintf("> Done. processed dir %q\n", irodsPath)
+			statusFileHandle.Write([]byte(msg))
+		}
 		return nil
 	}
 
@@ -401,6 +480,10 @@ func (syncher *OverlayFSSyncher) syncDir(path string) error {
 
 		err = syncher.clearDirEntries(irodsPath)
 		if err != nil {
+			if statusFileHandle != nil {
+				msg := fmt.Sprintf("> Fail. failed to clear dir %q. %s\n", irodsPath, err)
+				statusFileHandle.Write([]byte(msg))
+			}
 			return xerrors.Errorf("failed to clear %q: %w", irodsPath, err)
 		}
 	} else {

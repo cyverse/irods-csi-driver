@@ -354,12 +354,12 @@ func syncOverlayFS(volumeID string, connectionInfo *IRODSFSConnectionInfo, upper
 		return xerrors.Errorf("failed to create a overlayfs syncher: %w", err)
 	}
 
+	defer syncher.Release()
+
 	err = syncher.Sync()
 	if err != nil {
 		return xerrors.Errorf("failed to sync overlayfs upper %q: %w", upperPath, err)
 	}
-
-	syncher.Release()
 
 	return nil
 }
