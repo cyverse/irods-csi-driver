@@ -54,6 +54,7 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	irodsFsConfig.MonitorURL = irodsConnectionInfo.MonitorURL
 	irodsFsConfig.PathMappings = irodsConnectionInfo.PathMappings
 	irodsFsConfig.NoPermissionCheck = irodsConnectionInfo.NoPermissionCheck
+	irodsFsConfig.NoSetXattr = irodsConnectionInfo.NoSetXattr
 	irodsFsConfig.UID = irodsConnectionInfo.UID
 	irodsFsConfig.GID = irodsConnectionInfo.GID
 	irodsFsConfig.SystemUser = irodsConnectionInfo.SystemUser

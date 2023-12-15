@@ -32,6 +32,7 @@ type IRODSFSConnectionInfo struct {
 	MonitorURL        string
 	PathMappings      []irodsfs_common_vpath.VPathMapping
 	NoPermissionCheck bool
+	NoSetXattr        bool
 	UID               int
 	GID               int
 	SystemUser        string
@@ -128,6 +129,12 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
 			}
 			connInfo.NoPermissionCheck = npc
+		case "nosetxattr":
+			nsx, err := strconv.ParseBool(v)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
+			}
+			connInfo.NoSetXattr = nsx
 		case "uid":
 			u, err := strconv.Atoi(v)
 			if err != nil {

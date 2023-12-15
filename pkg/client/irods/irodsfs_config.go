@@ -30,6 +30,7 @@ type IRODSFSConfig struct {
 	Resource          string                              `yaml:"resource,omitempty"`
 	PathMappings      []irodsfs_common_vpath.VPathMapping `yaml:"path_mappings"`
 	NoPermissionCheck bool                                `yaml:"no_permission_check"`
+	NoSetXattr        bool                                `yaml:"no_set_xattr"`
 	UID               int                                 `yaml:"uid"`
 	GID               int                                 `yaml:"gid"`
 	SystemUser        string                              `yaml:"system_user"`
@@ -69,6 +70,7 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		Resource:          "",
 		PathMappings:      []irodsfs_common_vpath.VPathMapping{},
 		NoPermissionCheck: false,
+		NoSetXattr:        false,
 		UID:               -1,
 		GID:               -1,
 		SystemUser:        "",
