@@ -98,7 +98,7 @@ func (manager *ParallelJobManager) Schedule(name string, task ParallelJobTask, t
 	return nil
 }
 
-// Schedule schedules a new task
+// ScheduleBarrier schedules a new barrier task
 func (manager *ParallelJobManager) ScheduleBarrier(name string) error {
 	manager.mutex.Lock()
 
