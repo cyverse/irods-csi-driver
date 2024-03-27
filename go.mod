@@ -4,14 +4,14 @@ go 1.18
 
 require (
 	github.com/container-storage-interface/spec v1.2.0
-	github.com/cyverse/go-irodsclient v0.14.1
-	github.com/cyverse/irodsfs-common v0.0.0-20240322204329-30980b965763
+	github.com/cyverse/go-irodsclient v0.14.3
+	github.com/cyverse/irodsfs-common v0.0.0-20240326211011-08f17c8d7705
 	github.com/pkg/xattr v0.4.9
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/xid v1.3.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	google.golang.org/grpc v1.57.1
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.2.0
 	k8s.io/utils v0.0.0-20200619165400-6e3d28b6ed19
@@ -36,5 +36,4 @@ require (
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
