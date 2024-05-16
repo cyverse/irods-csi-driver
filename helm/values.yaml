@@ -13,7 +13,7 @@ controllerService:
   irodsPlugin:
     image:
       repository: cyverse/irods-csi-driver
-      tag: v0.10.1
+      tag: v0.10.2
       pullPolicy: Always
 
     extraArgs:
@@ -52,7 +52,7 @@ nodeService:
   irodsPlugin:
     image:
       repository: cyverse/irods-csi-driver
-      tag: v0.10.1
+      tag: v0.10.2
       pullPolicy: Always
 
     extraArgs:
@@ -67,7 +67,7 @@ nodeService:
   irodsPool:
     image:
       repository: cyverse/irods-csi-driver-pool
-      tag: v0.10.1
+      tag: v0.10.2
       pullPolicy: Always
 
     extraArgs:
