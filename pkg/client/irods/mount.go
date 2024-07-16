@@ -51,6 +51,15 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	irodsFsConfig.Zone = irodsConnectionInfo.Zone
 	irodsFsConfig.Password = irodsConnectionInfo.Password
 	irodsFsConfig.Resource = irodsConnectionInfo.Resource
+	irodsFsConfig.AuthScheme = irodsConnectionInfo.AuthScheme
+	irodsFsConfig.ClientServerNegotiation = irodsConnectionInfo.ClientServerNegotiation
+	irodsFsConfig.CSNegotiationPolicy = irodsConnectionInfo.CSNegotiationPolicy
+	irodsFsConfig.CACertificateFile = irodsConnectionInfo.CACertificateFile
+	irodsFsConfig.CACertificatePath = irodsConnectionInfo.CACertificatePath
+	irodsFsConfig.EncryptionKeySize = irodsConnectionInfo.EncryptionKeySize
+	irodsFsConfig.EncryptionAlgorithm = irodsConnectionInfo.EncryptionAlgorithm
+	irodsFsConfig.SaltSize = irodsConnectionInfo.SaltSize
+	irodsFsConfig.HashRounds = irodsConnectionInfo.HashRounds
 	irodsFsConfig.MonitorURL = irodsConnectionInfo.MonitorURL
 	irodsFsConfig.PathMappings = irodsConnectionInfo.PathMappings
 	irodsFsConfig.NoPermissionCheck = irodsConnectionInfo.NoPermissionCheck

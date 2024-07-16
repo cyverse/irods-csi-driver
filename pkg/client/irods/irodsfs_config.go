@@ -3,6 +3,7 @@ package irods
 import (
 	"time"
 
+	irodsclient_types "github.com/cyverse/go-irodsclient/irods/types"
 	irodsfs_common_vpath "github.com/cyverse/irodsfs-common/vpath"
 )
 
@@ -18,6 +19,13 @@ const (
 	ConnectionIdleTimeoutDefault    time.Duration = 5 * time.Minute
 	MetadataCacheTimeoutDefault     time.Duration = 5 * time.Minute
 	MetadataCacheCleanupTimeDefault time.Duration = 5 * time.Minute
+
+	AuthSchemeDefault          string = string(irodsclient_types.AuthSchemeNative)
+	CSNegotiationDefault       string = string(irodsclient_types.CSNegotiationRequireTCP)
+	EncryptionKeySizeDefault   int    = 32
+	EncryptionAlgorithmDefault string = "AES-256-CBC"
+	SaltSizeDefault            int    = 8
+	HashRoundsDefault          int    = 16
 )
 
 type IRODSFSConfig struct {
@@ -40,6 +48,16 @@ type IRODSFSConfig struct {
 	LogPath string `yaml:"log_path,omitempty"`
 
 	PoolEndpoint string `yaml:"pool_endpoint,omitempty"`
+
+	AuthScheme              string `yaml:"auth_scheme"`
+	ClientServerNegotiation bool   `yaml:"cs_negotiation"`
+	CSNegotiationPolicy     string `yaml:"cs_negotiation_policy"`
+	CACertificateFile       string `yaml:"ssl_ca_cert_file"`
+	CACertificatePath       string `yaml:"ssl_ca_sert_path"`
+	EncryptionKeySize       int    `yaml:"ssl_encryption_key_size"`
+	EncryptionAlgorithm     string `yaml:"ssl_encryption_algorithm"`
+	SaltSize                int    `yaml:"ssl_encryption_salt_size"`
+	HashRounds              int    `yaml:"ssl_encryption_hash_rounds"`
 
 	ReadAheadMax             int           `yaml:"read_ahead_max"`
 	OperationTimeout         time.Duration `yaml:"operation_timeout"`
@@ -80,6 +98,16 @@ func NewDefaultIRODSFSConfig() *IRODSFSConfig {
 		LogPath: "", // use default
 
 		PoolEndpoint: "",
+
+		AuthScheme:              AuthSchemeDefault,
+		ClientServerNegotiation: false,
+		CSNegotiationPolicy:     CSNegotiationDefault,
+		CACertificateFile:       "",
+		CACertificatePath:       "",
+		EncryptionKeySize:       EncryptionKeySizeDefault,
+		EncryptionAlgorithm:     EncryptionAlgorithmDefault,
+		SaltSize:                SaltSizeDefault,
+		HashRounds:              HashRoundsDefault,
 
 		ReadAheadMax:             ReadAheadMaxDefault,
 		OperationTimeout:         OperationTimeoutDefault,

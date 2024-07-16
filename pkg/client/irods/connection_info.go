@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	irodsclient_types "github.com/cyverse/go-irodsclient/irods/types"
 	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	irodsfs_common_vpath "github.com/cyverse/irodsfs-common/vpath"
 
@@ -36,11 +37,22 @@ type IRODSFSConnectionInfo struct {
 	UID               int
 	GID               int
 	SystemUser        string
-	MountTimeout      int
-	Profile           bool
-	ProfilePort       int
-	OverlayFS         bool
-	OverlayFSDriver   OverlayFSDriverType
+
+	AuthScheme              string
+	ClientServerNegotiation bool
+	CSNegotiationPolicy     string
+	CACertificateFile       string
+	CACertificatePath       string
+	EncryptionKeySize       int
+	EncryptionAlgorithm     string
+	SaltSize                int
+	HashRounds              int
+
+	MountTimeout    int
+	Profile         bool
+	ProfilePort     int
+	OverlayFS       bool
+	OverlayFSDriver OverlayFSDriverType
 }
 
 // SetAnonymousUser sets anonymous user
@@ -155,6 +167,40 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
 			}
 			connInfo.MountTimeout = t
+		case "authscheme":
+			connInfo.AuthScheme = v
+		case "clientservernegotiation":
+			csn, err := strconv.ParseBool(v)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
+			}
+			connInfo.ClientServerNegotiation = csn
+		case "csnegotiationpolicy":
+			connInfo.CSNegotiationPolicy = v
+		case "cacertificatefile":
+			connInfo.CACertificateFile = v
+		case "cacertificatepath":
+			connInfo.CACertificatePath = v
+		case "encryptionkeysize":
+			s, err := strconv.Atoi(v)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
+			}
+			connInfo.EncryptionKeySize = s
+		case "encryptionalgorithm":
+			connInfo.EncryptionAlgorithm = v
+		case "saltsize":
+			s, err := strconv.Atoi(v)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
+			}
+			connInfo.SaltSize = s
+		case "hashrounds":
+			s, err := strconv.Atoi(v)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
+			}
+			connInfo.HashRounds = s
 		default:
 			// ignore
 		}
@@ -228,6 +274,43 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 	if connInfo.ProfilePort <= 0 {
 		// default
 		connInfo.ProfilePort = 11021
+	}
+
+	if connInfo.ClientServerNegotiation {
+		if len(connInfo.CSNegotiationPolicy) == 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "CS negotiation policy must be given")
+		}
+	}
+
+	policy, err := irodsclient_types.GetCSNegotiationPolicy(connInfo.CSNegotiationPolicy)
+	if err != nil {
+		policy = irodsclient_types.CSNegotiationUseTCP
+		connInfo.CSNegotiationPolicy = string(irodsclient_types.CSNegotiationUseTCP)
+	}
+
+	authScheme := irodsclient_types.GetAuthScheme(connInfo.AuthScheme)
+	if authScheme == irodsclient_types.AuthSchemeUnknown {
+		connInfo.AuthScheme = string(irodsclient_types.AuthSchemeNative)
+	} else if authScheme != irodsclient_types.AuthSchemePAM && authScheme != irodsclient_types.AuthSchemeNative {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid auth scheme %q", connInfo.AuthScheme)
+	}
+
+	if authScheme == irodsclient_types.AuthSchemePAM || policy == irodsclient_types.CSNegotiationUseSSL {
+		if connInfo.EncryptionKeySize <= 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "SSL encryption key size must be given")
+		}
+
+		if len(connInfo.EncryptionAlgorithm) == 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "SSL encryption algorithm must be given")
+		}
+
+		if connInfo.SaltSize <= 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "SSL salt size must be given")
+		}
+
+		if connInfo.HashRounds <= 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "SSL hash rounds must be given")
+		}
 	}
 
 	if len(connInfo.PoolEndpoint) > 0 {
