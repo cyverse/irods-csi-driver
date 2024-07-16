@@ -54,10 +54,10 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/container-storage-interface/spec v1.2.0 h1:bD9KIVgaVKKkQ/UbVUY9kCaH/CJbhNxe0eeB4JeJV2s=
 github.com/container-storage-interface/spec v1.2.0/go.mod h1:6URME8mwIBbpVyZV93Ce5St17xBiQJQY67NDsuohiy4=
-github.com/cyverse/go-irodsclient v0.14.3 h1:B6BI3H2nUoh6pu76EB0eKBPdFY9lq1qppuHfDbz9UB0=
-github.com/cyverse/go-irodsclient v0.14.3/go.mod h1:eBXha3cwfrM0p1ijYVqsrLJQHpRwTfpA4c5dKCQsQFc=
-github.com/cyverse/irodsfs-common v0.0.0-20240326211011-08f17c8d7705 h1:KjgIEJIeKPsDw6zuG4dvalAHxsVGJQKLHi/n+HKWuQ4=
-github.com/cyverse/irodsfs-common v0.0.0-20240326211011-08f17c8d7705/go.mod h1:rfkRjk+9zSLQhV+r7080HDnNvmOvscB85GzNrR7stH4=
+github.com/cyverse/go-irodsclient v0.14.11 h1:pPAo3UOncFon/TsIjAAUT+rDTfJ6NRux6tr1fmz7Fx0=
+github.com/cyverse/go-irodsclient v0.14.11/go.mod h1:eBXha3cwfrM0p1ijYVqsrLJQHpRwTfpA4c5dKCQsQFc=
+github.com/cyverse/irodsfs-common v0.0.0-20240716191935-69006aedefdc h1:o75XZvO0FQx2Vy8FwUmL9XffqqLoittvyXGv/5b4UEw=
+github.com/cyverse/irodsfs-common v0.0.0-20240716191935-69006aedefdc/go.mod h1:cEywU4X9x1v1UfZC2o7T9Du7yQyJaxrkLlHrn7Wxxgs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

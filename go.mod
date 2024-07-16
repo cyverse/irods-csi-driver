@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	github.com/container-storage-interface/spec v1.2.0
-	github.com/cyverse/go-irodsclient v0.14.3
-	github.com/cyverse/irodsfs-common v0.0.0-20240326211011-08f17c8d7705
+	github.com/cyverse/go-irodsclient v0.14.11
+	github.com/cyverse/irodsfs-common v0.0.0-20240716191935-69006aedefdc
 	github.com/pkg/xattr v0.4.9
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/xid v1.3.0
