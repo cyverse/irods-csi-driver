@@ -20,10 +20,8 @@ spec:
       containers:
         - name: irods-plugin
           securityContext:
-            privileged: true
             capabilities:
               add: ["SYS_ADMIN"]
-            allowPrivilegeEscalation: true
           image: cyverse/irods-csi-driver:latest
           args:
             - --endpoint=$(CSI_ENDPOINT)

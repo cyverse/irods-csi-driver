@@ -38,7 +38,7 @@ spec:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
             - name: IRODSFS_POOL_ENDPOINT
-              value: unix:/csi/pool.sock
+              value: {{ .Values.nodeService.irodsPlugin.poolServerEndpoint }}
             - name: SECRET_VOLUME_PATH
               value: /secrets
             - name: STORAGE_VOLUME_PATH
@@ -93,7 +93,7 @@ spec:
             - name: IRODSFS_POOL_DATA
               value: /irodsfs_pool_data
             - name: IRODSFS_POOL_ENDPOINT
-              value: unix:///csi/pool.sock
+              value: {{ .Values.nodeService.irodsPool.poolServerEndpoint }}
             - name: PROMETHEUS_EXPORTER_PORT
               value: "12022"
           volumeMounts:

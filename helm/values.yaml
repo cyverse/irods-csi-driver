@@ -21,10 +21,8 @@ controllerService:
       - --v=5
 
     securityContext:
-      privileged: true
       capabilities:
         add: ["SYS_ADMIN"]
-      allowPrivilegeEscalation: true
 
     resources: {}
 
@@ -55,12 +53,15 @@ nodeService:
       tag: v0.10.3
       pullPolicy: Always
 
+    poolServerEndpoint: unix:///csi/pool.sock
+
     extraArgs:
       - --logtostderr
       - --v=5
 
     securityContext:
-      privileged: true
+      capabilities:
+        add: ["SYS_ADMIN"]
 
     resources: {}
 
@@ -69,6 +70,8 @@ nodeService:
       repository: cyverse/irods-csi-driver-pool
       tag: v0.10.3
       pullPolicy: Always
+
+    poolServerEndpoint: unix:///csi/pool.sock
 
     extraArgs:
       - --cache_size_max=32212254720
