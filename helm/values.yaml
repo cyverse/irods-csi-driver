@@ -21,6 +21,7 @@ controllerService:
       - --v=5
 
     securityContext:
+      privileged: true
       capabilities:
         add: ["SYS_ADMIN"]
 
@@ -60,6 +61,7 @@ nodeService:
       - --v=5
 
     securityContext:
+      privileged: true
       capabilities:
         add: ["SYS_ADMIN"]
 
