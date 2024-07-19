@@ -469,5 +469,12 @@ func GetMountOptions(volumes *csi.VolumeCapability_MountVolume, accessModes *csi
 			}
 		}
 	}
+
+	if accessModes != nil {
+		if accessModes.GetMode() == csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY || accessModes.GetMode() == csi.VolumeCapability_AccessMode_MULTI_NODE_READER_ONLY {
+			mountOptions = append(mountOptions, "ro")
+		}
+	}
+
 	return mountOptions
 }
