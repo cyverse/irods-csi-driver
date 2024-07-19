@@ -282,12 +282,6 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 		}
 	}
 
-	policy, err := irodsclient_types.GetCSNegotiationPolicy(connInfo.CSNegotiationPolicy)
-	if err != nil {
-		policy = irodsclient_types.CSNegotiationUseTCP
-		connInfo.CSNegotiationPolicy = string(irodsclient_types.CSNegotiationUseTCP)
-	}
-
 	authScheme := irodsclient_types.GetAuthScheme(connInfo.AuthScheme)
 	if authScheme == irodsclient_types.AuthSchemeUnknown {
 		connInfo.AuthScheme = string(irodsclient_types.AuthSchemeNative)
@@ -295,7 +289,12 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 		return nil, status.Errorf(codes.InvalidArgument, "Invalid auth scheme %q", connInfo.AuthScheme)
 	}
 
-	if authScheme == irodsclient_types.AuthSchemePAM || policy == irodsclient_types.CSNegotiationUseSSL {
+	csNegotiation, err := irodsclient_types.GetCSNegotiationRequire(connInfo.CSNegotiationPolicy)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid cs negotiation policy %q", connInfo.CSNegotiationPolicy)
+	}
+
+	if authScheme == irodsclient_types.AuthSchemePAM || csNegotiation == irodsclient_types.CSNegotiationRequireSSL || connInfo.ClientServerNegotiation {
 		if connInfo.EncryptionKeySize <= 0 {
 			return nil, status.Errorf(codes.InvalidArgument, "SSL encryption key size must be given")
 		}

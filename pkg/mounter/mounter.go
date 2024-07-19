@@ -460,7 +460,7 @@ func hasValueInArray(arr []string, val string) bool {
 }
 
 // GetMountOptions returns mount options from VolumeCapability_MountVolume
-func GetMountOptions(volumes *csi.VolumeCapability_MountVolume) []string {
+func GetMountOptions(volumes *csi.VolumeCapability_MountVolume, accessModes *csi.VolumeCapability_AccessMode) []string {
 	mountOptions := []string{}
 	if volumes != nil {
 		for _, f := range volumes.MountFlags {

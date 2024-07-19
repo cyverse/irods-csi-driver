@@ -98,7 +98,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
-	mountOptions := mounter.GetMountOptions(volCap.GetMount())
+	mountOptions := mounter.GetMountOptions(volCap.GetMount(), volCap.GetAccessMode())
 
 	pathExist, pathExistErr := mounter.PathExists(targetPath)
 	if pathExistErr != nil {
@@ -185,7 +185,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
-	mountOptions := mounter.GetMountOptions(volCap.GetMount())
+	mountOptions := mounter.GetMountOptions(volCap.GetMount(), volCap.GetAccessMode())
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
 	}
