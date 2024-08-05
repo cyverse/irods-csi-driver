@@ -73,10 +73,10 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
-            periodSeconds: 2
-            failureThreshold: 5
+            initialDelaySeconds: 15
+            timeoutSeconds: 10
+            periodSeconds: 10
+            failureThreshold: 10
         - name: irods-pool
           image: cyverse/irods-csi-driver-pool:latest
           args:
@@ -125,6 +125,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9810
+            - --probe-timeout=10s
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
