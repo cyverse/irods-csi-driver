@@ -34,8 +34,6 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 	mountSensitiveOptions := []string{}
 	stdinArgs := []string{}
 
-	irodsFsConfig := NewDefaultIRODSFSConfig()
-
 	// create irodsfs dataroot
 	dataRootPath := client_common.GetConfigDataRootPath(configs, volID)
 	err = makeIrodsFuseLiteDataRootPath(dataRootPath)
@@ -43,36 +41,10 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 		return status.Error(codes.Internal, err.Error())
 	}
 
-	irodsFsConfig.DataRootPath = dataRootPath
-	irodsFsConfig.Host = irodsConnectionInfo.Hostname
-	irodsFsConfig.Port = irodsConnectionInfo.Port
-	irodsFsConfig.ProxyUser = irodsConnectionInfo.User
-	irodsFsConfig.ClientUser = irodsConnectionInfo.ClientUser
-	irodsFsConfig.Zone = irodsConnectionInfo.Zone
-	irodsFsConfig.Password = irodsConnectionInfo.Password
-	irodsFsConfig.Resource = irodsConnectionInfo.Resource
-	irodsFsConfig.AuthScheme = irodsConnectionInfo.AuthScheme
-	irodsFsConfig.ClientServerNegotiation = irodsConnectionInfo.ClientServerNegotiation
-	irodsFsConfig.CSNegotiationPolicy = irodsConnectionInfo.CSNegotiationPolicy
-	irodsFsConfig.CACertificateFile = irodsConnectionInfo.CACertificateFile
-	irodsFsConfig.CACertificatePath = irodsConnectionInfo.CACertificatePath
-	irodsFsConfig.EncryptionKeySize = irodsConnectionInfo.EncryptionKeySize
-	irodsFsConfig.EncryptionAlgorithm = irodsConnectionInfo.EncryptionAlgorithm
-	irodsFsConfig.SaltSize = irodsConnectionInfo.SaltSize
-	irodsFsConfig.HashRounds = irodsConnectionInfo.HashRounds
-	irodsFsConfig.MonitorURL = irodsConnectionInfo.MonitorURL
-	irodsFsConfig.PathMappings = irodsConnectionInfo.PathMappings
-	irodsFsConfig.NoPermissionCheck = irodsConnectionInfo.NoPermissionCheck
-	irodsFsConfig.NoSetXattr = irodsConnectionInfo.NoSetXattr
-	irodsFsConfig.UID = irodsConnectionInfo.UID
-	irodsFsConfig.GID = irodsConnectionInfo.GID
-	irodsFsConfig.SystemUser = irodsConnectionInfo.SystemUser
-	irodsFsConfig.PoolEndpoint = irodsConnectionInfo.PoolEndpoint
-	irodsFsConfig.Profile = irodsConnectionInfo.Profile
-	irodsFsConfig.ProfileServicePort = irodsConnectionInfo.ProfilePort
-	irodsFsConfig.InstanceID = volID
+	irodsConnectionInfo.DataRootPath = dataRootPath
+	irodsConnectionInfo.InstanceID = volID
 
-	irodsFsConfigBytes, err := yaml.Marshal(irodsFsConfig)
+	irodsFsConfigBytes, err := yaml.Marshal(irodsConnectionInfo.Config)
 	if err != nil {
 		return status.Errorf(codes.Internal, "Could not serialize configuration: %v", err)
 	}

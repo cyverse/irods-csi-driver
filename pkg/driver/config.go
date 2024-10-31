@@ -49,7 +49,7 @@ func readSecrets(secretPath string) (map[string]string, error) {
 
 func isDynamicVolumeProvisioningMode(volContext map[string]string) bool {
 	for k, v := range volContext {
-		if k == "provisioningmode" {
+		if k == common.NormalizeConfigKey("provisioning_mode") {
 			if strings.ToLower(v) == "dynamic" {
 				return true
 			}
@@ -60,7 +60,7 @@ func isDynamicVolumeProvisioningMode(volContext map[string]string) bool {
 }
 
 func setDynamicVolumeProvisioningMode(volContext map[string]string) {
-	volContext["provisioningmode"] = "dynamic"
+	volContext[common.NormalizeConfigKey("provisioning_mode")] = "dynamic"
 }
 
 // ControllerConfig is a controller config struct
@@ -73,8 +73,8 @@ type ControllerConfig struct {
 
 func getControllerConfigFromMap(params map[string]string, config *ControllerConfig) error {
 	for k, v := range params {
-		switch k {
-		case "volumerootpath":
+		switch common.NormalizeConfigKey(k) {
+		case common.NormalizeConfigKey("volume_root_path"):
 			if !filepath.IsAbs(v) {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
@@ -83,13 +83,13 @@ func getControllerConfigFromMap(params map[string]string, config *ControllerConf
 			} else {
 				config.VolumeRootPath = strings.TrimRight(v, "/")
 			}
-		case "retaindata":
+		case common.NormalizeConfigKey("retain_data"):
 			retain, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %v", k, err)
 			}
 			config.RetainData = retain
-		case "novolumedir":
+		case common.NormalizeConfigKey("no_volume_dir"):
 			novolumedir, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a boolean value - %v", k, err)
@@ -131,59 +131,4 @@ func makeControllerConfig(volName string, configs map[string]string) (*Controlle
 	}
 
 	return &controllerConfig, nil
-}
-
-func normalizeConfigKey(key string) string {
-	key = strings.ToLower(key)
-
-	if key == "driver" {
-		return "client"
-	}
-
-	return strings.ReplaceAll(key, "_", "")
-}
-
-// mergeConfig merges configuration params
-func mergeConfig(driverConfig *common.Config, driverSecrets map[string]string, volSecrets map[string]string, volParams map[string]string) map[string]string {
-	configs := make(map[string]string)
-	for k, v := range volSecrets {
-		if len(v) > 0 {
-			configs[normalizeConfigKey(k)] = v
-		}
-	}
-
-	for k, v := range volParams {
-		if len(v) > 0 {
-			configs[normalizeConfigKey(k)] = v
-		}
-	}
-
-	// driver secrets have higher priority
-	for k, v := range driverSecrets {
-		if len(v) > 0 {
-			configs[normalizeConfigKey(k)] = v
-		}
-	}
-
-	if len(driverConfig.PoolServiceEndpoint) > 0 {
-		configs[normalizeConfigKey("poolendpoint")] = driverConfig.PoolServiceEndpoint
-	}
-
-	if len(driverConfig.StoragePath) > 0 {
-		configs[normalizeConfigKey("storagepath")] = driverConfig.StoragePath
-	}
-
-	return configs
-}
-
-func redactConfig(config map[string]string) map[string]string {
-	newConfigs := make(map[string]string)
-	for k, v := range config {
-		if k == "password" {
-			newConfigs[k] = "**REDACTED**"
-		} else {
-			newConfigs[k] = v
-		}
-	}
-	return newConfigs
 }

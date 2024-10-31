@@ -13,54 +13,18 @@ const (
 )
 
 // GetIRODSAccount creates a new account
-func GetIRODSAccount(conn *IRODSFSConnectionInfo) (*irodsclient_types.IRODSAccount, error) {
-	authScheme := irodsclient_types.GetAuthScheme(conn.AuthScheme)
-	if authScheme == irodsclient_types.AuthSchemeUnknown {
-		authScheme = irodsclient_types.AuthSchemeNative
-	}
-
-	csNegotiation, err := irodsclient_types.GetCSNegotiationRequire(conn.CSNegotiationPolicy)
-	if err != nil {
-		return nil, err
-	}
-
-	account, err := irodsclient_types.CreateIRODSProxyAccount(conn.Hostname, conn.Port,
-		conn.ClientUser, conn.Zone, conn.User, conn.Zone,
-		authScheme, conn.Password, conn.Resource)
-	if err != nil {
-		return nil, err
-	}
-
-	// optional for ssl,
-	sslConfig, err := irodsclient_types.CreateIRODSSSLConfig(conn.CACertificateFile, conn.CACertificatePath, conn.EncryptionKeySize,
-		conn.EncryptionAlgorithm, conn.SaltSize, conn.HashRounds)
-	if err != nil {
-		return nil, err
-	}
-
-	if authScheme == irodsclient_types.AuthSchemePAM {
-		account.SetSSLConfiguration(sslConfig)
-		account.SetCSNegotiation(true, irodsclient_types.CSNegotiationRequireSSL)
-	} else if conn.ClientServerNegotiation {
-		account.SetSSLConfiguration(sslConfig)
-		account.SetCSNegotiation(conn.ClientServerNegotiation, csNegotiation)
-	}
-
-	return account, nil
+func GetIRODSAccount(conn *IRODSFSConnectionInfo) *irodsclient_types.IRODSAccount {
+	return conn.ToIRODSAccount()
 }
 
 // GetIRODSFilesystemConfig creates a new filesystem config
 func GetIRODSFilesystemConfig() *irodsclient_fs.FileSystemConfig {
-	return irodsclient_fs.NewFileSystemConfigWithDefault(applicationName)
+	return irodsclient_fs.NewFileSystemConfig(applicationName)
 }
 
 // GetIRODSFilesystem creates a new filesystem
 func GetIRODSFilesystem(conn *IRODSFSConnectionInfo) (*irodsclient_fs.FileSystem, error) {
-	account, err := GetIRODSAccount(conn)
-	if err != nil {
-		return nil, err
-	}
-
+	account := GetIRODSAccount(conn)
 	return irodsclient_fs.NewFileSystemWithDefault(account, applicationName)
 }
 
@@ -90,14 +54,11 @@ func Rmdir(conn *IRODSFSConnectionInfo, path string) error {
 
 // TestConnection just test connection creation
 func TestConnection(conn *IRODSFSConnectionInfo) error {
-	account, err := GetIRODSAccount(conn)
-	if err != nil {
-		return err
-	}
+	account := GetIRODSAccount(conn)
 
 	// test connect
-	irodsConn := irodsclient_connection.NewIRODSConnection(account, 5*time.Minute, applicationName)
-	err = irodsConn.Connect()
+	irodsConn := irodsclient_connection.NewIRODSConnection(account, time.Duration(conn.MountTimeout), applicationName)
+	err := irodsConn.Connect()
 	if err != nil {
 		return err
 	}

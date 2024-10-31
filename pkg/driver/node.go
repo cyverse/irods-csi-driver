@@ -33,6 +33,7 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/cyverse/irods-csi-driver/pkg/client"
 	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/cyverse/irods-csi-driver/pkg/metrics"
 	"github.com/cyverse/irods-csi-driver/pkg/mounter"
 	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
@@ -126,7 +127,7 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	}
 
 	// merge params
-	configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
+	configs := common.MergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
 	klog.V(5).Infof("NodeStageVolume: mounting %q", targetPath)
 
 	// mount
@@ -256,7 +257,7 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	} else {
 		// static volume provisioning
 		// merge params
-		configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
+		configs := common.MergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetVolumeContext())
 
 		// mount
 		klog.V(5).Infof("NodePublishVolume: mounting %q", targetPath)

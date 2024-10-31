@@ -3,6 +3,7 @@ package nfs
 import (
 	"strconv"
 
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -16,16 +17,16 @@ type NFSConnectionInfo struct {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *NFSConnectionInfo) error {
 	for k, v := range params {
-		switch k {
-		case "host":
+		switch common.NormalizeConfigKey(k) {
+		case common.NormalizeConfigKey("host"), common.NormalizeConfigKey("hostname"):
 			connInfo.Hostname = v
-		case "port":
+		case common.NormalizeConfigKey("port"):
 			p, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %v", k, err)
 			}
 			connInfo.Port = p
-		case "path":
+		case common.NormalizeConfigKey("path"):
 			connInfo.Path = v
 		default:
 			// ignore

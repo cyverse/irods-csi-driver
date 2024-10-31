@@ -28,6 +28,7 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"github.com/cyverse/irods-csi-driver/pkg/metrics"
 	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
 	"google.golang.org/grpc/codes"
@@ -75,7 +76,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 
 	// create a new volume
 	// merge params
-	configs := mergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetParameters())
+	configs := common.MergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetParameters())
 
 	///////////////////////////////////////////////////////////
 	// We only support irodsfs for dynamic volume provisioning
@@ -94,7 +95,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	}
 
 	// set path
-	configs["path"] = controllerConfig.VolumePath
+	configs[common.NormalizeConfigKey("path")] = controllerConfig.VolumePath
 
 	// get iRODS connection info
 	irodsConnectionInfo, err := irods.GetConnectionInfo(configs)
@@ -125,7 +126,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	for k, v := range req.GetParameters() {
 		volContext[k] = v
 	}
-	volContext["path"] = controllerConfig.VolumePath
+	volContext[common.NormalizeConfigKey("path")] = controllerConfig.VolumePath
 
 	// tell this volume is created via dynamic volume provisioning
 	setDynamicVolumeProvisioningMode(volContext)

@@ -16,7 +16,7 @@ ARG CSI_DRIVER_SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver"
 ARG IRODS_FUSE_DIR="/opt/irodsfs"
 ARG FUSE_NFS_DIR="/opt/fuse-nfs"
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IRODSFS_VER=v0.9.7
+ARG IRODSFS_VER=v0.10.2
 
 ### Install dumb-init
 ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \

@@ -38,6 +38,63 @@ type Config struct {
 	StoragePath            string // Path to storage dir (for saving volume info and etc)
 }
 
+// NormalizeConfigKey normalizes config key
+func NormalizeConfigKey(key string) string {
+	key = strings.ToLower(key)
+
+	if key == "driver" {
+		return "client"
+	}
+
+	return strings.ReplaceAll(key, "_", "")
+}
+
+// MergeConfig merges configuration params
+func MergeConfig(driverConfig *Config, driverSecrets map[string]string, volSecrets map[string]string, volParams map[string]string) map[string]string {
+	configs := make(map[string]string)
+	for k, v := range volSecrets {
+		if len(v) > 0 {
+			configs[NormalizeConfigKey(k)] = v
+		}
+	}
+
+	for k, v := range volParams {
+		if len(v) > 0 {
+			configs[NormalizeConfigKey(k)] = v
+		}
+	}
+
+	// driver secrets have higher priority
+	for k, v := range driverSecrets {
+		if len(v) > 0 {
+			configs[NormalizeConfigKey(k)] = v
+		}
+	}
+
+	if len(driverConfig.PoolServiceEndpoint) > 0 {
+		configs[NormalizeConfigKey("pool_endpoint")] = driverConfig.PoolServiceEndpoint
+	}
+
+	if len(driverConfig.StoragePath) > 0 {
+		configs[NormalizeConfigKey("storage_path")] = driverConfig.StoragePath
+	}
+
+	return configs
+}
+
+// RedactConfig redacts sensitive values
+func RedactConfig(config map[string]string) map[string]string {
+	newConfigs := make(map[string]string)
+	for k, v := range config {
+		if k == NormalizeConfigKey("password") || k == NormalizeConfigKey("irods_user_password") {
+			newConfigs[k] = "**REDACTED**"
+		} else {
+			newConfigs[k] = v
+		}
+	}
+	return newConfigs
+}
+
 // ParseEndpoint parses endpoint string (TCP or UNIX)
 func ParseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)

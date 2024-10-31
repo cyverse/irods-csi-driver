@@ -84,7 +84,7 @@ func NewDriver(conf *common.Config) (*Driver, error) {
 
 	volumeEncryptKey := "irodscsidriver_volume_2ce02bee-74ea-4b18-a440-472d9771f778"
 	for k, v := range driver.secrets {
-		if normalizeConfigKey(k) == "volumeencryptkey" {
+		if common.NormalizeConfigKey(k) == common.NormalizeConfigKey("volume_encrypt_key") {
 			volumeEncryptKey = v
 			break
 		}

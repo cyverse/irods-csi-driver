@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/cyverse/irods-csi-driver/pkg/common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -32,14 +33,14 @@ func (connInfo *WebDAVConnectionInfo) IsAnonymousUser() bool {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *WebDAVConnectionInfo) error {
 	for k, v := range params {
-		switch k {
-		case "user":
+		switch common.NormalizeConfigKey(k) {
+		case common.NormalizeConfigKey("user"), common.NormalizeConfigKey("username"):
 			connInfo.User = v
-		case "password":
+		case common.NormalizeConfigKey("password"), common.NormalizeConfigKey("user_password"):
 			connInfo.Password = v
-		case "url":
+		case common.NormalizeConfigKey("url"):
 			connInfo.URL = v
-		case "config":
+		case common.NormalizeConfigKey("config"):
 			connInfo.Config = map[string]string{}
 			configStrings := strings.Split(v, ",")
 			for _, configString := range configStrings {

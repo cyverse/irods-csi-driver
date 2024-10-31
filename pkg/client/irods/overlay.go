@@ -35,11 +35,7 @@ type OverlayFSSyncher struct {
 
 // NewOverlayFSSyncher creates a new OverlayFSSyncher
 func NewOverlayFSSyncher(volumeID string, irodsConnInfo *IRODSFSConnectionInfo, upper string) (*OverlayFSSyncher, error) {
-	irodsAccount, err := GetIRODSAccount(irodsConnInfo)
-	if err != nil {
-		return nil, xerrors.Errorf("failed to get irods account: %w", err)
-	}
-
+	irodsAccount := GetIRODSAccount(irodsConnInfo)
 	fsConfig := GetIRODSFilesystemConfig()
 
 	fsClient, err := irodsfs_common_irods.NewIRODSFSClientDirect(irodsAccount, fsConfig)
@@ -86,7 +82,7 @@ func (syncher *OverlayFSSyncher) GetUpperLayerPath() string {
 }
 
 func (syncher *OverlayFSSyncher) getStatusFilePath() string {
-	return fmt.Sprintf("/%s/home/%s/.%s%s", syncher.irodsConnectionInfo.Zone, syncher.irodsConnectionInfo.ClientUser, syncher.volumeID, syncStatusFileSuffix)
+	return fmt.Sprintf("/%s/home/%s/.%s%s", syncher.irodsConnectionInfo.ClientZoneName, syncher.irodsConnectionInfo.ClientUsername, syncher.volumeID, syncStatusFileSuffix)
 }
 
 // Sync syncs upper layer data to lower layer
@@ -365,7 +361,7 @@ func (syncher *OverlayFSSyncher) syncFile(path string, statusFileHandle *irodscl
 	klog.V(5).Infof("copying file %q", irodsPath)
 
 	// upload the file
-	err = syncher.irodsFsClient.UploadFileParallelRedirectToResource(path, irodsPath, "", 0, false, false, false, nil)
+	_, err = syncher.irodsFsClient.UploadFileParallelRedirectToResource(path, irodsPath, "", 0, false, true, true, nil)
 	if err != nil {
 		if statusFileHandle != nil {
 			msg := fmt.Sprintf("> Fail. failed to upload file %q. %s\n", irodsPath, err)

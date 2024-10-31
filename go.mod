@@ -2,12 +2,11 @@ module github.com/cyverse/irods-csi-driver
 
 go 1.21
 
-toolchain go1.21.5
-
 require (
 	github.com/container-storage-interface/spec v1.2.0
-	github.com/cyverse/go-irodsclient v0.14.11
-	github.com/cyverse/irodsfs-common v0.0.0-20240716191935-69006aedefdc
+	github.com/cyverse/go-irodsclient v0.15.6
+	github.com/cyverse/irodsfs v0.10.2
+	github.com/cyverse/irodsfs-common v0.0.0-20241025231356-4e650ac30aa6
 	github.com/pkg/xattr v0.4.9
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/xid v1.3.0
@@ -25,6 +24,7 @@ require (
 	github.com/go-logr/logr v0.2.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
+	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -38,4 +38,5 @@ require (
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
