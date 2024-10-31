@@ -66,8 +66,6 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 		switch common.NormalizeConfigKey(k) {
 		case common.NormalizeConfigKey("irods_authentication_scheme"), common.NormalizeConfigKey("authentication_scheme"), common.NormalizeConfigKey("auth_scheme"):
 			connInfo.AuthenticationScheme = v
-		case common.NormalizeConfigKey("irods_authentication_file"):
-			connInfo.AuthenticationFile = v
 		case common.NormalizeConfigKey("irods_client_server_negotiation"), common.NormalizeConfigKey("client_server_negotiation"):
 			connInfo.ClientServerNegotiation = v
 		case common.NormalizeConfigKey("irods_client_server_policy"), common.NormalizeConfigKey("client_server_negotiation_policy"), common.NormalizeConfigKey("cs_negotiation_policy"):
@@ -116,7 +114,7 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 			connInfo.SSLCACertificatePath = v
 		case common.NormalizeConfigKey("irods_ssl_verify_server"), common.NormalizeConfigKey("verify_server"):
 			connInfo.SSLVerifyServer = v
-		case common.NormalizeConfigKey("irods_user_password"), common.NormalizeConfigKey("user_password"):
+		case common.NormalizeConfigKey("irods_user_password"), common.NormalizeConfigKey("user_password"), common.NormalizeConfigKey("password"):
 			connInfo.Password = v
 		case common.NormalizeConfigKey("irods_ssl_server_name"), common.NormalizeConfigKey("ssl_server_name"):
 			connInfo.SSLServerName = v

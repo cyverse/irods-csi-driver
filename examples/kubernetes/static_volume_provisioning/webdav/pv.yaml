@@ -1,22 +1,22 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: irods-webdav-pv
+  name: my-pv # the name of the pv
   labels:
-    vol-name: irods-webdav-pv
+    vol-name: my-pv # same as the name
 spec:
   capacity:
-    storage: 5Gi
+    storage: 5Gi # this is required but not meaningful (ignored by csi driver)
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: irods-sc
+  storageClassName: irods-sc # the name of Storage Class
   csi:
-    driver: irods.csi.cyverse.org
-    volumeHandle: irods-webdav-vol-id
+    driver: irods.csi.cyverse.org # the name of iRODS CSI driver
+    volumeHandle: my-vol-id # unique volume ID
     volumeAttributes:
-      client: "webdav"
-      url: "https://data.cyverse.org/dav/iplant/home/iychoi"
-      user: "iychoi"
-      password: "yourpassword"
+      client: "webdav" # iRODS client
+      url: "https://data.cyverse.org/dav/iplant/home/my_username" # iRODS URL to mount
+      user: "my_username" # iRODS username
+      password: "my_password" # iRODS password

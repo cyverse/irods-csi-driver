@@ -6,6 +6,7 @@ import (
 	irodsclient_fs "github.com/cyverse/go-irodsclient/fs"
 	irodsclient_connection "github.com/cyverse/go-irodsclient/irods/connection"
 	irodsclient_types "github.com/cyverse/go-irodsclient/irods/types"
+	"k8s.io/klog"
 )
 
 const (
@@ -57,9 +58,10 @@ func TestConnection(conn *IRODSFSConnectionInfo) error {
 	account := GetIRODSAccount(conn)
 
 	// test connect
-	irodsConn := irodsclient_connection.NewIRODSConnection(account, time.Duration(conn.MountTimeout), applicationName)
+	irodsConn := irodsclient_connection.NewIRODSConnection(account, time.Second*60, applicationName)
 	err := irodsConn.Connect()
 	if err != nil {
+		klog.V(5).Infof("Failed to connect to iRODS - %v", conn.ToIRODSAccount().GetRedacted())
 		return err
 	}
 

@@ -1,25 +1,26 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: irods-irodsfuse-pv
+  name: my-pv # the name of the pv
   labels:
-    vol-name: irods-irodsfuse-pv
+    vol-name: my-pv # same as the name
 spec:
   capacity:
-    storage: 5Gi
+    storage: 5Gi # this is required but not meaningful (ignored by csi driver)
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: irods-sc
+  storageClassName: irods-sc # the name of Storage Class
   csi:
-    driver: irods.csi.cyverse.org
-    volumeHandle: irods-irodsfuse-vol-id
+    driver: irods.csi.cyverse.org # the name of iRODS CSI driver
+    volumeHandle: my-vol-id # unique volume ID
     volumeAttributes:
-      client: "irodsfuse"
-      host: "data.cyverse.org"
-      port: "1247"
-      zone: "iplant"
-      user: "iychoi"
-      password: "yourpassword"
+      client: "irodsfuse" # iRODS client
+      host: "data.cyverse.org" # iRODS host
+      port: "1247" # iRODS port
+      zone: "iplant" # iRODS zone name
+      user: "my_username" # iRODS username
+      password: "my_password" # iRODS password
+      # path_mapping_json sets multiple iRODS paths for either file or dir to mount in JSON format
       path_mapping_json: '[{"irods_path": "/iplant/home/iychoi/datasets/MSSA_MRSA/500k_MSSA_MRSA_1.fa", "mapping_path": "/input/mrsa_mssa.fa", "resource_type": "file"},{"irods_path": "/iplant/home/iychoi/datasets/POV/POV_L.Spr.C.1000m_reads.fa", "mapping_path": "/input/pov.fa", "resource_type": "file"},{"irods_path": "/iplant/home/iychoi", "mapping_path": "/output", "resource_type": "dir"}]'
