@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/container-storage-interface/spec v1.2.0
-	github.com/cyverse/go-irodsclient v0.15.6
+	github.com/cyverse/go-irodsclient v0.15.8
 	github.com/cyverse/irodsfs v0.10.2
 	github.com/cyverse/irodsfs-common v0.0.0-20241025231356-4e650ac30aa6
 	github.com/pkg/xattr v0.4.9
