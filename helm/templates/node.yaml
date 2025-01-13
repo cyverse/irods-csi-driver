@@ -51,10 +51,10 @@ spec:
               value: "12023"
           volumeMounts:
             - name: mountpoint-dir
-              mountPath: /var/lib/kubelet/pods
+              mountPath: {{ .Values.kubeletDir }}/pods
               mountPropagation: Bidirectional
             - name: plugin-dir
-              mountPath: /var/lib/kubelet/plugins
+              mountPath: {{ .Values.kubeletDir }}/plugins
               mountPropagation: Bidirectional
             - name: socket-dir
               mountPath: /csi
@@ -118,7 +118,7 @@ spec:
             - name: ADDRESS
               value: /csi/csi.sock
             - name: DRIVER_REG_SOCK_PATH
-              value: /var/lib/kubelet/plugins/irods.csi.cyverse.org/csi.sock
+              value: {{ .Values.kubeletDir }}/plugins/irods.csi.cyverse.org/csi.sock
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -145,26 +145,26 @@ spec:
       volumes:
         - name: mountpoint-dir
           hostPath:
-            path: /var/lib/kubelet/pods
+            path: {{ .Values.kubeletDir }}/pods
             type: DirectoryOrCreate
         - name: plugin-dir
           hostPath:
-            path: /var/lib/kubelet/plugins
+            path: {{ .Values.kubeletDir }}/plugins
             type: Directory
         - name: registration-dir
           hostPath:
-            path: /var/lib/kubelet/plugins_registry
+            path: {{ .Values.kubeletDir }}/plugins_registry
             type: Directory
         - name: socket-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/irods.csi.cyverse.org
+            path: {{ .Values.kubeletDir }}/plugins/irods.csi.cyverse.org
             type: DirectoryOrCreate
         - name: secret-volume
           secret:
             secretName: {{ include "helm.fullname" . }}-global-secret
         - name: storage-volume
           hostPath:
-            path: /var/lib/kubelet/plugins/irods.csi.cyverse.org/storage
+            path: {{ .Values.kubeletDir }}/plugins/irods.csi.cyverse.org/storage
             type: DirectoryOrCreate
       {{- with .Values.nodeService.nodeSelector }}
       nodeSelector:

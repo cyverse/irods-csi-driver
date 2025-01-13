@@ -33,7 +33,6 @@ image: driver_build
 image-clean: 
 	docker rmi -f cyverse/irods-csi-driver:latest cyverse/irods-csi-driver:$(VERSION) cyverse/irods-csi-driver-pool:latest cyverse/irods-csi-driver-pool:$(VERSION) irods_csi_driver_build irods_csi_driver_pool_build irods_fuse_client_build -f
 
-
 .PHONY: push
 push: image
 	docker push $(CSI_DRIVER_POOL_IMAGE):latest

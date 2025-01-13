@@ -105,6 +105,7 @@ nodeService:
 
 nameOverride: ""
 fullnameOverride: ""
+kubeletDir: /var/lib/kubelet
 
 serviceAccount:
   # Specifies whether a service account should be created
