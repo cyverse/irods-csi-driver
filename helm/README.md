@@ -19,8 +19,6 @@ Kubernetes < 1.17.x
 helm install irods-csi-driver --namespace kube-system .
 ```
 
-
-
 #### Install with global configuration for proxy authentication
 Edit `user_values.yaml` file for configuration.
 
@@ -34,12 +32,16 @@ Kubernetes < 1.17.x
 helm install irods-csi-driver -f user_values.yaml --namespace kube-system .
 ```
 
+#### Install in k0s
+```shell script
+helm install irods-csi-driver -f user_values.yaml --set kubletDir=/var/lib/k0s/kubelet .
+```
+
 ### Upgrade
 ```shell script
 helm upgrade irods-csi-driver \
     --install . \
     --version 0.10.7 \
-    --namespace kube-system \
     -f values.yaml
 ```
 
