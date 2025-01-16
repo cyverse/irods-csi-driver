@@ -1,6 +1,8 @@
 PKG=github.com/cyverse/irods-csi-driver
 CSI_DRIVER_BUILD_IMAGE=irods_csi_driver_build
 CSI_DRIVER_BUILD_DOCKERFILE=deploy/image/irods_csi_driver_build.dockerfile
+CSI_DRIVER_TEST_IMAGE?=cyverse/irods-csi-driver-test
+CSI_DRIVER_TEST_DOCKERFILE=deploy/image/irods_csi_driver_test_image.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
 CSI_DRIVER_POOL_IMAGE?=cyverse/irods-csi-driver-pool
@@ -28,15 +30,17 @@ driver_build:
 image: driver_build
 	docker build -t $(CSI_DRIVER_POOL_IMAGE):latest -f $(CSI_DRIVER_POOL_DOCKERFILE) .
 	docker build -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
+	docker build -t $(CSI_DRIVER_TEST_IMAGE):latest -f $(CSI_DRIVER_TEST_DOCKERFILE) .
 
 .PHONY: image-clean
 image-clean: 
-	docker rmi -f cyverse/irods-csi-driver:latest cyverse/irods-csi-driver:$(VERSION) cyverse/irods-csi-driver-pool:latest cyverse/irods-csi-driver-pool:$(VERSION) irods_csi_driver_build irods_csi_driver_pool_build irods_fuse_client_build -f
+	docker rmi -f $(CSI_DRIVER_IMAGE):latest $(CSI_DRIVER_IMAGE):$(VERSION) $(CSI_DRIVER_POOL_IMAGE):latest $(CSI_DRIVER_POOL_IMAGE):$(VERSION) $(CSI_DRIVER_BUILD_IMAGE):latest $(CSI_DRIVER_TEST_IMAGE):latest -f
 
 .PHONY: push
 push: image
 	docker push $(CSI_DRIVER_POOL_IMAGE):latest
 	docker push $(CSI_DRIVER_IMAGE):latest
+	docker push $(CSI_DRIVER_TEST_IMAGE):latest
 
 .PHONY: image-release
 image-release:
