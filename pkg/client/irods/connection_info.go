@@ -246,7 +246,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 
 	// correct
 	connInfo.FixAuthConfiguration()
-	err = connInfo.FixSystemSystemUserConfiguration()
+	err = connInfo.FixSystemUserConfiguration()
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "Argument systemuser/uid/gid are not valid - %q", err.Error())
 	}

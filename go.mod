@@ -5,8 +5,8 @@ go 1.21
 require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/cyverse/go-irodsclient v0.15.8
-	github.com/cyverse/irodsfs v0.10.2
-	github.com/cyverse/irodsfs-common v0.0.0-20241025231356-4e650ac30aa6
+	github.com/cyverse/irodsfs v0.10.6
+	github.com/cyverse/irodsfs-common v0.0.0-20250108164354-7520cee23f8a
 	github.com/pkg/xattr v0.4.9
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/xid v1.3.0
@@ -35,6 +35,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
