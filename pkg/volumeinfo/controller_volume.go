@@ -59,16 +59,31 @@ func NewControllerVolumeManager(encryptKey string, saveDirPath string) (*Control
 func (manager *ControllerVolumeManager) save() error {
 	jsonBytes, err := json.Marshal(manager.volumes)
 	if err != nil {
-		return status.Errorf(codes.Internal, err.Error())
+		return status.Errorf(codes.Internal, "json marshal error: %s", err.Error())
 	}
 
 	// encrypt data
-	encryptedBytes, err := encrypt(jsonBytes, []byte(manager.encryptKey))
-	if err != nil {
-		return status.Errorf(codes.Internal, err.Error())
+	if len(manager.encryptKey) > 0 {
+		encryptedBytes, err := encrypt(jsonBytes, []byte(manager.encryptKey))
+		if err != nil {
+			return status.Errorf(codes.Internal, "encrypt error: %s", err.Error())
+		}
+
+		err = os.WriteFile(manager.savefilePath, encryptedBytes, 0644)
+		if err != nil {
+			return status.Errorf(codes.Internal, "write file %q error: %s", manager.savefilePath, err.Error())
+		}
+
+		return nil
 	}
 
-	return os.WriteFile(manager.savefilePath, encryptedBytes, 0644)
+	// no encryption
+	err = os.WriteFile(manager.savefilePath, jsonBytes, 0644)
+	if err != nil {
+		return status.Errorf(codes.Internal, "write file %q error: %s", manager.savefilePath, err.Error())
+	}
+
+	return nil
 }
 
 func (manager *ControllerVolumeManager) load() error {
@@ -79,31 +94,55 @@ func (manager *ControllerVolumeManager) load() error {
 			return nil
 		}
 
-		return status.Errorf(codes.Internal, err.Error())
+		return status.Errorf(codes.Internal, "stat file %q error: %s", manager.savefilePath, err.Error())
 	}
 
-	jsonBytes, err := os.ReadFile(manager.savefilePath)
+	dataBytes, err := os.ReadFile(manager.savefilePath)
 	if err != nil {
-		return status.Errorf(codes.Internal, err.Error())
-	}
-
-	if len(jsonBytes) > 0 && json.Valid(jsonBytes) {
-		// plaintext json
-		return json.Unmarshal(jsonBytes, &manager.volumes)
+		return status.Errorf(codes.Internal, "read file %q error: %s", manager.savefilePath, err.Error())
 	}
 
 	// decrypt data
-	decryptedBytes, err := decrypt(jsonBytes, []byte(manager.encryptKey))
-	if err != nil {
-		return status.Errorf(codes.Internal, err.Error())
+	if len(manager.encryptKey) > 0 {
+		decryptedBytes, err := decrypt(dataBytes, []byte(manager.encryptKey))
+		if err != nil {
+			return status.Errorf(codes.Internal, "decrypt error: %s", err.Error())
+		}
+
+		if len(decryptedBytes) > 0 && json.Valid(decryptedBytes) {
+			// plaintext json
+			err = json.Unmarshal(decryptedBytes, &manager.volumes)
+			if err != nil {
+				return status.Errorf(codes.Internal, "json unmarshal error: %s", err.Error())
+			}
+
+			// no error
+			return nil
+		}
+
+		if len(decryptedBytes) == 0 {
+			// empty file
+			return nil
+		}
+
+		// invalid json
+		return status.Errorf(codes.Internal, "invalid json data")
 	}
 
-	if len(decryptedBytes) > 0 && json.Valid(decryptedBytes) {
+	if len(dataBytes) == 0 {
+		// empty file
+		return nil
+	}
+
+	if len(dataBytes) > 0 && json.Valid(dataBytes) {
 		// plaintext json
-		return json.Unmarshal(decryptedBytes, &manager.volumes)
+		err = json.Unmarshal(dataBytes, &manager.volumes)
+		if err != nil {
+			return status.Errorf(codes.Internal, "json unmarshal error: %s", err.Error())
+		}
 	}
 
-	return nil
+	return status.Errorf(codes.Internal, "invalid json data")
 }
 
 // Get returns the volume with given id

@@ -100,6 +100,9 @@ func NewDriver(conf *common.Config) (*Driver, error) {
 		return nil, err
 	}
 
+	// we need to recover crashed volumes if available
+	// but current csi driver does not bind-mount the path to the container
+
 	driver.controllerVolumeManager = controllerVolumeManager
 	driver.nodeVolumeManager = nodeVolumeManager
 
