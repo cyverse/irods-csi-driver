@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app # the name of the app
+spec:
+  containers:
+  - name: app
+    image: cyverse/irods-csi-driver-test
+    command: ["/bin/bash"]
+    args: ["-c", "sleep 60000"]
+    volumeMounts:
+    - name: persistent-storage # the name of the volume
+      mountPath: /data # mount point
+  restartPolicy: Never
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+  volumes:
+  - name: persistent-storage # the name of the volume
+    persistentVolumeClaim:
+      claimName: my-pvc # the name of the PVC

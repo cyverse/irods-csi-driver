@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc # the name of the pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: irods-sc # the name of Storage Class
+  selector:
+    matchLabels:
+      vol-name: my-pv # the name of the pv
+  resources:
+    requests:
+      storage: 5Gi # this is required but not meaningful (must match to PV's storage capacity)
