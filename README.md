@@ -83,24 +83,22 @@ Installation can be done using [Helm Chart Repository](https://cyverse.github.io
 Install using Helm Chart Repository with default configuration:
 ```shell script
 helm repo add irods-csi-driver-repo https://cyverse.github.io/irods-csi-driver-helm/
-helm install irods-csi-driver irods-csi-driver-repo/irods-csi-driver
-```
-
-Install using Helm Chart with default configuration:
-```shell script
-helm install irods-csi-driver helm
+helm repo update
+helm install --create-namespace --namespace irods-csi-driver irods-csi-driver irods-csi-driver-repo/irods-csi-driver
 ```
 
 Install using Helm Chart with custom configuration:
 Edit `helm/user_values.yaml` file. You can set global configuration using the file.
 
 ```shell script
-helm install irods-csi-driver -f helm/user_values.yaml helm
+helm repo add irods-csi-driver-repo https://cyverse.github.io/irods-csi-driver-helm/
+helm repo update
+helm install --create-namespace --namespace irods-csi-driver irods-csi-driver irods-csi-driver-repo/irods-csi-driver -f helm/user_values.yaml helm
 ```
 
 Uninstall using Helm Chart:
 ```shell script
-helm delete irods-csi-driver
+helm uninstall --namespace irods-csi-driver irods-csi-driver
 ```
 
 ### Example: Pre-previsioned Persistent Volume (static volume provisioning) using iRODS FUSE
