@@ -56,7 +56,8 @@ func Mount(mounter mounter.Mounter, volID string, configs map[string]string, mnt
 		// mount irodsfs
 		mountOptions = append(mountOptions, mntOptions...)
 		mountOptions = append(mountOptions, fmt.Sprintf("mounttimeout=%d", irodsConnectionInfo.MountTimeout))
-		mountOptions = append(mountOptions, "config=-") // read configuration yaml via STDIN
+		mountOptions = append(mountOptions, "allow_other") // required to allow non-root users to access the mounted volume
+		mountOptions = append(mountOptions, "config=-")    // read configuration yaml via STDIN
 
 		klog.V(5).Infof("Mounting %q (%q) at %q with options %v", source, fsType, targetPath, mountOptions)
 		if err := mounter.MountSensitive2(source, source, targetPath, fsType, mountOptions, mountSensitiveOptions, stdinArgs); err != nil {
