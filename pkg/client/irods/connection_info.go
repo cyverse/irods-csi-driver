@@ -326,7 +326,7 @@ func GetConnectionInfo(configs map[string]string) (*IRODSFSConnectionInfo, error
 	}
 
 	if len(connInfo.PoolEndpoint) > 0 {
-		_, _, err := common.ParseEndpoint(connInfo.PoolEndpoint)
+		_, _, err := common.ParsePoolServerEndpoint(connInfo.PoolEndpoint)
 		if err != nil {
 			return nil, err
 		}

@@ -20,7 +20,9 @@ package common
 
 import (
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/xerrors"
@@ -123,8 +125,8 @@ func parseRawURL(rawurl string) (string, string, string, error) {
 	return "", "", "", xerrors.Errorf("could not parse raw url: %s", rawurl)
 }
 
-// ParseEndpoint parses endpoint string
-func ParseEndpoint(endpoint string) (string, string, error) {
+// ParsePoolServerEndpoint parses endpoint string
+func ParsePoolServerEndpoint(endpoint string) (string, string, error) {
 	scheme, host, p, err := parseRawURL(endpoint)
 	if err != nil {
 		return "", "", err
@@ -145,4 +147,29 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	default:
 		return "", "", xerrors.Errorf("unsupported protocol: %q", scheme)
 	}
+}
+
+// ParseCSIEndpoint parses endpoint string (TCP or UNIX)
+func ParseCSIEndpoint(endpoint string) (string, string, error) {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return "", "", xerrors.Errorf("failed to parse endpoint %q: %w", endpoint, err)
+	}
+
+	addr := path.Join(u.Host, filepath.FromSlash(u.Path))
+
+	scheme := strings.ToLower(u.Scheme)
+	switch scheme {
+	case "tcp":
+	case "unix":
+		addr = path.Join("/", addr)
+		err := os.Remove(addr)
+		if err != nil && !os.IsNotExist(err) {
+			return "", "", xerrors.Errorf("failed to remove unix domain socket %q: %w", addr, err)
+		}
+	default:
+		return "", "", xerrors.Errorf("unsupported protocol: %q", scheme)
+	}
+
+	return scheme, addr, nil
 }

@@ -111,7 +111,7 @@ func NewDriver(conf *common.Config) (*Driver, error) {
 
 // Run runs the driver service
 func (driver *Driver) Run() error {
-	scheme, addr, err := common.ParseEndpoint(driver.config.Endpoint)
+	scheme, addr, err := common.ParseCSIEndpoint(driver.config.Endpoint)
 	if err != nil {
 		return err
 	}
