@@ -41,7 +41,7 @@ helm install irods-csi-driver -f user_values.yaml --set kubletDir=/var/lib/k0s/k
 ```shell script
 helm upgrade irods-csi-driver \
     --install . \
-    --version 0.10.14 \
+    --version 0.10.15 \
     -f values.yaml
 ```
 
