@@ -20,9 +20,7 @@ package common
 
 import (
 	"net/url"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"golang.org/x/xerrors"
@@ -95,51 +93,56 @@ func RedactConfig(config map[string]string) map[string]string {
 	return newConfigs
 }
 
-// ParseEndpoint parses endpoint string (TCP or UNIX)
-func ParseEndpoint(endpoint string) (string, string, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return "", "", xerrors.Errorf("failed to parse endpoint %q: %w", endpoint, err)
+func parseRawURL(rawurl string) (string, string, string, error) {
+	if len(strings.TrimSpace(rawurl)) == 0 {
+		return "", "", "", xerrors.Errorf("empty raw url")
 	}
 
-	addr := path.Join(u.Host, filepath.FromSlash(u.Path))
-
-	scheme := strings.ToLower(u.Scheme)
-	switch scheme {
-	case "tcp":
-	case "unix":
-		addr = path.Join("/", addr)
-		err := os.Remove(addr)
-		if err != nil && !os.IsNotExist(err) {
-			return "", "", xerrors.Errorf("failed to remove unix domain socket %q: %w", addr, err)
+	u, err := url.ParseRequestURI(rawurl)
+	if err != nil || (u.Host == "" && u.Path == "") {
+		// try adding //
+		u, repErr := url.ParseRequestURI("tcp://" + rawurl)
+		if repErr != nil {
+			return "", "", "", xerrors.Errorf("could not parse raw url: %s, error: %w", rawurl, err)
 		}
-	default:
-		return "", "", xerrors.Errorf("unsupported protocol: %q", scheme)
+
+		return "tcp", u.Host, "", nil
 	}
 
-	return scheme, addr, nil
+	if u != nil {
+		scheme := strings.ToLower(u.Scheme)
+		if scheme == "unix" {
+			return "unix", "", u.Path, nil
+		} else if scheme == "tcp" {
+			return "tcp", u.Host, "", nil
+		}
+
+		return u.Scheme, u.Host, u.Path, nil
+	}
+
+	return "", "", "", xerrors.Errorf("could not parse raw url: %s", rawurl)
 }
 
-// ParsePoolServiceEndpoint parses endpoint string
-func ParsePoolServiceEndpoint(endpoint string) (string, error) {
-	u, err := url.Parse(endpoint)
+// ParseEndpoint parses endpoint string
+func ParseEndpoint(endpoint string) (string, string, error) {
+	scheme, host, p, err := parseRawURL(endpoint)
 	if err != nil {
-		return "", xerrors.Errorf("could not parse endpoint %q: %w", endpoint, err)
+		return "", "", err
 	}
 
-	scheme := strings.ToLower(u.Scheme)
+	scheme = strings.ToLower(scheme)
 	switch scheme {
 	case "tcp":
-		return u.Host, nil
+		return "tcp", host, nil
 	case "unix":
-		path := path.Join("/", u.Path)
-		return "unix://" + path, nil
+		p = path.Join("/", strings.TrimPrefix(p, "/"))
+		return "unix", p, nil
 	case "":
-		if len(u.Host) > 0 {
-			return u.Host, nil
+		if len(host) > 0 {
+			return "tcp", host, nil
 		}
-		return "", xerrors.Errorf("unknown host: %q", u.Host)
+		return "", "", xerrors.Errorf("unknown host: %q", host)
 	default:
-		return "", xerrors.Errorf("unsupported protocol: %q", scheme)
+		return "", "", xerrors.Errorf("unsupported protocol: %q", scheme)
 	}
 }

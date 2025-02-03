@@ -36,7 +36,7 @@ spec:
             {{- toYaml .Values.nodeService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
-              value: unix:/csi/csi.sock
+              value: unix:///csi/csi.sock
             - name: IRODSFS_POOL_ENDPOINT
               value: {{ .Values.nodeService.irodsPlugin.poolServerEndpoint }}
             - name: SECRET_VOLUME_PATH

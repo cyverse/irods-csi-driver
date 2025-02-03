@@ -35,9 +35,9 @@ spec:
             - --v=5
           env:
             - name: CSI_ENDPOINT
-              value: unix:/csi/csi.sock
+              value: unix:///csi/csi.sock
             - name: IRODSFS_POOL_ENDPOINT
-              value: unix:/csi/pool.sock
+              value: unix:///csi/pool.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
             - name: STORAGE_VOLUME_PATH
