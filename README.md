@@ -93,7 +93,7 @@ Edit `helm/user_values.yaml` file. You can set global configuration using the fi
 ```shell script
 helm repo add irods-csi-driver-repo https://cyverse.github.io/irods-csi-driver-helm/
 helm repo update
-helm install --create-namespace --namespace irods-csi-driver irods-csi-driver irods-csi-driver-repo/irods-csi-driver -f helm/user_values.yaml helm
+helm install --create-namespace --namespace irods-csi-driver irods-csi-driver irods-csi-driver-repo/irods-csi-driver -f helm/user_values.yaml
 ```
 
 Uninstall using Helm Chart:
