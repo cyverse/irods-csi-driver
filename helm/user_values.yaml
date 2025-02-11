@@ -11,6 +11,13 @@ globalConfig:
       enforceProxyAccess: "true"
       mountPathWhitelist: "/iplant/home"
 
+controllerService:
+  csiProvisioner:
+    extraArgs:
+      - --timeout=5m
+      - --v=5
+      - --leader-election
+      
 nodeService:
   irodsPool:
     extraArgs:
