@@ -12,7 +12,7 @@ LABEL version="0.1"
 LABEL description="iRODS CSI Driver Pool Image"
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IRODSFS_POOL_VER=v0.9.0
+ARG IRODSFS_POOL_VER=v0.11.1
 
 ### Install dumb-init
 ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
