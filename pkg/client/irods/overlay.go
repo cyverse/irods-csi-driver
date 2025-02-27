@@ -361,7 +361,7 @@ func (syncher *OverlayFSSyncher) syncFile(path string, statusFileHandle *irodscl
 	klog.V(5).Infof("copying file %q", irodsPath)
 
 	// upload the file
-	_, err = syncher.irodsFsClient.UploadFileParallelRedirectToResource(path, irodsPath, "", 0, false, true, true, false, nil)
+	_, err = syncher.irodsFsClient.UploadFileRedirectToResource(path, irodsPath, "", 0, false, true, true, false, nil)
 	if err != nil {
 		if statusFileHandle != nil {
 			msg := fmt.Sprintf("> Fail. failed to upload file %q. %s\n", irodsPath, err)
