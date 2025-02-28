@@ -7,10 +7,10 @@ github.com/container-storage-interface/spec v1.2.0/go.mod h1:6URME8mwIBbpVyZV93C
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/cyverse/go-irodsclient v0.16.7 h1:FTPMRv8pN9cmRGhFFmgVlw6usrOXKChjgJ7Zdhfr2QA=
 github.com/cyverse/go-irodsclient v0.16.7/go.mod h1:NgL8k4aWaC3mDFNnkETJsEqeQrfdmorU6UkR3keZuMw=
-github.com/cyverse/irodsfs v0.12.2 h1:iVU7+xtw/2+ClKER+/36nmSMro6iMDQ24r3yagUIwDs=
-github.com/cyverse/irodsfs v0.12.2/go.mod h1:G/O7UhuL/q34DshpLwRdZa4GZ5Hlw8oNYePe0jkjsjw=
-github.com/cyverse/irodsfs-common v0.0.0-20250228195047-f25ba69386ce h1:sKyCV9YvNL5s+TSlFjEsAxvvUi008Y7sPGDSoQNSjNI=
-github.com/cyverse/irodsfs-common v0.0.0-20250228195047-f25ba69386ce/go.mod h1:WpzKrn5ThbybDO7zkUaxGFL24UK6IHcJx2xHdlL6w0U=
+github.com/cyverse/irodsfs v0.12.3 h1:PsNFUVqlK7AXM/0ldCkh9RHITpyPzlWXk+mm6+7XFso=
+github.com/cyverse/irodsfs v0.12.3/go.mod h1:p2K5hUdqRkRPrfL2bJs0k/ljsKpmSLVwyu6IEjOoTdc=
+github.com/cyverse/irodsfs-common v0.0.0-20250228221017-592ff6c2e5a2 h1:5Hl5zhVkpJLV2elv7+qx8vQn6+3jjgTk7ZrT3mtpNMU=
+github.com/cyverse/irodsfs-common v0.0.0-20250228221017-592ff6c2e5a2/go.mod h1:WpzKrn5ThbybDO7zkUaxGFL24UK6IHcJx2xHdlL6w0U=
 github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 h1:y5HC9v93H5EPKqaS1UYVg1uYah5Xf51mBfIoWehClUQ=
 github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964/go.mod h1:Xd9hchkHSWYkEqJwUGisez3G1QY8Ryz0sdWrLPMGjLk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
