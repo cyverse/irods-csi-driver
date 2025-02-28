@@ -6,9 +6,9 @@ toolchain go1.23.6
 
 require (
 	github.com/container-storage-interface/spec v1.2.0
-	github.com/cyverse/go-irodsclient v0.16.6
-	github.com/cyverse/irodsfs v0.12.1
-	github.com/cyverse/irodsfs-common v0.0.0-20250227051119-e6777d255a9f
+	github.com/cyverse/go-irodsclient v0.16.7
+	github.com/cyverse/irodsfs v0.12.2
+	github.com/cyverse/irodsfs-common v0.0.0-20250228195047-f25ba69386ce
 	github.com/pkg/xattr v0.4.9
 	github.com/prometheus/client_golang v1.17.0
 	github.com/rs/xid v1.3.0
