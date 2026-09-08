@@ -18,11 +18,6 @@ func GetIRODSAccount(conn *IRODSFSConnectionInfo) *irodsclient_types.IRODSAccoun
 	return conn.ToIRODSAccount()
 }
 
-// GetIRODSFilesystemConfig creates a new filesystem config
-func GetIRODSFilesystemConfig() *irodsclient_fs.FileSystemConfig {
-	return irodsclient_fs.NewFileSystemConfig(applicationName)
-}
-
 // GetIRODSFilesystem creates a new filesystem
 func GetIRODSFilesystem(conn *IRODSFSConnectionInfo) (*irodsclient_fs.FileSystem, error) {
 	account := GetIRODSAccount(conn)
@@ -58,8 +53,17 @@ func TestConnection(conn *IRODSFSConnectionInfo) error {
 	account := GetIRODSAccount(conn)
 
 	// test connect
-	irodsConn := irodsclient_connection.NewIRODSConnection(account, time.Second*60, applicationName)
-	err := irodsConn.Connect()
+	config := irodsclient_connection.IRODSConnectionConfig{
+		ConnectTimeout:  60 * time.Second,
+		ApplicationName: applicationName,
+	}
+	irodsConn, err := irodsclient_connection.NewIRODSConnection(account, &config)
+	if err != nil {
+		klog.V(5).Infof("Failed to create an iRODS connection - %v", conn.ToIRODSAccount().GetRedacted())
+		return err
+	}
+
+	err = irodsConn.Connect()
 	if err != nil {
 		klog.V(5).Infof("Failed to connect to iRODS - %v", conn.ToIRODSAccount().GetRedacted())
 		return err

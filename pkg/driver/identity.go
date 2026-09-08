@@ -22,16 +22,21 @@ package driver
 
 import (
 	"context"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/commons"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"k8s.io/klog"
 )
+
+const irodsfsdProbeTimeout = 5 * time.Second
 
 // GetPluginInfo returns plugin info
 func (driver *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	resp := &csi.GetPluginInfoResponse{
-		Name:          common.GetDriverName(),
-		VendorVersion: common.GetDriverVersion(),
+		Name:          commons.DriverName,
+		VendorVersion: commons.GetDriverVersion(),
 	}
 
 	return resp, nil
@@ -56,5 +61,17 @@ func (driver *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPlu
 
 // Probe returns probe response
 func (driver *Driver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
-	return &csi.ProbeResponse{}, nil
+	ready := false
+	if driver.irodsfsdClient != nil {
+		probeContext, cancel := context.WithTimeout(ctx, irodsfsdProbeTimeout)
+		defer cancel()
+
+		if err := driver.irodsfsdClient.Ready(probeContext); err != nil {
+			klog.V(2).Infof("irodsfsd is not ready: %v", err)
+		} else {
+			ready = true
+		}
+	}
+
+	return &csi.ProbeResponse{Ready: &wrappers.BoolValue{Value: ready}}, nil
 }

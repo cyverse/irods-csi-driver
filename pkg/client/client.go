@@ -1,104 +1,69 @@
 package client
 
 import (
-	"os"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 
-	"github.com/cyverse/irods-csi-driver/pkg/client/common"
 	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
 	"github.com/cyverse/irods-csi-driver/pkg/client/nfs"
 	"github.com/cyverse/irods-csi-driver/pkg/client/webdav"
-	"github.com/cyverse/irods-csi-driver/pkg/metrics"
-	"github.com/cyverse/irods-csi-driver/pkg/mounter"
+	"github.com/cyverse/irods-csi-driver/pkg/commons"
+	irodsfsd_client "github.com/cyverse/irodsfsd/client"
 )
 
-// MountClient mounts a fs client
-func MountClient(mounter mounter.Mounter, volID string, configs map[string]string, mountOptions []string, targetPath string) error {
-	irodsClientType := common.GetClientType(configs)
-	switch irodsClientType {
-	case common.IrodsFuseClientType:
-		klog.V(5).Infof("mounting %q", irodsClientType)
-
-		if err := irods.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
-			os.Remove(targetPath)
-			metrics.IncreaseCounterForVolumeMountFailures()
-			return err
-		}
-
-		metrics.IncreaseCounterForVolumeMount()
-		metrics.IncreaseCounterForActiveVolumeMount()
-		return nil
-	case common.WebdavClientType:
-		klog.V(5).Infof("mounting %q", irodsClientType)
-
-		if err := webdav.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
-			os.Remove(targetPath)
-			metrics.IncreaseCounterForVolumeMountFailures()
-			return err
-		}
-
-		metrics.IncreaseCounterForVolumeMount()
-		metrics.IncreaseCounterForActiveVolumeMount()
-		return nil
-	case common.NfsClientType:
-		klog.V(5).Infof("mounting %q", irodsClientType)
-
-		if err := nfs.Mount(mounter, volID, configs, mountOptions, targetPath); err != nil {
-			os.Remove(targetPath)
-			metrics.IncreaseCounterForVolumeMountFailures()
-			return err
-		}
-
-		metrics.IncreaseCounterForVolumeMount()
-		metrics.IncreaseCounterForActiveVolumeMount()
-		return nil
-	default:
-		metrics.IncreaseCounterForVolumeMountFailures()
-		return status.Errorf(codes.Internal, "unknown driver type '%v'", irodsClientType)
+// MountClient mounts the selected filesystem client. The caller owns target
+// directory cleanup; this function owns only the mount lifecycle.
+func MountClient(irodsfsdClient *irodsfsd_client.MountServiceClient, volID string, configs map[string]string, mountOptions []string, targetPath string) error {
+	clientType, err := commons.ParseClientType(configs)
+	if err != nil {
+		commons.IncreaseCounterForVolumeMountFailures()
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
+
+	klog.V(5).Infof("mounting %q at %q", clientType, targetPath)
+	switch clientType {
+	case commons.IrodsFuseClientType:
+		err = irods.Mount(irodsfsdClient, volID, configs, mountOptions, targetPath)
+	case commons.WebdavClientType:
+		err = webdav.Mount(irodsfsdClient, volID, configs, mountOptions, targetPath)
+	case commons.NfsClientType:
+		err = nfs.Mount(irodsfsdClient, volID, configs, mountOptions, targetPath)
+	default:
+		err = status.Errorf(codes.Internal, "unsupported client type %q", clientType)
+	}
+	if err != nil {
+		commons.IncreaseCounterForVolumeMountFailures()
+		return err
+	}
+
+	commons.IncreaseCounterForVolumeMount()
+	commons.IncreaseCounterForActiveVolumeMount()
+	return nil
 }
 
-// UnmountClient unmounts a fs client
-func UnmountClient(mounter mounter.Mounter, volID string, irodsClientType common.ClientType, configs map[string]string, targetPath string) error {
-	switch irodsClientType {
-	case common.IrodsFuseClientType:
-		klog.V(5).Infof("unmounting %q", irodsClientType)
-
-		if err := irods.Unmount(mounter, volID, configs, targetPath); err != nil {
-			metrics.IncreaseCounterForVolumeUnmountFailures()
-			return err
-		}
-
-		metrics.IncreaseCounterForVolumeUnmount()
-		metrics.DecreaseCounterForActiveVolumeMount()
-		return nil
-	case common.WebdavClientType:
-		klog.V(5).Infof("unmounting %q", irodsClientType)
-
-		if err := webdav.Unmount(mounter, volID, configs, targetPath); err != nil {
-			metrics.IncreaseCounterForVolumeUnmountFailures()
-			return err
-		}
-
-		metrics.IncreaseCounterForVolumeUnmount()
-		metrics.DecreaseCounterForActiveVolumeMount()
-		return nil
-	case common.NfsClientType:
-		klog.V(5).Infof("unmounting %q", irodsClientType)
-
-		if err := nfs.Unmount(mounter, volID, configs, targetPath); err != nil {
-			metrics.IncreaseCounterForVolumeUnmountFailures()
-			return err
-		}
-
-		metrics.IncreaseCounterForVolumeUnmount()
-		metrics.DecreaseCounterForActiveVolumeMount()
-		return nil
-	default:
-		metrics.IncreaseCounterForVolumeUnmountFailures()
-		return status.Errorf(codes.Internal, "unknown driver type '%v'", irodsClientType)
+// UnmountVolume records a daemon unmount request. The daemon owns actual
+// cleanup, so this returns after the request has been accepted.
+func UnmountVolume(irodsfsdClient *irodsfsd_client.MountServiceClient, volID string) error {
+	if irodsfsdClient == nil {
+		commons.IncreaseCounterForVolumeUnmountFailures()
+		return status.Error(codes.FailedPrecondition, "irodsfsd client is not configured")
 	}
+
+	_, err := irodsfsdClient.Unmount(volID)
+	if status.Code(err) == codes.NotFound {
+		return nil
+	}
+	if err != nil {
+		commons.IncreaseCounterForVolumeUnmountFailures()
+		code := status.Code(err)
+		if code == codes.Unknown {
+			code = codes.Internal
+		}
+		return status.Errorf(code, "request volume unmount %q: %v", volID, err)
+	}
+
+	commons.IncreaseCounterForVolumeUnmount()
+	commons.DecreaseCounterForActiveVolumeMount()
+	return nil
 }
