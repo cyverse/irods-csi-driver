@@ -6,8 +6,8 @@
 ##############################################
 # Build irods-csi-driver
 ##############################################
-FROM golang:1.23.6
-LABEL maintainer="Illyoung Choi <iychoi@email.arizona.edu>"
+FROM golang:1.26.8
+LABEL maintainer="Illyoung Choi <iychoi@arizona.edu>"
 LABEL version="0.1"
 LABEL description="iRODS CSI Driver Build Image"
 

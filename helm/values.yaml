@@ -9,7 +9,7 @@ controllerService:
     kubernetes.io/os: linux
 
   podSecurityContext: {}
-  
+
   irodsPlugin:
     image:
       repository: cyverse/irods-csi-driver
@@ -19,6 +19,8 @@ controllerService:
     extraArgs:
       - --logtostderr
       - --v=5
+
+    irodsfsdEndpoint: tcp://127.0.0.1:13020
 
     securityContext:
       privileged: true
@@ -54,7 +56,7 @@ nodeService:
       tag: v0.11.4
       pullPolicy: Always
 
-    poolServerEndpoint: unix:///csi/pool.sock
+    irodsfsdEndpoint: tcp://127.0.0.1:13020
 
     extraArgs:
       - --logtostderr
@@ -64,21 +66,6 @@ nodeService:
       privileged: true
       capabilities:
         add: ["SYS_ADMIN"]
-
-    resources: {}
-
-  irodsPool:
-    image:
-      repository: cyverse/irods-csi-driver-pool
-      tag: v0.11.4
-      pullPolicy: Always
-
-    poolServerEndpoint: unix:///csi/pool.sock
-
-    extraArgs:
-      - --cache_size_max=32212254720
-
-    securityContext: {}
 
     resources: {}
 
@@ -116,4 +103,3 @@ serviceAccount:
 globalConfig:
   secret:
     stringData: {}
-    

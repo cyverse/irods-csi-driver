@@ -7,19 +7,11 @@ globalConfig:
       zone: "iplant"
       user: "rods"
       password: "password"
-      retainData: "false"
       enforceProxyAccess: "true"
       mountPathWhitelist: "/iplant/home"
-
 controllerService:
   csiProvisioner:
     extraArgs:
       - --timeout=5m
       - --v=5
       - --leader-election
-      
-nodeService:
-  irodsPool:
-    extraArgs:
-      - --cache_size_max=107374182400
-      - '--cache_timeout_settings=[{"path":"/","timeout":"-1ns","inherit":false},{"path":"/iplant","timeout":"-1ns","inherit":false},{"path":"/iplant/home","timeout":"1h","inherit":false},{"path":"/iplant/home/shared","timeout":"1h","inherit":true}]'
