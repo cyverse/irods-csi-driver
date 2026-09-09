@@ -6,6 +6,7 @@ import (
 	irodsclient_fs "github.com/cyverse/go-irodsclient/fs"
 	irodsclient_connection "github.com/cyverse/go-irodsclient/irods/connection"
 	irodsclient_types "github.com/cyverse/go-irodsclient/irods/types"
+	irodsfs_pool_client "github.com/cyverse/irodsfs-pool/client"
 	"k8s.io/klog"
 )
 
@@ -48,9 +49,31 @@ func Rmdir(conn *IRODSFSConnectionInfo, path string) error {
 	return filesystem.RemoveDir(path, true, true)
 }
 
-// TestConnection just test connection creation
+// TestConnection tests logging in to the configured iRODS service. When a pool
+// endpoint is configured, it tests the same pool-service login path used by
+// the mount instead of connecting to iRODS directly.
 func TestConnection(conn *IRODSFSConnectionInfo) error {
 	account := GetIRODSAccount(conn)
+	if conn.PoolEndpoint != "" {
+		poolClient := irodsfs_pool_client.NewPoolServiceClient(conn.PoolEndpoint, 60*time.Second, false, nil)
+		if err := poolClient.Connect(); err != nil {
+			klog.V(5).Infof("Failed to connect to iRODS pool service %q", conn.PoolEndpoint)
+			return err
+		}
+		defer poolClient.Disconnect()
+
+		session, err := poolClient.NewSession(account, applicationName, "connection test")
+		if err != nil {
+			klog.V(5).Infof("Failed to log in through iRODS pool service %q - %v", conn.PoolEndpoint, account.GetRedacted())
+			return err
+		}
+		if err := session.Release(); err != nil {
+			klog.V(5).Infof("Failed to release iRODS pool service session %q - %v", conn.PoolEndpoint, account.GetRedacted())
+			return err
+		}
+
+		return nil
+	}
 
 	// test connect
 	config := irodsclient_connection.IRODSConnectionConfig{

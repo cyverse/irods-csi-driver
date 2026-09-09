@@ -6,9 +6,10 @@ require (
 	github.com/cockroachdb/errors v1.14.0
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/cyverse/go-irodsclient v0.21.2
-	github.com/cyverse/irodsfs v0.12.5-0.20260904165008-acd8d864b673
+	github.com/cyverse/irodsfs v0.12.5-0.20260909191436-3ae65003fb6e
 	github.com/cyverse/irodsfs-common v0.0.0-20260904153238-dd85f20bbbc3
-	github.com/cyverse/irodsfsd v0.0.0-20260908173341-b4f2f09a62f8
+	github.com/cyverse/irodsfs-pool v0.11.8-0.20260909191225-9472cbb90c5b
+	github.com/cyverse/irodsfsd v0.0.0-20260909193230-472045ff10fa
 	github.com/golang/protobuf v1.5.4
 	github.com/prometheus/client_golang v1.24.1
 	google.golang.org/grpc v1.81.0
