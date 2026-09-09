@@ -1,0 +1,8 @@
+globalConfig:
+  secret:
+    stringData:
+      client: "irodsfuse" # iRODS client
+      host: "data.cyverse.org"  # iRODS host 
+      port: "1247" # iRODS port
+      zone: "iplant" # iRODS zone name
+      mountPathWhitelist: "/iplant/home" # list of paths allowed to mount

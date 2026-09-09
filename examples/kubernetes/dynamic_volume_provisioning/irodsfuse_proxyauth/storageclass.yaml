@@ -4,5 +4,5 @@ metadata:
   name: irods-sc
 provisioner: irods.csi.cyverse.org
 parameters:
-  clientUser: "iychoi"
-  volumeRootPath: "/iplant/home/iychoi"
+  clientUser: "my_client_user" # iRODS proxy client username
+  volumeRootPath: "/iplant/home/my_client_user" # iRODS path to create a sub-directory and mount

@@ -23,5 +23,5 @@ spec:
       path: "/iplant/home/my_username" # iRODS path to mount
       user: "my_username" # iRODS username
       password: "my_password" # iRODS password
-      uid: "1000"
-      gid: "1000"
+      uid: "1000" # UID of local to be mapped
+      gid: "1000" # GID of local to be mapped

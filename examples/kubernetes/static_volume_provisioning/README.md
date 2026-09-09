@@ -1,57 +1,112 @@
 ## Static Volume Provisioning
 
-In static volume provisioning, persistent volumes must be pre-provisioned before they are claimed. Static volume provisioning examples includes "pv.yaml" files to pre-provision the volumes.
+In static volume provisioning, persistent volumes must be created before they
+are claimed. Each example includes a `pv.yaml` with the connection settings in
+`spec.csi.volumeAttributes`.
+
+The CSI node plugin sends the selected client configuration to the host's
+`irodsfsd` service. Install and start `irodsfsd` on every node where a pod may
+mount one of these volumes.
 
 ## iRODS Configuration
 
-The "pv.yaml" files contain iRODS information including username, password and iRODS host information.
+The `volumeAttributes` in `pv.yaml` contain non-sensitive connection settings.
+Use `nodeStageSecretRef` for credentials rather than writing them in a PV.
 
 ### iRODS Client Configuration
 
-Following iRODS clients can be used for the static volume provisioning.
-| Driver Type | iRODS Client     | Server Requirements             |
-|-------------|------------------|---------------------------------|
-| irodsfuse   | iRODS FUSE       | no                              |
-| webdav      | DavFS2           | require [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
-| nfs         | NFS (nfs-common) | require [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
+The following client types are supported. `irodsfsd` performs the actual
+filesystem-specific mount on the host.
+
+| client | Host service requirement |
+| --- | --- |
+| `irodsfuse` | iRODSFS support in irodsfsd |
+| `webdav` | A compatible WebDAV server, such as iRODS-WebDAV or Davrods |
+| `nfs` | An accessible NFS export |
 
 #### iRODS FUSE Client
 | Field | Description | Example |
 | --- | --- | --- |
-| client (or driver) | Client type | "irodsfuse" |
-| user | iRODS user id | "irods_user" |
-| password | iRODS user password | "password" in plane text |
+| client | Client type | "irodsfuse" |
+| authenticationScheme | iRODS authentication scheme | "native" |
+| clientServerNegotiation | iRODS client-server negotiation setting | "request_server_negotiation" |
+| clientServerPolicy | iRODS client-server negotiation policy | "CS_NEG_REQUIRE" |
 | host | iRODS hostname | "data.cyverse.org" |
 | port | iRODS port | Optional, Default "1247" |
 | zone | iRODS zone | "iplant" |
-| path | iRODS path to mount, starts with **zone** in string | "/iplant/home/irods_user" |
+| user | iRODS user id | "irods_user" |
+| password | iRODS user password | supplied through `nodeStageSecretRef` |
+| clientZone | iRODS client zone for proxy authentication | "iplant" |
+| clientUser | iRODS client user id for proxy authentication | "irods_client_user" |
 
-Mounts **zone**/**path**
+| defaultResource | Default iRODS resource | "demoResc" |
+| encryptionAlgorithm | iRODS encryption algorithm | "AES-256-CBC" |
+| encryptionKeySize | iRODS encryption key size | "32" |
+| encryptionSaltSize | iRODS encryption salt size | "8" |
+| encryptionNumHashRounds | iRODS encryption hash rounds | "16" |
+| caCertificateFile | TLS CA certificate file | "/etc/ssl/certs/ca.pem" |
+| caCertificatePath | TLS CA certificate directory | "/etc/ssl/certs" |
+| verifyServer | TLS server verification setting | "cert" |
+| sslServerName | TLS server name | "data.cyverse.org" |
+| path | iRODS collection path to mount. Required unless `pathMappings` is supplied. | "/iplant/home/irods_user" |
+| pathMappings | JSON array of iRODS path mappings. Replaces `path` when supplied. | `[{"irods_path":"/iplant/home/user","mapping_path":"/","resource_type":"dir"}]` |
+| readAheadMax | Maximum read-ahead size | "1048576" |
+| uid | Host system UID | "1000" |
+| gid | Host system GID | "1000" |
+| systemUser | Host system user used by irodsfs | "root" |
+| metadataConnection | JSON iRODS metadata connection configuration | `{}` |
+| ioConnection | JSON iRODS I/O connection configuration | `{}` |
+| cache | JSON iRODSFS cache configuration | `{}` |
+| poolEndpoint | iRODSFS pool service endpoint | "tcp://irodsfs-pool.example.org:1247" |
+| debug | Enable irodsfs debug logging | "true" |
+| readOnly | Mount the volume read-only | "true" |
+| enforceProxyAccess | Require proxy authentication | "true" |
+| mountPathWhitelist | Comma-separated iRODS paths allowed to mount | "/iplant/home" |
+
+Use canonical lowerCamelCase field names exactly as shown. Other spellings are
+ignored.
 
 #### WebDAV Client
 | Field | Description | Example |
 | --- | --- | --- |
-| client (or driver) | Client type | "webdav" |
-| user | iRODS user id | "irods_user" or leave empty for anonymous access |
-| password | iRODS user password | "password" in plane text or leave empty for anonymous access |
+| client | Client type | "webdav" |
+| user | WebDAV user name, or omit for anonymous access | "user" |
+| password | WebDAV password, or omit for anonymous access | supplied through `nodeStageSecretRef` |
 | url | URL | "https://data.cyverse.org/dav/iplant/home/irods_user" |
+| config | Additional DAVFS configuration as comma-separated key-value pairs | "key1=value1,key2=value2" |
+| readOnly | Mount the volume read-only | "true" |
 
 Mounts **url**
 
 #### NFS Client
 | Field | Description | Example |
 | --- | --- | --- |
-| client (or driver) | Driver type | "nfs" |
-| host | WebDAV hostname | "data.cyverse.org" |
-| port | WebDAV port | Optional |
-| path | iRODS path to mount | "/home/irods_user" |
+| client | Driver type | "nfs" |
+| host | NFS hostname | "nfs.example.org" |
+| port | NFS port | Optional, defaults to "2049" |
+| path | NFS export path | "/exports/data" |
+| readOnly | Mount the volume read-only | "true" |
 
 Mounts **host**:/**path**
 
 ### Kubernetes Secrets
 
-Optionally, Kubernetes Secrets can be used to pass sensitive informations such as username and password. iRODS host information also can be passed in this way.
-Kubernetes Secrets can be supplied via **nodeStageSecretRef**.
+Kubernetes Secrets can be used to pass credentials through
+`nodeStageSecretRef`. The mounted CSI driver secret provides global defaults,
+then `volumeAttributes` override the node-stage secret, and driver defaults
+have the highest priority. In other words:
+
+```text
+driver global secret > PV volumeAttributes > nodeStageSecretRef secret
+```
+
+Put a common iRODSFS `poolEndpoint` in the driver global secret to apply it to
+all iRODSFS static volumes. Put it in `volumeAttributes` when it must vary by
+PV and no global endpoint is configured.
+
+The `irodsfuse_proxyauth` example demonstrates proxy authentication using a
+driver global Secret for the proxy identity and PV `volumeAttributes` for the
+client user and iRODS path.
 
 ### Execute examples in following order
 

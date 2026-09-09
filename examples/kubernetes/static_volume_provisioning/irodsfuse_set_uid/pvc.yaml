@@ -6,6 +6,9 @@ spec:
   accessModes:
     - ReadWriteMany
   storageClassName: irods-sc # the name of Storage Class
+  selector:
+    matchLabels:
+      vol-name: my-pv # the name of the pv
   resources:
     requests:
-      storage: 5Gi # this is required but not meaningful
+      storage: 5Gi # this is required but not meaningful (must match to PV's storage capacity)

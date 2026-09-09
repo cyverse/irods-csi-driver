@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: irods-irodsfuse-pvc
+  name: my-pvc # the name of the pvc
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: irods-sc
+  storageClassName: irods-sc # the name of Storage Class
   resources:
     requests:
-      storage: 5Gi
+      storage: 5Gi # this is required but not meaningful

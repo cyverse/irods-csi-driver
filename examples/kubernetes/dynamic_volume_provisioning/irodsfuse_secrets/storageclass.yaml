@@ -1,14 +1,14 @@
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: irods-sc
+  name: irods-sc # the name of the SC
 provisioner: irods.csi.cyverse.org
 parameters:
-  client: "irodsfuse"
-  host: "data.cyverse.org"
-  port: "1247"
-  zone: "iplant"
-  volumeRootPath: "/iplant/home/iychoi"
+  client: "irodsfuse" # iRODS client
+  host: "data.cyverse.org"  # iRODS host 
+  port: "1247" # iRODS port
+  zone: "iplant" # iRODS zone name
+  volumeRootPath: "/iplant/home/iychoi" # iRODS path to create a sub-directory and mount
   csiProvisionerSecretName: "irods-irodsfuse-secret"
   csiProvisionerSecretNamespace: "default"
   csiNodeStageSecretName: "irods-irodsfuse-secret"
