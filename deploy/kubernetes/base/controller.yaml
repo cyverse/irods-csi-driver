@@ -15,7 +15,6 @@ spec:
         app: irods-csi-controller
     spec:
       serviceAccount: irods-csi-controller-sa
-      hostNetwork: true
       priorityClassName: system-cluster-critical
       tolerations:
         - key: CriticalAddonsOnly
@@ -25,9 +24,8 @@ spec:
           image: cyverse/irods-csi-driver:latest
           args :
             - --endpoint=$(CSI_ENDPOINT)
-            - --nodeid=$(NODE_ID)
+            - --mode=controller
             - --secretpath=$(SECRET_VOLUME_PATH)
-            - --irodsfsd-endpoint=$(IRODSFSD_ENDPOINT)
             - --prometheus_exporter_port=14021
             - --logtostderr
             - --v=5
@@ -36,12 +34,6 @@ spec:
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
-            - name: IRODSFSD_ENDPOINT
-              value: tcp://127.0.0.1:13020
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
           volumeMounts:
             - name: plugin-dir
               mountPath: /var/lib/csi/sockets/pluginproxy

@@ -19,6 +19,7 @@ const irodsfsdOperationTimeout = time.Minute
 // Driver object contains configuration parameters, grpc server and mounter
 type Driver struct {
 	config *commons.Config
+	mode   commons.DriverMode
 
 	server         *grpc.Server
 	irodsfsdClient *irodsfsd_client.MountServiceClient
@@ -28,28 +29,30 @@ type Driver struct {
 
 // NewDriver returns new driver
 func NewDriver(conf *commons.Config) (*Driver, error) {
-	irodsfsdEndpoint := conf.GetIRODSFSDServiceEndpoint()
-	irodsfsdClient := irodsfsd_client.NewMountServiceClient(
-		irodsfsdEndpoint,
-		irodsfsdOperationTimeout,
-		true,
-		nil,
-	)
-	if err := irodsfsdClient.Connect(); err != nil {
-		return nil, fmt.Errorf("connect to irodsfsd at %q: %w", irodsfsdEndpoint, err)
-	}
-	readyContext, cancel := context.WithTimeout(context.Background(), irodsfsdOperationTimeout)
-	defer cancel()
-	if err := irodsfsdClient.Ready(readyContext); err != nil {
-		irodsfsdClient.Disconnect()
-		return nil, fmt.Errorf("verify irodsfsd at %q: %w", irodsfsdEndpoint, err)
-	}
-
 	driver := &Driver{
-		config:         conf,
-		irodsfsdClient: irodsfsdClient,
-		mounter:        NewNodeMounter(),
-		secrets:        make(map[string]string),
+		config:  conf,
+		mode:    conf.GetDriverMode(),
+		mounter: NewNodeMounter(),
+		secrets: make(map[string]string),
+	}
+	if driver.mode == commons.NodeDriverMode {
+		irodsfsdEndpoint := conf.GetIRODSFSDServiceEndpoint()
+		irodsfsdClient := irodsfsd_client.NewMountServiceClient(
+			irodsfsdEndpoint,
+			irodsfsdOperationTimeout,
+			true,
+			nil,
+		)
+		if err := irodsfsdClient.Connect(); err != nil {
+			return nil, fmt.Errorf("connect to irodsfsd at %q: %w", irodsfsdEndpoint, err)
+		}
+		readyContext, cancel := context.WithTimeout(context.Background(), irodsfsdOperationTimeout)
+		defer cancel()
+		if err := irodsfsdClient.Ready(readyContext); err != nil {
+			irodsfsdClient.Disconnect()
+			return nil, fmt.Errorf("verify irodsfsd at %q: %w", irodsfsdEndpoint, err)
+		}
+		driver.irodsfsdClient = irodsfsdClient
 	}
 
 	// update secrets
@@ -93,8 +96,11 @@ func (driver *Driver) Run() error {
 	driver.server = grpc.NewServer(opts...)
 
 	csi.RegisterIdentityServer(driver.server, driver)
-	csi.RegisterControllerServer(driver.server, driver)
-	csi.RegisterNodeServer(driver.server, driver)
+	if driver.mode == commons.ControllerDriverMode {
+		csi.RegisterControllerServer(driver.server, driver)
+	} else {
+		csi.RegisterNodeServer(driver.server, driver)
+	}
 
 	klog.V(3).Infof("Listening for connections on address %q", addr)
 	return driver.server.Serve(listener)

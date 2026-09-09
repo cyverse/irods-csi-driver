@@ -19,6 +19,7 @@ func main() {
 
 	// Parse parameters
 	flag.StringVar(&conf.ServiceEndpoint, "endpoint", "", "CSI endpoint")
+	flag.StringVar((*string)(&conf.DriverMode), "mode", "", "CSI driver mode: controller or node")
 	flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
 	flag.StringVar(&conf.SecretPath, "secretpath", "/etc/irods-csi-dirver", "Secret mount path")
 	flag.StringVar(&conf.IRODSFSDServiceEndpoint, "irodsfsd-endpoint", "tcp://127.0.0.1:13020", "iRODS FSD service endpoint")

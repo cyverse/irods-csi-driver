@@ -174,3 +174,14 @@ func TestValidateVolumeCapabilitiesRejectsInvalidConfiguration(t *testing.T) {
 		t.Fatalf("ValidateVolumeCapabilities() error = %v, want InvalidArgument", err)
 	}
 }
+
+func TestNewControllerDriverDoesNotCreateIRODSFSDClient(t *testing.T) {
+	driver, err := NewDriver(&commons.Config{DriverMode: commons.ControllerDriverMode})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer driver.Stop()
+	if driver.irodsfsdClient != nil {
+		t.Fatal("controller driver created an irodsfsd client")
+	}
+}

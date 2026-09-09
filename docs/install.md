@@ -46,14 +46,12 @@ By default, `iRODS CSI Driver` will create:
 
 ### irodsfsd Endpoint
 
-Install and start `irodsfsd` as a host service on every node that can run a
-CSI node or controller pod. The default endpoint is `tcp://127.0.0.1:13020`.
-To use a different endpoint, configure both plugin values:
+Install and start `irodsfsd` as a host service on every node that runs the CSI
+node pod. The controller does not connect to `irodsfsd`. The default endpoint
+is `tcp://127.0.0.1:13020`. To use a different endpoint, configure the node
+plugin value:
 
 ```yaml
-controllerService:
-  irodsPlugin:
-    irodsfsdEndpoint: tcp://127.0.0.1:13020
 nodeService:
   irodsPlugin:
     irodsfsdEndpoint: tcp://127.0.0.1:13020

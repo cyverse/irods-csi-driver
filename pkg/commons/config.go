@@ -9,11 +9,24 @@ import (
 
 // Config holds the parameters list which can be configured
 type Config struct {
-	ServiceEndpoint         string // CSI Service endpoint
-	NodeID                  string // node ID
-	SecretPath              string // Secret mount path
-	IRODSFSDServiceEndpoint string // iRODS FSD Service endpoint
-	PrometheusExporterPort  int    // Prometheus Exporter Service port
+	ServiceEndpoint         string     // CSI Service endpoint
+	DriverMode              DriverMode // CSI driver mode
+	NodeID                  string     // node ID
+	SecretPath              string     // Secret mount path
+	IRODSFSDServiceEndpoint string     // iRODS FSD Service endpoint
+	PrometheusExporterPort  int        // Prometheus Exporter Service port
+}
+
+// DriverMode determines which CSI service is exposed by this process.
+type DriverMode string
+
+const (
+	ControllerDriverMode DriverMode = "controller"
+	NodeDriverMode       DriverMode = "node"
+)
+
+func (config *Config) GetDriverMode() DriverMode {
+	return config.DriverMode
 }
 
 func (config *Config) GetServiceEndpoint() string {
@@ -100,7 +113,12 @@ func (config *Config) Validate() error {
 		return err
 	}
 
-	if len(config.NodeID) == 0 {
+	mode := config.GetDriverMode()
+	if mode != ControllerDriverMode && mode != NodeDriverMode {
+		return errors.Errorf("driver mode must be %q or %q", ControllerDriverMode, NodeDriverMode)
+	}
+
+	if mode == NodeDriverMode && len(config.NodeID) == 0 {
 		return errors.Errorf("node ID must be given")
 	}
 
@@ -110,9 +128,11 @@ func (config *Config) Validate() error {
 		}
 	}
 
-	_, _, err = ParseServiceEndpoint(config.GetIRODSFSDServiceEndpoint())
-	if err != nil {
-		return err
+	if mode == NodeDriverMode {
+		_, _, err = ParseServiceEndpoint(config.GetIRODSFSDServiceEndpoint())
+		if err != nil {
+			return err
+		}
 	}
 
 	if config.PrometheusExporterPort < 0 || config.PrometheusExporterPort > 65535 {

@@ -44,16 +44,13 @@ func (driver *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoR
 
 // GetPluginCapabilities returns plugin capabilities
 func (driver *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
-	resp := &csi.GetPluginCapabilitiesResponse{
-		Capabilities: []*csi.PluginCapability{
-			{
-				Type: &csi.PluginCapability_Service_{
-					Service: &csi.PluginCapability_Service{
-						Type: csi.PluginCapability_Service_CONTROLLER_SERVICE,
-					},
-				},
+	resp := &csi.GetPluginCapabilitiesResponse{}
+	if driver.mode == commons.ControllerDriverMode {
+		resp.Capabilities = []*csi.PluginCapability{{
+			Type: &csi.PluginCapability_Service_{
+				Service: &csi.PluginCapability_Service{Type: csi.PluginCapability_Service_CONTROLLER_SERVICE},
 			},
-		},
+		}}
 	}
 
 	return resp, nil
@@ -61,8 +58,8 @@ func (driver *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPlu
 
 // Probe returns probe response
 func (driver *Driver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
-	ready := false
-	if driver.irodsfsdClient != nil {
+	ready := driver.mode == commons.ControllerDriverMode
+	if driver.mode == commons.NodeDriverMode && driver.irodsfsdClient != nil {
 		probeContext, cancel := context.WithTimeout(ctx, irodsfsdProbeTimeout)
 		defer cancel()
 

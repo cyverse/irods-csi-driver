@@ -20,8 +20,6 @@ controllerService:
       - --logtostderr
       - --v=5
 
-    irodsfsdEndpoint: tcp://127.0.0.1:13020
-
     securityContext:
       privileged: true
       capabilities:

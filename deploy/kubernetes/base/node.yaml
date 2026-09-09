@@ -26,6 +26,7 @@ spec:
           image: cyverse/irods-csi-driver:latest
           args:
             - --endpoint=$(CSI_ENDPOINT)
+            - --mode=node
             - --nodeid=$(NODE_ID)
             - --secretpath=$(SECRET_VOLUME_PATH)
             - --irodsfsd-endpoint=$(IRODSFSD_ENDPOINT)
