@@ -183,9 +183,3 @@ Redistribution and use in source and binary forms, with or without modification,
 
 
 Please check [LICENSE](https://github.com/cyverse/irods-csi-driver/tree/master/LICENSE) file.
-
-#### Code Parts Under Different Licenses
-
-The driver contains open-source code parts under Apache License v2.0.
-The code files containing the open-source code parts have the Apache license header in front and which parts are from which code.
-Please check [LICENSE.APL2](https://github.com/cyverse/irods-csi-driver/tree/master/LICENSE.APL2) file for the details of Apache License v2.0.
