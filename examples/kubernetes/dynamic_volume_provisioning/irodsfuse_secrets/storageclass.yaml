@@ -8,8 +8,8 @@ parameters:
   host: "data.cyverse.org"  # iRODS host 
   port: "1247" # iRODS port
   zone: "iplant" # iRODS zone name
-  volumeRootPath: "/iplant/home/iychoi" # iRODS path to create a sub-directory and mount
-  csiProvisionerSecretName: "irods-irodsfuse-secret"
-  csiProvisionerSecretNamespace: "default"
-  csiNodeStageSecretName: "irods-irodsfuse-secret"
-  csiNodeStageSecretNamespace: "default"
+  volumeRootPath: "/iplant/home/my_username" # iRODS path to create a sub-directory and mount
+  csi.storage.k8s.io/provisioner-secret-name: "my-secret"
+  csi.storage.k8s.io/provisioner-secret-namespace: "default"
+  csi.storage.k8s.io/node-stage-secret-name: "my-secret"
+  csi.storage.k8s.io/node-stage-secret-namespace: "default"

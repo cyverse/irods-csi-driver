@@ -11,7 +11,9 @@ mount one of these volumes.
 ## iRODS Configuration
 
 The `volumeAttributes` in `pv.yaml` contain non-sensitive connection settings.
-Use `nodeStageSecretRef` for credentials rather than writing them in a PV.
+The `irodsfuse_secrets` example demonstrates passing credentials with
+`nodeStageSecretRef`; the basic examples retain inline placeholder credentials
+only for minimal manual testing.
 
 ### iRODS Client Configuration
 
@@ -38,7 +40,6 @@ filesystem-specific mount on the host.
 | password | iRODS user password | supplied through `nodeStageSecretRef` |
 | clientZone | iRODS client zone for proxy authentication | "iplant" |
 | clientUser | iRODS client user id for proxy authentication | "irods_client_user" |
-
 | defaultResource | Default iRODS resource | "demoResc" |
 | encryptionAlgorithm | iRODS encryption algorithm | "AES-256-CBC" |
 | encryptionKeySize | iRODS encryption key size | "32" |

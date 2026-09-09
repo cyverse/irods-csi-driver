@@ -10,4 +10,4 @@ parameters:
   zone: "iplant" # iRODS zone name
   user: "my_username" # iRODS username
   password: "my_password" # iRODS password
-  volumeRootPath: "/iplant/home/iychoi"
+  volumeRootPath: "/iplant/home/my_username" # iRODS path to create a sub-directory and mount
