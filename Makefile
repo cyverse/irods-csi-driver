@@ -5,7 +5,7 @@ CSI_DRIVER_TEST_IMAGE?=cyverse/irods-csi-driver-test
 CSI_DRIVER_TEST_DOCKERFILE=deploy/image/irods_csi_driver_test_image.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
-VERSION=v0.11.4
+VERSION=v0.12.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/commons.driverVersion=${VERSION} -X ${PKG}/pkg/commons.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/commons.buildDate=${BUILD_DATE}"
