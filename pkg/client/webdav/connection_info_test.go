@@ -41,11 +41,11 @@ func TestMakeMountConfigForAnonymousUserOmitsCredentials(t *testing.T) {
 
 func TestGetConnectionInfoParsesReadOnlyAndDAVFSConfig(t *testing.T) {
 	connectionInfo, err := GetConnectionInfo(map[string]string{
-		"url":       "https://webdav.example.org/data",
-		"user":      "user",
-		"password":  "password",
-		"read_only": "true",
-		"config":    "use_locks=0,token=a=b",
+		"url":      "https://webdav.example.org/data",
+		"user":     "user",
+		"password": "password",
+		"readOnly": "true",
+		"config":   "use_locks=0,token=a=b",
 	})
 	if err != nil {
 		t.Fatalf("GetConnectionInfo() error = %v", err)
@@ -62,7 +62,7 @@ func TestGetConnectionInfoRejectsInvalidInput(t *testing.T) {
 	testCases := []map[string]string{
 		{"url": "relative/path"},
 		{"url": "ftp://webdav.example.org/data"},
-		{"url": "https://webdav.example.org/data", "read_only": "invalid"},
+		{"url": "https://webdav.example.org/data", "readOnly": "invalid"},
 		{"url": "https://webdav.example.org/data", "config": "missing-value"},
 		{"url": "https://webdav.example.org/data", "config": "bad key=value"},
 	}

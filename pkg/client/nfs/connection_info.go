@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	common "github.com/cyverse/irods-csi-driver/pkg/commons"
 	irodsfsd_client "github.com/cyverse/irodsfsd/client"
 	"github.com/cyverse/irodsfsd/service/api"
 	"google.golang.org/grpc/codes"
@@ -46,18 +45,18 @@ func hasReadOnlyOption(mountOptions []string) bool {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *NFSConnectionInfo) error {
 	for k, v := range params {
-		switch common.NormalizeConfigKey(k) {
-		case common.NormalizeConfigKey("host"), common.NormalizeConfigKey("hostname"):
+		switch k {
+		case "host":
 			connInfo.Hostname = v
-		case common.NormalizeConfigKey("port"):
+		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %v", k, err)
 			}
 			connInfo.Port = p
-		case common.NormalizeConfigKey("path"):
+		case "path":
 			connInfo.Path = v
-		case common.NormalizeConfigKey("read_only"):
+		case "readOnly":
 			readOnly, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "argument %q must be a boolean: %v", k, err)

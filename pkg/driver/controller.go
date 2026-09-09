@@ -26,6 +26,7 @@ import (
 	"context"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/cyverse/irods-csi-driver/pkg/client"
 	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
 	"github.com/cyverse/irods-csi-driver/pkg/commons"
 	"google.golang.org/grpc/codes"
@@ -38,6 +39,9 @@ var (
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
 )
+
+// Dynamic Provisioning: CreateVolume → ControllerPublishVolume (Attach) → NodeStageVolume → NodePublishVolume
+// Static Provisioning: ControllerPublishVolume (Attach) → NodeStageVolume → NodePublishVolume
 
 // CreateVolume handles persistent volume creation event
 func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -93,7 +97,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	}
 
 	// set path
-	configs[commons.NormalizeConfigKey("path")] = controllerConfig.volumePath
+	configs["path"] = controllerConfig.volumePath
 
 	// get iRODS connection info
 	irodsConnectionInfo, err := irods.GetConnectionInfo(configs)
@@ -125,7 +129,7 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	for k, v := range req.GetParameters() {
 		volContext[k] = v
 	}
-	volContext[commons.NormalizeConfigKey("path")] = controllerConfig.volumePath
+	volContext["path"] = controllerConfig.volumePath
 
 	// tell this volume is created via dynamic volume provisioning
 	setDynamicVolumeProvisioningMode(volContext)
@@ -225,18 +229,44 @@ func (driver *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.V
 
 	confirmed := isValidVolumeCapabilities(volCaps)
 	if confirmed {
+		if err := driver.validateVolumeConfig(req); err != nil {
+			return nil, err
+		}
+
 		return &csi.ValidateVolumeCapabilitiesResponse{
 			Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
-				// TODO if volume context is provided, should validate it too
-				// VolumeContext:      req.GetVolumeContext(),
+				VolumeContext:      req.GetVolumeContext(),
 				VolumeCapabilities: volCaps,
-				// TODO if parameters are provided, should validate them too
-				// Parameters:      req.GetParameters(),
+				Parameters:         req.GetParameters(),
 			},
 		}, nil
 	}
 
 	return &csi.ValidateVolumeCapabilitiesResponse{}, nil
+}
+
+// validateVolumeConfig validates the supplied mount configuration. This
+// driver deliberately has no controller-side volume state, so it cannot
+// compare VolumeContext with a previously stored value.
+func (driver *Driver) validateVolumeConfig(req *csi.ValidateVolumeCapabilitiesRequest) error {
+	if len(req.GetVolumeContext()) == 0 && len(req.GetParameters()) == 0 && len(req.GetSecrets()) == 0 {
+		return nil
+	}
+
+	params := make(map[string]string, len(req.GetParameters())+len(req.GetVolumeContext()))
+	for key, value := range req.GetParameters() {
+		params[key] = value
+	}
+	// VolumeContext represents the existing volume and therefore takes
+	// precedence over the original CreateVolume parameters.
+	for key, value := range req.GetVolumeContext() {
+		params[key] = value
+	}
+	configs := commons.MergeConfig(driver.config, driver.secrets, req.GetSecrets(), params)
+	if err := client.ValidateConfig(configs); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateSnapshot creates a snapshot of a volume

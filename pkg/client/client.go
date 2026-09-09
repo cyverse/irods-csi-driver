@@ -12,6 +12,27 @@ import (
 	irodsfsd_client "github.com/cyverse/irodsfsd/client"
 )
 
+// ValidateConfig verifies that configs can be used by the selected filesystem
+// client without creating a mount.
+func ValidateConfig(configs map[string]string) error {
+	clientType, err := commons.ParseClientType(configs)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	switch clientType {
+	case commons.IrodsFuseClientType:
+		_, err = irods.GetConnectionInfo(configs)
+	case commons.WebdavClientType:
+		_, err = webdav.GetConnectionInfo(configs)
+	case commons.NfsClientType:
+		_, err = nfs.GetConnectionInfo(configs)
+	default:
+		return status.Errorf(codes.InvalidArgument, "unsupported client type %q", clientType)
+	}
+	return err
+}
+
 // MountClient mounts the selected filesystem client. The caller owns target
 // directory cleanup; this function owns only the mount lifecycle.
 func MountClient(irodsfsdClient *irodsfsd_client.MountServiceClient, volID string, configs map[string]string, mountOptions []string, targetPath string) error {

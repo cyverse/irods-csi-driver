@@ -9,7 +9,6 @@ parameters:
   port: "1247"
   zone: "iplant"
   volumeRootPath: "/iplant/home/iychoi"
-  retainData: "false"
   csiProvisionerSecretName: "irods-irodsfuse-secret"
   csiProvisionerSecretNamespace: "default"
   csiNodeStageSecretName: "irods-irodsfuse-secret"

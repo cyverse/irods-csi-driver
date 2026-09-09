@@ -4,9 +4,9 @@ import "testing"
 
 func TestGetConnectionInfo(t *testing.T) {
 	connectionInfo, err := GetConnectionInfo(map[string]string{
-		"host":      "nfs.example.org",
-		"path":      "/exports/data",
-		"read_only": "true",
+		"host":     "nfs.example.org",
+		"path":     "/exports/data",
+		"readOnly": "true",
 	})
 	if err != nil {
 		t.Fatalf("GetConnectionInfo() error = %v", err)
@@ -25,7 +25,7 @@ func TestGetConnectionInfoRejectsInvalidInput(t *testing.T) {
 		{"host": "nfs.example.org", "path": "exports/data"},
 		{"host": "nfs.example.org", "path": "/exports/data", "port": "-1"},
 		{"host": "nfs.example.org", "path": "/exports/data", "port": "65536"},
-		{"host": "nfs.example.org", "path": "/exports/data", "read_only": "invalid"},
+		{"host": "nfs.example.org", "path": "/exports/data", "readOnly": "invalid"},
 	}
 	for _, configs := range testCases {
 		if _, err := GetConnectionInfo(configs); err == nil {

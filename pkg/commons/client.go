@@ -22,7 +22,7 @@ const (
 // ParseClientType returns the requested client type. Omitting client preserves
 // the existing iRODS FUSE default for backwards compatibility.
 func ParseClientType(params map[string]string) (ClientType, error) {
-	client := strings.ToLower(strings.TrimSpace(params[NormalizeConfigKey("client")]))
+	client := strings.ToLower(strings.TrimSpace(params["client"]))
 	if client == "" {
 		return IrodsFuseClientType, nil
 	}

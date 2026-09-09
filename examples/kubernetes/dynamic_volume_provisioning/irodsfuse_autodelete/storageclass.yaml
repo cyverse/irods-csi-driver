@@ -11,4 +11,3 @@ parameters:
   user: "iychoi"
   password: "yourpassword"
   volumeRootPath: "/iplant/home/iychoi"
-  retainData: "false"

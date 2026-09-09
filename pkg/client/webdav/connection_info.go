@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	common "github.com/cyverse/irods-csi-driver/pkg/commons"
 	irodsfsd_client "github.com/cyverse/irodsfsd/client"
 	"github.com/cyverse/irodsfsd/service/api"
 	"google.golang.org/grpc/codes"
@@ -72,20 +71,20 @@ func hasReadOnlyOption(mountOptions []string) bool {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *WebDAVConnectionInfo) error {
 	for k, v := range params {
-		switch common.NormalizeConfigKey(k) {
-		case common.NormalizeConfigKey("user"), common.NormalizeConfigKey("username"):
+		switch k {
+		case "user":
 			connInfo.User = v
-		case common.NormalizeConfigKey("password"), common.NormalizeConfigKey("user_password"):
+		case "password":
 			connInfo.Password = v
-		case common.NormalizeConfigKey("url"):
+		case "url":
 			connInfo.URL = v
-		case common.NormalizeConfigKey("read_only"):
+		case "readOnly":
 			readOnly, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "argument %q must be a boolean: %v", k, err)
 			}
 			connInfo.ReadOnly = readOnly
-		case common.NormalizeConfigKey("config"):
+		case "config":
 			config, err := parseDAVFSConfig(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "argument %q is invalid: %v", k, err)

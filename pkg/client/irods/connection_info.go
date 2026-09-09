@@ -274,68 +274,68 @@ func makeCacheConfig(config irodsclient_fs.CacheConfig) *api.CacheConfig {
 
 func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnectionInfo) error {
 	for k, v := range params {
-		switch commons.NormalizeConfigKey(k) {
-		case commons.NormalizeConfigKey("irods_authentication_scheme"), commons.NormalizeConfigKey("authentication_scheme"), commons.NormalizeConfigKey("auth_scheme"):
+		switch k {
+		case "authenticationScheme":
 			connInfo.AuthenticationScheme = v
-		case commons.NormalizeConfigKey("irods_client_server_negotiation"), commons.NormalizeConfigKey("client_server_negotiation"):
+		case "clientServerNegotiation":
 			connInfo.ClientServerNegotiation = v
-		case commons.NormalizeConfigKey("irods_client_server_policy"), commons.NormalizeConfigKey("client_server_negotiation_policy"), commons.NormalizeConfigKey("cs_negotiation_policy"):
+		case "clientServerPolicy":
 			connInfo.ClientServerPolicy = v
-		case commons.NormalizeConfigKey("irods_host"), commons.NormalizeConfigKey("hostname"), commons.NormalizeConfigKey("host"):
+		case "host":
 			connInfo.Host = v
-		case commons.NormalizeConfigKey("irods_port"), commons.NormalizeConfigKey("port"):
+		case "port":
 			p, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid port number - %v", k, err)
 			}
 			connInfo.Port = p
-		case commons.NormalizeConfigKey("irods_zone_name"), commons.NormalizeConfigKey("zone_name"), commons.NormalizeConfigKey("zone"):
+		case "zone":
 			connInfo.ZoneName = v
-		case commons.NormalizeConfigKey("irods_client_zone_name"), commons.NormalizeConfigKey("client_zone_name"), commons.NormalizeConfigKey("client_zone"):
+		case "clientZone":
 			connInfo.ClientZoneName = v
-		case commons.NormalizeConfigKey("irods_user_name"), commons.NormalizeConfigKey("user"), commons.NormalizeConfigKey("user_name"):
+		case "user":
 			connInfo.Username = v
-		case commons.NormalizeConfigKey("irods_client_user_name"), commons.NormalizeConfigKey("client_user"), commons.NormalizeConfigKey("client_user_name"):
+		case "clientUser":
 			connInfo.ClientUsername = v
-		case commons.NormalizeConfigKey("irods_default_resource"), commons.NormalizeConfigKey("default_resource"), commons.NormalizeConfigKey("resource"):
+		case "defaultResource":
 			connInfo.DefaultResource = v
-		case commons.NormalizeConfigKey("irods_encryption_algorithm"), commons.NormalizeConfigKey("encryption_algorithm"):
+		case "encryptionAlgorithm":
 			connInfo.EncryptionAlgorithm = v
-		case commons.NormalizeConfigKey("irods_encryption_key_size"), commons.NormalizeConfigKey("encryption_key_size"):
+		case "encryptionKeySize":
 			s, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
 			}
 			connInfo.EncryptionKeySize = s
-		case commons.NormalizeConfigKey("irods_encryption_salt_size"), commons.NormalizeConfigKey("encryption_salt_size"):
+		case "encryptionSaltSize":
 			s, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
 			}
 			connInfo.EncryptionSaltSize = s
-		case commons.NormalizeConfigKey("irods_encryption_num_hash_rounds"), commons.NormalizeConfigKey("encryption_num_hash_rounds"), commons.NormalizeConfigKey("hash_rounds"):
+		case "encryptionNumHashRounds":
 			s, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
 			}
 			connInfo.EncryptionNumHashRounds = s
-		case commons.NormalizeConfigKey("irods_ssl_ca_certificate_file"), commons.NormalizeConfigKey("ca_certificate_file"):
+		case "caCertificateFile":
 			connInfo.SSLCACertificateFile = v
-		case commons.NormalizeConfigKey("irods_ssl_ca_certificate_path"), commons.NormalizeConfigKey("ca_certificate_path"):
+		case "caCertificatePath":
 			connInfo.SSLCACertificatePath = v
-		case commons.NormalizeConfigKey("irods_ssl_verify_server"), commons.NormalizeConfigKey("verify_server"):
+		case "verifyServer":
 			connInfo.SSLVerifyServer = v
-		case commons.NormalizeConfigKey("irods_user_password"), commons.NormalizeConfigKey("user_password"), commons.NormalizeConfigKey("password"):
+		case "password":
 			connInfo.Password = v
-		case commons.NormalizeConfigKey("irods_ssl_server_name"), commons.NormalizeConfigKey("ssl_server_name"):
+		case "sslServerName":
 			connInfo.SSLServerName = v
-		case commons.NormalizeConfigKey("path_mappings"), commons.NormalizeConfigKey("path_mapping_json"):
+		case "pathMappings":
 			connInfo.PathMappings = []irodsfs_common_vpath.VPathMapping{}
 			err := json.Unmarshal([]byte(v), &connInfo.PathMappings)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %v", k, err)
 			}
-		case commons.NormalizeConfigKey("path"):
+		case "path":
 			if !filepath.IsAbs(v) {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be an absolute path", k)
 			}
@@ -348,53 +348,53 @@ func getConnectionInfoFromMap(params map[string]string, connInfo *IRODSFSConnect
 					ResourceType: "dir",
 				},
 			}
-		case commons.NormalizeConfigKey("read_ahead_max"):
+		case "readAheadMax":
 			ram, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid number - %v", k, err)
 			}
 			connInfo.ReadAheadMax = ram
-		case commons.NormalizeConfigKey("uid"), commons.NormalizeConfigKey("user_id"):
+		case "uid":
 			u, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid uid number - %v", k, err)
 			}
 			connInfo.UID = u
-		case commons.NormalizeConfigKey("gid"), commons.NormalizeConfigKey("group_id"):
+		case "gid":
 			g, err := strconv.Atoi(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid gid number - %v", k, err)
 			}
 			connInfo.GID = g
-		case commons.NormalizeConfigKey("system_user"):
+		case "systemUser":
 			connInfo.SystemUser = v
-		case commons.NormalizeConfigKey("metadata_connection"), commons.NormalizeConfigKey("metadata_connection_json"):
+		case "metadataConnection":
 			connInfo.MetadataConnection = irodsclient_fs.NewDefaultMetadataConnectionConfig()
 			err := json.Unmarshal([]byte(v), &connInfo.MetadataConnection)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %v", k, err)
 			}
-		case commons.NormalizeConfigKey("io_connection"), commons.NormalizeConfigKey("io_connection_json"):
+		case "ioConnection":
 			connInfo.IOConnection = irodsclient_fs.NewDefaultIOConnectionConfig()
 			err := json.Unmarshal([]byte(v), &connInfo.IOConnection)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %v", k, err)
 			}
-		case commons.NormalizeConfigKey("cache"), commons.NormalizeConfigKey("cache_json"):
+		case "cache":
 			connInfo.Cache = irodsclient_fs.NewDefaultCacheConfig()
 			err := json.Unmarshal([]byte(v), &connInfo.Cache)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid json string - %v", k, err)
 			}
-		case commons.NormalizeConfigKey("pool_endpoint"):
+		case "poolEndpoint":
 			connInfo.PoolEndpoint = v
-		case commons.NormalizeConfigKey("debug"):
+		case "debug":
 			debug, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
 			}
 			connInfo.Debug = debug
-		case commons.NormalizeConfigKey("read_only"):
+		case "readOnly":
 			ro, err := strconv.ParseBool(v)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "Argument %q must be a valid boolean string - %v", k, err)
@@ -518,12 +518,12 @@ func isMountPathAllowed(whitelist []string, path string) bool {
 }
 
 func getConfigEnforceProxyAccess(configs map[string]string) bool {
-	enforce, err := strconv.ParseBool(configs[commons.NormalizeConfigKey("enforce_proxy_access")])
+	enforce, err := strconv.ParseBool(configs["enforceProxyAccess"])
 	return err == nil && enforce
 }
 
 func getConfigMountPathWhitelist(configs map[string]string) []string {
-	whitelist := configs[commons.NormalizeConfigKey("mount_path_whitelist")]
+	whitelist := configs["mountPathWhitelist"]
 	if whitelist == "" {
 		return []string{"/"}
 	}

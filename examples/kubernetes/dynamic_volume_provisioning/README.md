@@ -16,7 +16,7 @@ Following iRODS clients can be used for the dynamic volume provisioning.
 #### iRODS FUSE Client
 | Field | Description | Example |
 | --- | --- | --- |
-| client (or driver) | Client type | "irodsfuse". "irodsfuse" by default. |
+| client | Client type | "irodsfuse". "irodsfuse" by default. |
 | user | iRODS user id | "irods_user" |
 | password | iRODS user password | "password" in plane text |
 | clientUser | iRODS client user id (when using proxy auth) | "irods_client_user" or leave empty |
@@ -24,7 +24,6 @@ Following iRODS clients can be used for the dynamic volume provisioning.
 | port | iRODS port | Optional. "1247" by default. |
 | zone | iRODS zone | "iplant" |
 | volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. Path starts with **zone** in string | "/iplant/home/irods_user" |
-| retainData | "true" to not clear the volume after use. | "false". "false" by default. |
 | noVolumeDir | "true" to not create a subdirectory under `volumeRootPath`. It mounts the `volumeRootPath`. | "false". "false" by default. |
 | enforceProxyAccess | "true" to mandate passing `clientUser`, or giving different `user` as in global configuration. | "false". "false" by default. |
 

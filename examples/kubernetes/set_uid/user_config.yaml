@@ -5,7 +5,6 @@ globalConfig:
       host: "data.cyverse.org"
       port: "1247"
       zone: "iplant"
-      retainData: "false"
       mountPathWhitelist: "/iplant/home"
 
 # only for k0s

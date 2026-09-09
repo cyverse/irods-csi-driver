@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/cyverse/irods-csi-driver/pkg/commons"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -51,7 +50,7 @@ func isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
 
 func isDynamicVolumeProvisioningMode(volumeContext map[string]string) bool {
 	for key, value := range volumeContext {
-		if commons.NormalizeConfigKey(key) == commons.NormalizeConfigKey("provisioning_mode") {
+		if key == "provisioningMode" {
 			return strings.EqualFold(strings.TrimSpace(value), dynamicProvisioningMode)
 		}
 	}
@@ -60,7 +59,7 @@ func isDynamicVolumeProvisioningMode(volumeContext map[string]string) bool {
 }
 
 func setDynamicVolumeProvisioningMode(volumeContext map[string]string) {
-	volumeContext[commons.NormalizeConfigKey("provisioning_mode")] = dynamicProvisioningMode
+	volumeContext["provisioningMode"] = dynamicProvisioningMode
 }
 
 type controllerConfig struct {
@@ -76,13 +75,13 @@ func parseControllerConfig(volumeName string, params map[string]string) (*contro
 
 	config := &controllerConfig{createVolumeDirectory: true}
 	for key, value := range params {
-		switch commons.NormalizeConfigKey(key) {
-		case commons.NormalizeConfigKey("volume_root_path"):
+		switch key {
+		case "volumeRootPath":
 			if !path.IsAbs(value) {
 				return nil, status.Errorf(codes.InvalidArgument, "parameter %q must be an absolute path", key)
 			}
 			config.volumeRootPath = path.Clean(value)
-		case commons.NormalizeConfigKey("no_volume_dir"):
+		case "noVolumeDir":
 			noVolumeDirectory, err := strconv.ParseBool(value)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "parameter %q must be a boolean: %v", key, err)
@@ -92,7 +91,7 @@ func parseControllerConfig(volumeName string, params map[string]string) (*contro
 	}
 
 	if config.volumeRootPath == "" {
-		return nil, status.Error(codes.InvalidArgument, "parameter \"volume_root_path\" is required")
+		return nil, status.Error(codes.InvalidArgument, "parameter \"volumeRootPath\" is required")
 	}
 
 	if !config.createVolumeDirectory {

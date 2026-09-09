@@ -1,9 +1,11 @@
 package driver
 
 import (
+	"context"
 	"testing"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/cyverse/irods-csi-driver/pkg/commons"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -36,7 +38,7 @@ func TestParseControllerConfig(t *testing.T) {
 		{
 			name:                "creates volume directory below cleaned root",
 			volumeName:          "pvc-123",
-			params:              map[string]string{"volume_root_path": "/tempZone/home/alice/"},
+			params:              map[string]string{"volumeRootPath": "/tempZone/home/alice/"},
 			wantRoot:            "/tempZone/home/alice",
 			wantPath:            "/tempZone/home/alice/pvc-123",
 			wantCreateVolumeDir: true,
@@ -44,7 +46,7 @@ func TestParseControllerConfig(t *testing.T) {
 		{
 			name:                "uses root without creating a directory",
 			volumeName:          "pvc-123",
-			params:              map[string]string{"volume_root_path": "/tempZone/home/alice", "no_volume_dir": "true"},
+			params:              map[string]string{"volumeRootPath": "/tempZone/home/alice", "noVolumeDir": "true"},
 			wantRoot:            "/tempZone/home/alice",
 			wantPath:            "/tempZone/home/alice",
 			wantCreateVolumeDir: false,
@@ -52,19 +54,19 @@ func TestParseControllerConfig(t *testing.T) {
 		{
 			name:          "rejects relative root",
 			volumeName:    "pvc-123",
-			params:        map[string]string{"volume_root_path": "relative"},
+			params:        map[string]string{"volumeRootPath": "relative"},
 			wantErrorCode: codes.InvalidArgument,
 		},
 		{
 			name:          "rejects path traversal volume name",
 			volumeName:    "../other",
-			params:        map[string]string{"volume_root_path": "/tempZone/home/alice"},
+			params:        map[string]string{"volumeRootPath": "/tempZone/home/alice"},
 			wantErrorCode: codes.InvalidArgument,
 		},
 		{
 			name:          "rejects invalid no volume directory value",
 			volumeName:    "pvc-123",
-			params:        map[string]string{"volume_root_path": "/tempZone/home/alice", "no_volume_dir": "sometimes"},
+			params:        map[string]string{"volumeRootPath": "/tempZone/home/alice", "noVolumeDir": "sometimes"},
 			wantErrorCode: codes.InvalidArgument,
 		},
 	}
@@ -90,10 +92,10 @@ func TestParseControllerConfig(t *testing.T) {
 }
 
 func TestDynamicVolumeProvisioningMode(t *testing.T) {
-	if !isDynamicVolumeProvisioningMode(map[string]string{"provisioning_mode": " DYNAMIC "}) {
+	if !isDynamicVolumeProvisioningMode(map[string]string{"provisioningMode": " DYNAMIC "}) {
 		t.Fatal("dynamic provisioning mode was not recognized")
 	}
-	if isDynamicVolumeProvisioningMode(map[string]string{"provisioning_mode": "static"}) {
+	if isDynamicVolumeProvisioningMode(map[string]string{"provisioningMode": "static"}) {
 		t.Fatal("static provisioning mode was recognized as dynamic")
 	}
 }
@@ -127,5 +129,48 @@ func TestGetRequestedCapacity(t *testing.T) {
 				t.Fatalf("getRequestedCapacity() = %d, want %d", capacity, test.wantCapacity)
 			}
 		})
+	}
+}
+
+func TestValidateVolumeCapabilitiesValidatesAndConfirmsConfiguration(t *testing.T) {
+	driver := &Driver{
+		config:  &commons.Config{},
+		secrets: map[string]string{},
+	}
+	volumeContext := map[string]string{"path": "/volume"}
+	parameters := map[string]string{
+		"client": "nfs",
+		"host":   "nfs.example.org",
+		"path":   "/export",
+	}
+	response, err := driver.ValidateVolumeCapabilities(context.Background(), &csi.ValidateVolumeCapabilitiesRequest{
+		VolumeId:           "static-volume",
+		VolumeContext:      volumeContext,
+		Parameters:         parameters,
+		VolumeCapabilities: []*csi.VolumeCapability{{AccessMode: &csi.VolumeCapability_AccessMode{Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.GetConfirmed() == nil {
+		t.Fatal("ValidateVolumeCapabilities() did not confirm a valid configuration")
+	}
+	if response.GetConfirmed().GetVolumeContext()["path"] != "/volume" {
+		t.Fatalf("VolumeContext = %#v", response.GetConfirmed().GetVolumeContext())
+	}
+	if response.GetConfirmed().GetParameters()["path"] != "/export" {
+		t.Fatalf("Parameters = %#v", response.GetConfirmed().GetParameters())
+	}
+}
+
+func TestValidateVolumeCapabilitiesRejectsInvalidConfiguration(t *testing.T) {
+	driver := &Driver{config: &commons.Config{}, secrets: map[string]string{}}
+	_, err := driver.ValidateVolumeCapabilities(context.Background(), &csi.ValidateVolumeCapabilitiesRequest{
+		VolumeId:           "static-volume",
+		Parameters:         map[string]string{"client": "unsupported"},
+		VolumeCapabilities: []*csi.VolumeCapability{{AccessMode: &csi.VolumeCapability_AccessMode{Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER}}},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("ValidateVolumeCapabilities() error = %v, want InvalidArgument", err)
 	}
 }

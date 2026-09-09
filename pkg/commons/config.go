@@ -3,7 +3,6 @@ package commons
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/cockroachdb/errors"
 )
@@ -123,36 +122,25 @@ func (config *Config) Validate() error {
 	return nil
 }
 
-// NormalizeConfigKey normalizes config key
-func NormalizeConfigKey(key string) string {
-	key = strings.ToLower(key)
-
-	if key == "driver" {
-		return "client"
-	}
-
-	return strings.ReplaceAll(key, "_", "")
-}
-
 // MergeConfig merges configuration params
 func MergeConfig(driverConfig *Config, driverSecrets map[string]string, volSecrets map[string]string, volParams map[string]string) map[string]string {
 	configs := make(map[string]string)
 	for k, v := range volSecrets {
 		if len(v) > 0 {
-			configs[NormalizeConfigKey(k)] = v
+			configs[k] = v
 		}
 	}
 
 	for k, v := range volParams {
 		if len(v) > 0 {
-			configs[NormalizeConfigKey(k)] = v
+			configs[k] = v
 		}
 	}
 
 	// driver secrets have higher priority
 	for k, v := range driverSecrets {
 		if len(v) > 0 {
-			configs[NormalizeConfigKey(k)] = v
+			configs[k] = v
 		}
 	}
 
@@ -163,7 +151,7 @@ func MergeConfig(driverConfig *Config, driverSecrets map[string]string, volSecre
 func RedactConfig(config map[string]string) map[string]string {
 	newConfigs := make(map[string]string)
 	for k, v := range config {
-		if k == NormalizeConfigKey("password") || k == NormalizeConfigKey("irods_user_password") {
+		if k == "password" {
 			newConfigs[k] = "**REDACTED**"
 		} else {
 			newConfigs[k] = v
