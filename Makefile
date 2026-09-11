@@ -1,6 +1,4 @@
 PKG=github.com/cyverse/irods-csi-driver
-CSI_DRIVER_TEST_IMAGE?=cyverse/irods-csi-driver-test
-CSI_DRIVER_TEST_DOCKERFILE=deploy/image/irods_csi_driver_test_image.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
 VERSION=v0.12.0
@@ -24,33 +22,13 @@ irods-csi-driver:
 
 .PHONY: image
 image:
-	docker build --platform=$(PLATFORM) -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
-	docker build --platform=$(PLATFORM) -t $(CSI_DRIVER_TEST_IMAGE):latest -f $(CSI_DRIVER_TEST_DOCKERFILE) .
+	docker build --platform=$(PLATFORM) --build-arg VERSION=$(VERSION) -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
 
-.PHONY: image-clean
-image-clean: 
-	docker rmi -f $(CSI_DRIVER_IMAGE):latest $(CSI_DRIVER_IMAGE):$(VERSION) $(CSI_DRIVER_TEST_IMAGE):latest -f
-
-.PHONY: push
-push: image
-	docker push $(CSI_DRIVER_IMAGE):latest
-	docker push $(CSI_DRIVER_TEST_IMAGE):latest
-
-.PHONY: image-release
-image-release:
-	docker build --platform=$(PLATFORM) -t $(CSI_DRIVER_IMAGE):$(VERSION) -f $(CSI_DRIVER_DOCKERFILE) .
-
-.PHONY: push-multiarch
-push-multiarch:
-	docker buildx build --platform=$(PLATFORMS) --push -t $(CSI_DRIVER_IMAGE):latest -t $(CSI_DRIVER_IMAGE):$(VERSION) -f $(CSI_DRIVER_DOCKERFILE) .
-
-.PHONY: push-release
-push-release:
-	docker push $(CSI_DRIVER_IMAGE):$(VERSION)
+.PHONY: release
+release:
+	docker buildx build --platform=$(PLATFORMS) --push --build-arg VERSION=$(VERSION) -t $(CSI_DRIVER_IMAGE):$(VERSION) -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
+	helm lint helm && helm package helm
 
 .PHONY: helm
 helm:
 	helm lint helm && helm package helm
-
-.PHONY: all
-all: image image-release push push-release helm

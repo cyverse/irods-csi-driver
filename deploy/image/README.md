@@ -15,9 +15,16 @@ make image GOARCH=arm64
 Publish a multi-architecture image manifest with:
 
 ```shell
-make push-multiarch VERSION=v0.12.0
+make release VERSION=v0.12.0
 ```
 
 This requires a Docker Buildx builder with ARM emulation (QEMU) when the build
 host is not ARM64, as the Ubuntu runtime image installs its packages during the
 image build.
+
+Creating a GitHub Release automatically packages the Helm chart and attaches
+the `.tgz` file to that release. It also builds the AMD64 and ARM64 driver
+images. To publish those images to Docker Hub, configure the repository secrets
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`; without them, the workflow performs
+the multi-architecture build as a verification step only. The release tag must
+match `v` followed by the Helm chart version (for example, `v0.12.0`).

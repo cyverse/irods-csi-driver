@@ -9,6 +9,7 @@
 FROM --platform=$BUILDPLATFORM golang:1.26.8 AS builder
 ARG TARGETOS
 ARG TARGETARCH
+ARG VERSION=v0.12.0
 ARG SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver/"
 
 WORKDIR ${SRC_DIR}
@@ -16,7 +17,7 @@ ENV GOPROXY=direct
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} make irods-csi-driver
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} make irods-csi-driver VERSION=${VERSION}
 
 ##############################################
 # irods-csi-driver image
