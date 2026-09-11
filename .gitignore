@@ -21,6 +21,7 @@ go.work.sum
 
 # env file
 .env
+inventory.ini
 
 # IDEs and editors
 .vscode/
