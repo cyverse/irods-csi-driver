@@ -105,27 +105,6 @@ Be aware that the Master branch is not stable! Please use recently released vers
 - [irodsfs](https://github.com/cyverse/irodsfs)
 - [irodsfsd](https://github.com/cyverse/irodsfsd)
 
-`irodsfsd` runs as a non-root user while kubelet creates CSI staging paths as
-`root`. Grant the `irodsfsd` user access to the driver staging root and set a
-default ACL so newly created volume paths inherit it. Do not change kubelet
-ownership or make its directories world-writable:
-
-```shell
-sudo apt-get install -y acl
-sudo mkdir -p /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins/kubernetes.io
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins/kubernetes.io/csi
-sudo setfacl -R -m u:irodsfsd:rwx \
-  /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-sudo setfacl -m d:u:irodsfsd:rwx \
-  /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-```
-
-The test Ansible playbook `test/ansible/irodsfsd_install.yml` configures these
-ACLs automatically.
-
 Installation can be done using [Helm Chart Repository](https://cyverse.github.io/irods-csi-driver-helm/), [Helm Chart (manual)](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [Manual Deployment](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
 
 Install using Helm Chart Repository with default configuration:

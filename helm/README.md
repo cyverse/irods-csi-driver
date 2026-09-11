@@ -13,27 +13,6 @@ This chart enables easy installation of the iRODS CSI Driver using Helm.
 - [irodsfs](https://github.com/cyverse/irodsfs)
 - [irodsfsd](https://github.com/cyverse/irodsfsd)
 
-`irodsfsd` runs as a non-root user but kubelet creates CSI staging paths as
-`root`. Grant the service user access to the iRODS CSI staging root, including
-default ACLs for future volume directories. Do not change kubelet ownership or
-make its directories world-writable:
-
-```shell
-sudo apt-get install -y acl
-sudo mkdir -p /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins/kubernetes.io
-sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins/kubernetes.io/csi
-sudo setfacl -R -m u:irodsfsd:rwx \
-  /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-sudo setfacl -m d:u:irodsfsd:rwx \
-  /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-```
-
-For the supplied k3s test setup, `test/ansible/irodsfsd_install.yml` configures
-these ACLs automatically.
-
 ### Global iRODS FUSE Configuration
 
 Set global iRODS FUSE parameters under `globalConfig.secret.stringData` in a

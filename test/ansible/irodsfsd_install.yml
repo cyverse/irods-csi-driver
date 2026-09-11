@@ -15,17 +15,8 @@
           - curl
           - openssl
           - fuse
-          - acl
         state: present
         update_cache: true
-
-    - name: Allow non-root FUSE mounts to set allow_other
-      # irodsfsd's default config sets allow_fuse_allow_other, which requires
-      # this - irodsfsd runs as its own service user, not root.
-      ansible.builtin.lineinfile:
-        path: /etc/fuse.conf
-        regexp: '^#?\s*user_allow_other\s*$'
-        line: user_allow_other
 
     - name: Download irodsfs install script
       ansible.builtin.get_url:
@@ -71,48 +62,6 @@
           irodsfsd install script failed before installing the binary:
           {{ irodsfsd_install.stderr }}
       when: not irodsfsd_binary.stat.exists
-
-    # kubelet creates CSI staging directories as root. irodsfsd runs as its
-    # own service user, so grant that user access without changing kubelet's
-    # ownership or opening the directory to every local user.
-    - name: Create the iRODS CSI staging root
-      ansible.builtin.file:
-        path: /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Allow irodsfsd to traverse kubelet CSI parent directories
-      ansible.posix.acl:
-        path: "{{ item }}"
-        entity: irodsfsd
-        etype: user
-        permissions: "--x"
-        state: present
-      loop:
-        - /var/lib/kubelet
-        - /var/lib/kubelet/plugins
-        - /var/lib/kubelet/plugins/kubernetes.io
-        - /var/lib/kubelet/plugins/kubernetes.io/csi
-
-    - name: Grant irodsfsd access to existing CSI staging directories
-      ansible.posix.acl:
-        path: /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-        entity: irodsfsd
-        etype: user
-        permissions: rwx
-        state: present
-        recursive: true
-
-    - name: Grant irodsfsd access to future CSI staging directories
-      ansible.posix.acl:
-        path: /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
-        entity: irodsfsd
-        etype: user
-        permissions: rwx
-        default: true
-        state: present
 
     - name: Check whether irodsfsd is running
       ansible.builtin.command: systemctl is-active irodsfsd
