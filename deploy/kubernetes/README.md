@@ -13,6 +13,11 @@ node plugin keeps bidirectional mount propagation so mounts created by the
 host daemon are visible to kubelet and pods. Do not add an `irodsfsd` or
 `irods-pool` sidecar to this deployment.
 
+The manifests support Linux AMD64 and ARM64 nodes. Publish or configure an
+ARM64-compatible driver image before deploying to ARM nodes; the Kubernetes
+CSI sidecar images used here are multi-architecture. `irodsfsd` on each ARM64
+node must also be an ARM64-compatible build.
+
 ## Install the driver
 Install the stable driver:
 

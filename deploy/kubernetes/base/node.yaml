@@ -123,5 +123,4 @@ spec:
             secretName: irods-csi-driver-global-secret
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/arch: amd64
           

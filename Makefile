@@ -1,11 +1,13 @@
 PKG=github.com/cyverse/irods-csi-driver
-CSI_DRIVER_BUILD_IMAGE=irods_csi_driver_build
-CSI_DRIVER_BUILD_DOCKERFILE=deploy/image/irods_csi_driver_build.dockerfile
 CSI_DRIVER_TEST_IMAGE?=cyverse/irods-csi-driver-test
 CSI_DRIVER_TEST_DOCKERFILE=deploy/image/irods_csi_driver_test_image.dockerfile
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
 VERSION=v0.12.0
+GOOS?=linux
+GOARCH?=$(shell go env GOARCH)
+PLATFORM?=$(GOOS)/$(GOARCH)
+PLATFORMS?=linux/amd64,linux/arm64
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/commons.driverVersion=${VERSION} -X ${PKG}/pkg/commons.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/commons.buildDate=${BUILD_DATE}"
@@ -18,20 +20,16 @@ GOPATH=$(shell go env GOPATH)
 .PHONY: irods-csi-driver
 irods-csi-driver:
 	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/irods-csi-driver ./cmd/
-
-.PHONY: driver_build
-driver_build:
-	docker build -t $(CSI_DRIVER_BUILD_IMAGE):latest -f $(CSI_DRIVER_BUILD_DOCKERFILE) .
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags ${LDFLAGS} -o bin/irods-csi-driver ./cmd/
 
 .PHONY: image
-image: driver_build
-	docker build -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
-	docker build -t $(CSI_DRIVER_TEST_IMAGE):latest -f $(CSI_DRIVER_TEST_DOCKERFILE) .
+image:
+	docker build --platform=$(PLATFORM) -t $(CSI_DRIVER_IMAGE):latest -f $(CSI_DRIVER_DOCKERFILE) .
+	docker build --platform=$(PLATFORM) -t $(CSI_DRIVER_TEST_IMAGE):latest -f $(CSI_DRIVER_TEST_DOCKERFILE) .
 
 .PHONY: image-clean
 image-clean: 
-	docker rmi -f $(CSI_DRIVER_IMAGE):latest $(CSI_DRIVER_IMAGE):$(VERSION) $(CSI_DRIVER_BUILD_IMAGE):latest $(CSI_DRIVER_TEST_IMAGE):latest -f
+	docker rmi -f $(CSI_DRIVER_IMAGE):latest $(CSI_DRIVER_IMAGE):$(VERSION) $(CSI_DRIVER_TEST_IMAGE):latest -f
 
 .PHONY: push
 push: image
@@ -40,7 +38,11 @@ push: image
 
 .PHONY: image-release
 image-release:
-	docker build -t $(CSI_DRIVER_IMAGE):$(VERSION) -f $(CSI_DRIVER_DOCKERFILE) .
+	docker build --platform=$(PLATFORM) -t $(CSI_DRIVER_IMAGE):$(VERSION) -f $(CSI_DRIVER_DOCKERFILE) .
+
+.PHONY: push-multiarch
+push-multiarch:
+	docker buildx build --platform=$(PLATFORMS) --push -t $(CSI_DRIVER_IMAGE):latest -t $(CSI_DRIVER_IMAGE):$(VERSION) -f $(CSI_DRIVER_DOCKERFILE) .
 
 .PHONY: push-release
 push-release:
