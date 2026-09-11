@@ -55,7 +55,7 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 | metadataConnection | JSON iRODS metadata connection configuration | `{}` |
 | ioConnection | JSON iRODS I/O connection configuration | `{}` |
 | cache | JSON iRODSFS cache configuration | `{}` |
-| poolEndpoint | iRODSFS pool service endpoint | "tcp://irodsfs-pool.example.org:1247" |
+| poolEndpoint | iRODSFS pool service endpoint | "tcp://irodsfs-pool.example.org:12020" |
 | debug | Enable irodsfs debug logging | "true" |
 | readOnly | Mount the volume read-only | "true" |
 | volumeRootPath | iRODS path to mount. Creates a subdirectory per persistent volume. (only for dynamic volume provisioning) | "/iplant/home/irods_user" |
