@@ -89,7 +89,7 @@ identity. Apply its `secret.yaml` in the CSI driver's namespace (for the base
 deployment, `kube-system`) and restart the controller and node pods before
 creating its StorageClass.
 
-### Execute examples in following order
+### Execute examples in the following order
 
 Define Storage Class (SC):
 ```shell script

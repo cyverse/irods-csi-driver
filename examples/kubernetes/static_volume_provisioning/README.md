@@ -109,7 +109,7 @@ The `irodsfuse_proxyauth` example demonstrates proxy authentication using a
 driver global Secret for the proxy identity and PV `volumeAttributes` for the
 client user and iRODS path.
 
-### Execute examples in following order
+### Execute examples in the following order
 
 Define Storage Class (SC):
 ```shell script

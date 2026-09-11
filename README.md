@@ -12,13 +12,13 @@ iRODS CSI Driver relies on external iRODS clients for mounting iRODS collections
 | Driver Type | iRODS Client     | Volume Provisioning | Server Requirements             |
 |-------------|------------------|---------------------|---------------------------------|
 | irodsfuse   | iRODS FUSE       | Static, Dynamic     | no                              |
-| webdav      | DavFS2           | Static              | require [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
-| nfs         | NFS (nfs-common) | Static              | require [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
+| webdav      | DavFS2           | Static              | requires [iRODS-WebDAV](https://github.com/DICE-UNC/irods-webdav) or [Davrods](https://github.com/UtrechtUniversity/davrods) |
+| nfs         | NFS (nfs-common) | Static              | requires [NFS-RODS](https://github.com/irods/irods_client_nfsrods)                |
 
 ### Volume Mount Parameters
 
 Parameters specified in Persistent Volume (PV) and Storage Class (SC) are passed to iRODS CSI Driver to mount a volume.
-Depending on driver types, different parameters should be given.
+Depending on the driver type, different parameters must be provided.
 
 For static volume provisioning, parameters are given via Persistent Volume (PV). 
 For dynamic volume provisioning, parameters are given via Storage Class (SC).
@@ -50,7 +50,7 @@ For dynamic volume provisioning, parameters are given via Storage Class (SC).
 | pathMappings | JSON array of iRODS path mappings. Replaces `path` when supplied. | `[{"irods_path":"/iplant/home/user","mapping_path":"/","resource_type":"dir"}]` |
 | readAheadMax | Maximum read-ahead size | "1048576" |
 | uid | host system UID to map owner | -1 (executor's UID, mostly UID of root, 0) |
-| gid | host system GID to map owner | -1 (executor's UID, mostly GID of root, 0) |
+| gid | host system GID to map owner | -1 (executor's GID, mostly GID of root, 0) |
 | systemUser | Host system user used by irodsfs | "root" |
 | metadataConnection | JSON iRODS metadata connection configuration | `{}` |
 | ioConnection | JSON iRODS I/O connection configuration | `{}` |
@@ -88,8 +88,8 @@ Please check out `examples` for more information.
 | Field | Description | Example |
 | --- | --- | --- |
 | client | Driver type | "nfs" |
-| host | WebDAV hostname | "data.cyverse.org" |
-| port | WebDAV port | Optional |
+| host | NFS hostname | "data.cyverse.org" |
+| port | NFS port | Optional |
 | path | iRODS path to mount | "/home/irods_user" |
 
 Mounts **host**:/**path**
@@ -128,7 +128,7 @@ Uninstall using Helm Chart:
 helm uninstall --namespace irods-csi-driver irods-csi-driver
 ```
 
-### Example: Pre-previsioned Persistent Volume (static volume provisioning) using iRODS FUSE
+### Example: Pre-provisioned Persistent Volume (static volume provisioning) using iRODS FUSE
 
 Define Storage Class (SC):
 ```shell script
@@ -150,7 +150,7 @@ Execute Application with Volume Mount:
 kubectl apply -f "examples/kubernetes/static_volume_provisioning/irodsfuse/app.yaml"
 ```
 
-To undeploy, use following command:
+To undeploy, use the following command:
 ```shell script
 kubectl delete -f "<YAML file>"
 ```
@@ -159,19 +159,19 @@ Please check out [more examples](https://github.com/cyverse/irods-csi-driver/tre
 
 ### References
 
-Following CSI driver implementations were used as references:
+The following CSI driver implementations were used as references:
 - [AWS EFS CSI Driver](https://github.com/kubernetes-sigs/aws-efs-csi-driver)
 - [AWS FSx CSI Driver](https://github.com/kubernetes-sigs/aws-fsx-csi-driver)
 - [NFS CSI Driver](https://github.com/kubernetes-csi/drivers)
 - [Ceph CSI Driver](https://github.com/ceph/ceph-csi)
 
-Many code parts in the driver are from **AWS EFS CSI Driver** and **AWS FSx CSI Driver**.
+Much of the driver code is from **AWS EFS CSI Driver** and **AWS FSx CSI Driver**.
 
-Following resources are helpful to understand the CSI driver implementation:
+The following resources are helpful for understanding the CSI driver implementation:
 - [CSI Specification](https://github.com/container-storage-interface/spec/blob/master/spec.md)
 - [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs/)
 
-Following resources are helpful to configure the CSI driver:
+The following resources are helpful for configuring the CSI driver:
 - [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
 
 ### License
@@ -189,4 +189,4 @@ Redistribution and use in source and binary forms, with or without modification,
  * Neither the name of CyVerse, BIO5, The University of Arizona, Cold Spring Harbor Laboratory, The University of Texas at Austin, nor the names of other contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 
-Please check [LICENSE](https://github.com/cyverse/irods-csi-driver/tree/master/LICENSE) file.
+See the [LICENSE](https://github.com/cyverse/irods-csi-driver/tree/master/LICENSE) file.

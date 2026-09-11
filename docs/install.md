@@ -4,7 +4,7 @@ You will need [Helm](https://helm.sh/docs/helm/helm_install/) to install `iRODS 
 
 ## Add Helm Chart Repository to Helm
 
-Run following command to add `iRODS CSI Driver Helm Chart Repository`.
+Run the following command to add the `iRODS CSI Driver Helm Chart Repository`.
 ```shell script
 helm repo add irods-csi-driver-repo https://cyverse.github.io/irods-csi-driver-helm/
 helm repo update
@@ -17,20 +17,20 @@ helm search repo irods
 
 ## Install iRODS CSI Driver
 
-Install `iRODS CSI Driver` with default configurations.
+Install the `iRODS CSI Driver` with the default configuration.
 The command below will install `irods-csi-driver-repo/irods-csi-driver` chart and the installed driver will be named `irods-csi-driver`. The driver pods will be created in `irods-csi-driver` namespace.
 
 ```shell script
 helm install --create-namespace -n irods-csi-driver irods-csi-driver irods-csi-driver-repo/irods-csi-driver
 ```
 
-Check pods of `iRODS CSI Driver`.
+Check the `iRODS CSI Driver` pods.
 
 ```shell script
 kubectl get pods -n irods-csi-driver
 ```
 
-The command will display following output.
+The command will display the following output.
 ```
 NAME                                           READY   STATUS    RESTARTS   AGE
 irods-csi-driver-controller-6c7bb75479-d7z4p   2/2     Running   0          35m
@@ -62,7 +62,7 @@ configuration. The CSI deployment does not run an `irodsfsd` or pool sidecar.
 
 ### Volume Configuration
 
-To configure default volume settings, create a YAML file that adds `globalConfig/secret/stringData`. 
+To configure default volume settings, create a YAML file that sets `globalConfig.secret.stringData`.
 
 For example, the following sets default `client`, `host`, `port`, `zone`, `user`, `password` for iRODS access.
 

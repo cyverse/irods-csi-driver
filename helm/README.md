@@ -1,10 +1,10 @@
 ## iRODS CSI Driver Helm Chart
-This script enables easy installation of iRODS CSI Driver using Helm Chart.
+This chart enables easy installation of the iRODS CSI Driver using Helm.
 
 ### Compatibility
 - Helm 3+
 - Kubernetes > 1.17.x, can be deployed to any namespace.
-- Kubernetes < 1.17.x, namespace **must** be `kube-system`, as `system-cluster-critical` hard coded to this namespace.
+- Kubernetes < 1.17.x, namespace **must** be `kube-system`, as `system-cluster-critical` is hard-coded to this namespace.
 
 ### Prerequisites
 `irodsfs` and `irodsfsd` must be installed before installing or using the iRODS CSI Driver. You can obtain them from the following repositories:
@@ -46,7 +46,7 @@ All values must be strings.
 | pathMappings | JSON array of iRODS path mappings. Replaces `path` when supplied. | `[{"irods_path":"/iplant/home/user","mapping_path":"/","resource_type":"dir"}]` |
 | readAheadMax | Maximum read-ahead size | "1048576" |
 | uid | host system UID to map owner | -1 (executor's UID, mostly UID of root, 0) |
-| gid | host system GID to map owner | -1 (executor's UID, mostly GID of root, 0) |
+| gid | host system GID to map owner | -1 (executor's GID, mostly GID of root, 0) |
 | systemUser | Host system user used by irodsfs | "root" |
 | metadataConnection | JSON iRODS metadata connection configuration | `{}` |
 | ioConnection | JSON iRODS I/O connection configuration | `{}` |
@@ -88,7 +88,7 @@ helm install irods-csi-driver -f user_values.yaml --namespace kube-system .
 
 #### Install in k0s
 ```shell script
-helm install irods-csi-driver -f user_values.yaml --set kubletDir=/var/lib/k0s/kubelet .
+helm install irods-csi-driver -f user_values.yaml --set kubeletDir=/var/lib/k0s/kubelet .
 ```
 
 ### Upgrade
