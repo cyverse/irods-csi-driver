@@ -98,6 +98,13 @@ Mounts **host**:/**path**
 
 Be aware that the Master branch is not stable! Please use recently released version of code. 
 
+#### Prerequisites
+
+`irodsfs` and `irodsfsd` must be installed before installing or using the iRODS CSI Driver. You can obtain them from the following repositories:
+
+- [irodsfs](https://github.com/cyverse/irodsfs)
+- [irodsfsd](https://github.com/cyverse/irodsfsd)
+
 Installation can be done using [Helm Chart Repository](https://cyverse.github.io/irods-csi-driver-helm/), [Helm Chart (manual)](https://github.com/cyverse/irods-csi-driver/tree/master/helm) or by [Manual Deployment](https://github.com/cyverse/irods-csi-driver/tree/master/deploy/kubernetes).
 
 Install using Helm Chart Repository with default configuration:
