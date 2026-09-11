@@ -48,6 +48,56 @@
         - /var/log/irodsfsd
         - /run/irodsfsd
 
+    - name: Look up the irodsfsd service user before removing its ACLs
+      ansible.builtin.getent:
+        database: passwd
+        key: irodsfsd
+        fail_key: false
+
+    - name: Check whether the iRODS CSI staging root exists
+      ansible.builtin.stat:
+        path: /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
+      register: irodsfsd_csi_staging_root
+
+    # Remove both the access ACL on existing volume paths and the default ACL
+    # inherited by subsequently created paths. Kubelet's files and ownership
+    # are deliberately left in place.
+    - name: Remove irodsfsd access ACLs from existing CSI staging directories
+      ansible.posix.acl:
+        path: /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
+        entity: irodsfsd
+        etype: user
+        state: absent
+        recursive: true
+      when:
+        - irodsfsd_csi_staging_root.stat.exists
+        - ansible_facts.getent_passwd.irodsfsd is defined
+
+    - name: Remove irodsfsd default ACLs from CSI staging directories
+      ansible.posix.acl:
+        path: /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
+        entity: irodsfsd
+        etype: user
+        default: true
+        state: absent
+        recursive: true
+      when:
+        - irodsfsd_csi_staging_root.stat.exists
+        - ansible_facts.getent_passwd.irodsfsd is defined
+
+    - name: Remove irodsfsd traversal ACLs from kubelet parent directories
+      ansible.posix.acl:
+        path: "{{ item }}"
+        entity: irodsfsd
+        etype: user
+        state: absent
+      loop:
+        - /var/lib/kubelet
+        - /var/lib/kubelet/plugins
+        - /var/lib/kubelet/plugins/kubernetes.io
+        - /var/lib/kubelet/plugins/kubernetes.io/csi
+      when: ansible_facts.getent_passwd.irodsfsd is defined
+
     - name: Remove irodsfsd service user
       ansible.builtin.user:
         name: irodsfsd

@@ -8,9 +8,26 @@ CSI node pod. The base node manifest uses host networking and connects to
 `tcp://127.0.0.1:13020`; change `IRODSFSD_ENDPOINT` if the service uses a
 different endpoint. The controller pod does not connect to `irodsfsd`.
 
-Configure `irodsfsd` to allow mount paths under `/var/lib/kubelet`. The CSI
-node plugin keeps bidirectional mount propagation so mounts created by the
-host daemon are visible to kubelet and pods. Do not add an `irodsfsd` or
+`irodsfsd` runs as a non-root service user, whereas kubelet creates CSI
+staging paths under `/var/lib/kubelet` as `root`. Grant the service user ACL
+access to the driver staging root and a default ACL for newly created volume
+directories; do not change kubelet ownership or use a world-writable mode:
+
+```shell
+sudo apt-get install -y acl
+sudo mkdir -p /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
+sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet
+sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins
+sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins/kubernetes.io
+sudo setfacl -m u:irodsfsd:--x /var/lib/kubelet/plugins/kubernetes.io/csi
+sudo setfacl -R -m u:irodsfsd:rwx \
+  /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
+sudo setfacl -m d:u:irodsfsd:rwx \
+  /var/lib/kubelet/plugins/kubernetes.io/csi/irods.csi.cyverse.org
+```
+
+The CSI node plugin keeps bidirectional mount propagation so mounts created by
+the host daemon are visible to kubelet and pods. Do not add an `irodsfsd` or
 `irods-pool` sidecar to this deployment.
 
 The manifests support Linux AMD64 and ARM64 nodes. Publish or configure an

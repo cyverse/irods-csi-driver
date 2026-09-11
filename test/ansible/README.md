@@ -88,8 +88,13 @@ package, so the playbook installs those first, symlinks `irodsfs` to
 `/usr/local/bin/irodsfs` (the path irodsfsd's default config expects), and
 enables `user_allow_other` in `/etc/fuse.conf` (irodsfsd's default config
 sets `allow_fuse_allow_other`, which requires it since irodsfsd runs as its
-own service user, not root). If irodsfsd still isn't running afterwards, it
-tries a restart and prints a warning rather than failing the whole run.
+own service user, not root). It also installs `acl` and grants only the
+`irodsfsd` user access to the CSI staging directory under `/var/lib/kubelet`.
+This is required because kubelet creates the staging paths as `root`; the
+default ACL applies the access permission to future volume directories too.
+It does not change kubelet ownership or grant access to all local users. If
+irodsfsd still isn't running afterwards, it tries a restart and prints a
+warning rather than failing the whole run.
 
 To remove it:
 
@@ -100,7 +105,9 @@ ansible-playbook irodsfsd_uninstall.yml
 irodsfsd's own installer doesn't ship an uninstall script, so this stops the
 service (letting it unmount anything it has mounted first) and removes the
 binary, config, systemd unit, data/log directories, and the `irodsfsd`
-service user/group it created.
+service user/group it created. It also removes the `irodsfsd` access and
+default ACL entries from the CSI staging path while leaving kubelet's files
+and ownership unchanged.
 
 ## Notes
 
