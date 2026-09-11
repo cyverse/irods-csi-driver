@@ -22,5 +22,5 @@ spec:
       zone: "iplant" # iRODS zone name
       user: "my_username" # iRODS username
       password: "my_password" # iRODS password
-      # path_mapping_json sets multiple iRODS paths for either file or dir to mount in JSON format
-      path_mapping_json: '[{"irods_path": "/iplant/home/iychoi/datasets/MSSA_MRSA/500k_MSSA_MRSA_1.fa", "mapping_path": "/input/mrsa_mssa.fa", "resource_type": "file"},{"irods_path": "/iplant/home/iychoi/datasets/POV/POV_L.Spr.C.1000m_reads.fa", "mapping_path": "/input/pov.fa", "resource_type": "file"},{"irods_path": "/iplant/home/iychoi", "mapping_path": "/output", "resource_type": "dir"}]'
+      # pathMappings sets multiple iRODS paths for either file or directory in JSON format.
+      pathMappings: '[{"irods_path": "/iplant/home/my_username/input1.gz", "mapping_path": "/input/input1.gz", "resource_type": "file"},{"irods_path": "/iplant/home/my_username/input2.gz", "mapping_path": "/input/input2.gz", "resource_type": "file"},{"irods_path": "/iplant/home/my_username/output", "mapping_path": "/output", "resource_type": "dir"}]'

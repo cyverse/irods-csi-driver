@@ -4,7 +4,7 @@ This document shows how to create a `Persistent Volume (PV)` using `static volum
 
 ## Create a Storage Class (SC)
 
-Define a `Storage Class` with following YAML file (`sc.yaml`).
+Define a `Storage Class` with the following YAML file (`sc.yaml`).
 
 ```yaml
 kind: StorageClass
@@ -26,7 +26,7 @@ Check if the `Storage Class` is created successfully.
 kubectl get sc
 ```
 
-The command will display following output.
+The command will display the following output.
 
 ```
 NAME                   PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
@@ -36,7 +36,7 @@ local-path (default)   rancher.io/local-path   Delete          WaitForFirstConsu
 
 ## Create a Secret
 
-Define a `Secret` that stores access information with following YAML file (`secret.yaml`).
+Define a `Secret` that stores access information with the following YAML file (`secret.yaml`).
 
 ```yaml
 apiVersion: v1
@@ -61,7 +61,7 @@ Check if the `Secret` is created successfully.
 kubectl get secret
 ```
 
-The command will display following output.
+The command will display the following output.
 
 ```
 NAME        TYPE     DATA   AGE
@@ -70,7 +70,7 @@ my-secret   Opaque   2      40s
 
 ## Create a Persistent Volume (PV)
 
-Define a `Persistent Volume` with following YAML file (`pv.yaml`).
+Define a `Persistent Volume` with the following YAML file (`pv.yaml`).
 
 ```yaml
 apiVersion: v1
@@ -113,7 +113,7 @@ Check if the `Persistent Volume` is created successfully.
 kubectl get pv
 ```
 
-The command will display following output.
+The command will display the following output.
 
 ```
 NAME    CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
@@ -122,7 +122,7 @@ my-pv   5Gi        RWX            Retain           Available           irods-sc 
 
 ## Create a Persistent Volume Claim (PVC)
 
-Define a `Persistent Volume Claim` with following YAML file (`pvc.yaml`).
+Define a `Persistent Volume Claim` with the following YAML file (`pvc.yaml`).
 
 ```yaml
 apiVersion: v1
@@ -153,7 +153,7 @@ Check if the `Persistent Volume Claim` is created successfully.
 kubectl get pvc
 ```
 
-The command will display following output.
+The command will display the following output.
 
 ```
 NAME     STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE

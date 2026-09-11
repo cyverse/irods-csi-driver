@@ -1,0 +1,6 @@
+---
+# Pin a specific k3s version, e.g. "v1.29.4+k3s1". Leave empty for latest stable.
+k3s_version: ""
+
+# NodePort range k3s uses by default, opened on all nodes for test workloads.
+k3s_nodeport_range: "30000:32767"

@@ -1,0 +1,81 @@
+---
+# Removes irodsfsd and irodsfs (installed by irodsfsd_install.yml) from the
+# k3s worker nodes. Neither project ships an uninstall script, so this
+# reverses each install step directly. Stopping irodsfsd first lets it
+# unmount anything it has mounted before its files are removed.
+
+- name: Uninstall irodsfsd from workers
+  hosts: k3s_worker
+  become: true
+  tasks:
+    - name: Check if the irodsfsd service unit exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/irodsfsd.service
+      register: irodsfsd_unit
+
+    - name: Stop and disable irodsfsd
+      ansible.builtin.systemd:
+        name: irodsfsd
+        state: stopped
+        enabled: false
+      when: irodsfsd_unit.stat.exists
+
+    - name: Remove irodsfsd systemd unit
+      ansible.builtin.file:
+        path: /etc/systemd/system/irodsfsd.service
+        state: absent
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Remove irodsfsd binary
+      ansible.builtin.file:
+        path: /usr/bin/irodsfsd
+        state: absent
+
+    - name: Remove irodsfsd config
+      ansible.builtin.file:
+        path: /etc/irodsfsd
+        state: absent
+
+    - name: Remove irodsfsd data, log and runtime directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/irodsfsd
+        - /var/log/irodsfsd
+        - /run/irodsfsd
+
+    - name: Remove irodsfsd service user
+      ansible.builtin.user:
+        name: irodsfsd
+        state: absent
+        remove: true
+
+    - name: Remove irodsfsd service group
+      ansible.builtin.group:
+        name: irodsfsd
+        state: absent
+
+    - name: Remove irodsfs symlink
+      ansible.builtin.file:
+        path: /usr/local/bin/irodsfs
+        state: absent
+
+    - name: Remove irodsfs binary and mount helper
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/bin/irodsfs
+        - /sbin/mount.irodsfs
+
+    - name: Remove downloaded install scripts
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/irodsfsd-install.sh
+        - /tmp/irodsfs-install.sh

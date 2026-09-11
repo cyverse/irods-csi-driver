@@ -9,11 +9,11 @@ controllerService:
     kubernetes.io/os: linux
 
   podSecurityContext: {}
-  
+
   irodsPlugin:
     image:
       repository: cyverse/irods-csi-driver
-      tag: v0.11.4
+      tag: v0.12.0
       pullPolicy: Always
 
     extraArgs:
@@ -51,10 +51,10 @@ nodeService:
   irodsPlugin:
     image:
       repository: cyverse/irods-csi-driver
-      tag: v0.11.4
+      tag: v0.12.0
       pullPolicy: Always
 
-    poolServerEndpoint: unix:///csi/pool.sock
+    irodsfsdEndpoint: tcp://127.0.0.1:13020
 
     extraArgs:
       - --logtostderr
@@ -64,21 +64,6 @@ nodeService:
       privileged: true
       capabilities:
         add: ["SYS_ADMIN"]
-
-    resources: {}
-
-  irodsPool:
-    image:
-      repository: cyverse/irods-csi-driver-pool
-      tag: v0.11.4
-      pullPolicy: Always
-
-    poolServerEndpoint: unix:///csi/pool.sock
-
-    extraArgs:
-      - --cache_size_max=32212254720
-
-    securityContext: {}
 
     resources: {}
 
@@ -106,6 +91,8 @@ nodeService:
 nameOverride: ""
 fullnameOverride: ""
 kubeletDir: /var/lib/kubelet
+# for k0s
+#kubeletDir: /var/lib/k0s/kubelet
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -116,4 +103,3 @@ serviceAccount:
 globalConfig:
   secret:
     stringData: {}
-    

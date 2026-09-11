@@ -5,10 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os"
-	"syscall"
 
-	"github.com/cyverse/irods-csi-driver/pkg/common"
+	"github.com/cyverse/irods-csi-driver/pkg/commons"
 	"github.com/cyverse/irods-csi-driver/pkg/driver"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -17,15 +15,15 @@ import (
 
 func main() {
 	var version bool
-	var conf common.Config
+	var conf commons.Config
 
 	// Parse parameters
-	flag.StringVar(&conf.Endpoint, "endpoint", "unix:///tmp/csi.sock", "CSI endpoint")
+	flag.StringVar(&conf.ServiceEndpoint, "endpoint", "", "CSI endpoint")
+	flag.StringVar((*string)(&conf.DriverMode), "mode", "", "CSI driver mode: controller or node")
 	flag.StringVar(&conf.NodeID, "nodeid", "", "node id")
 	flag.StringVar(&conf.SecretPath, "secretpath", "/etc/irods-csi-dirver", "Secret mount path")
-	flag.StringVar(&conf.PoolServiceEndpoint, "poolservice", "unix:///tmp/poolsock", "iRODS FUSE Lite Pool Service endpoint")
-	flag.IntVar(&conf.PrometheusExporterPort, "prometheus_exporter_port", 12022, "Prometheus Exporter Service port")
-	flag.StringVar(&conf.StoragePath, "storagepath", "/storage", "Storage path for driver internal data")
+	flag.StringVar(&conf.IRODSFSDServiceEndpoint, "irodsfsd-endpoint", "tcp://127.0.0.1:13020", "iRODS FSD service endpoint")
+	flag.IntVar(&conf.PrometheusExporterPort, "prometheus_exporter_port", 14021, "Prometheus Exporter Service port")
 	flag.BoolVar(&version, "version", false, "Print driver version information")
 
 	klog.InitFlags(nil)
@@ -33,39 +31,28 @@ func main() {
 
 	// Handle Version
 	if version {
-		info, err := common.GetVersionJSON()
+		info, err := commons.GetVersionJSON()
 		if err != nil {
 			// exit automatically
-			klog.Fatalln(err)
+			klog.Fatal(err)
 		}
 
 		fmt.Println(info)
-		os.Exit(0)
+		return
 	}
 
-	klog.V(1).Infof("Driver version: %q", common.GetDriverVersion())
+	klog.V(1).Infof("Driver version: %q", commons.GetDriverVersion())
 
-	if conf.NodeID == "" {
+	err := conf.Validate()
+	if err != nil {
 		// exit automatically
-		klog.Fatalln("Node ID is not given")
+		klog.Fatal(err)
 	}
 
-	if conf.StoragePath != "" {
-		_, err := os.Stat(conf.StoragePath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				// not exist, make one
-				oldMask := syscall.Umask(0)
-				defer syscall.Umask(oldMask)
-
-				err = os.MkdirAll(conf.StoragePath, os.FileMode(0777))
-				if err != nil {
-					klog.Fatalf("Failed to create a storage path %q", conf.StoragePath)
-				}
-			} else {
-				klog.Fatalf("Failed to access a storage path %q", conf.StoragePath)
-			}
-		}
+	err = conf.MakeWorkDirs()
+	if err != nil {
+		// exit automatically
+		klog.Fatal(err)
 	}
 
 	// start prometheus exporter server
@@ -90,19 +77,19 @@ func main() {
 		}
 
 		// exit automatically
-		klog.Fatalln(drvErr)
+		klog.Fatal(drvErr)
 	}
 
 	// driver is created
-	err := drv.Run()
-	if err != nil {
+	drvErr = drv.Run()
+	if drvErr != nil {
 		// shutdown prometheus exporter server when driver fails or stops
 		if prometheusExporterServer != nil {
 			prometheusExporterServer.Shutdown(context.TODO())
 		}
 
 		// exit automatically
-		klog.Fatalln(err)
+		klog.Fatal(drvErr)
 	}
 
 	// shutdown prometheus exporter server when driver fails or stops
@@ -110,5 +97,5 @@ func main() {
 		prometheusExporterServer.Shutdown(context.TODO())
 	}
 
-	os.Exit(0)
+	return
 }

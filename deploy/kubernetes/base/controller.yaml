@@ -24,9 +24,9 @@ spec:
           image: cyverse/irods-csi-driver:latest
           args :
             - --endpoint=$(CSI_ENDPOINT)
-            - --nodeid=$(NODE_ID)
+            - --mode=controller
             - --secretpath=$(SECRET_VOLUME_PATH)
-            - --storagepath=$(STORAGE_VOLUME_PATH)
+            - --prometheus_exporter_port=14021
             - --logtostderr
             - --v=5
           env:
@@ -34,19 +34,11 @@ spec:
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: SECRET_VOLUME_PATH
               value: /secrets
-            - name: STORAGE_VOLUME_PATH
-              value: /storage
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
           volumeMounts:
             - name: plugin-dir
               mountPath: /var/lib/csi/sockets/pluginproxy
             - name: secret-volume
               mountPath: /secrets
-            - name: storage-volume
-              mountPath: /storage
         - name: csi-provisioner
           image: registry.k8s.io/sig-storage/csi-provisioner:v3.1.0
           args:
@@ -66,9 +58,6 @@ spec:
         - name: secret-volume
           secret:
             secretName: irods-csi-driver-global-secret
-        - name: storage-volume
-          emptyDir: {}
       nodeSelector:
         kubernetes.io/os: linux
         kubernetes.io/arch: amd64
-

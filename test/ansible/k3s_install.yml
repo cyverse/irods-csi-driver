@@ -1,0 +1,189 @@
+---
+# Sets up a multi-node k3s cluster for testing the iRODS CSI driver.
+# Master node runs only the control plane (tainted so pods are not scheduled
+# on it); worker1/worker2 join as agents. Ansible reaches nodes over SSH via
+# their public IP, but k3s itself is configured to use each node's internal
+# IP (internal_ip) for node-to-node cluster traffic; the public IP is only
+# used for external access to the API server (kubectl from outside the
+# cluster's internal network). Kubeconfig is installed on the master at
+# ~/.kube/config for the SSH login user, so kubectl works immediately after
+# logging into the master node - it is not fetched to the control machine.
+
+- name: Common prep on all nodes
+  hosts: k3s_cluster
+  become: true
+  tasks:
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ node_name }}"
+
+    - name: Install base packages
+      ansible.builtin.apt:
+        name:
+          - curl
+          - open-iscsi
+          - nfs-common
+        state: present
+        update_cache: true
+
+    - name: Disable swap (current session)
+      ansible.builtin.command: swapoff -a
+      changed_when: false
+
+    - name: Disable swap (persistent)
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#].*\sswap\s.*)$'
+        replace: '# \1'
+
+    - name: Load kernel modules required by k3s/CNI
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Persist kernel modules across reboots
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k3s.conf
+        content: |
+          overlay
+          br_netfilter
+
+    - name: Set sysctl params required by k3s/CNI
+      ansible.posix.sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        sysctl_file: /etc/sysctl.d/99-k3s.conf
+        reload: true
+      loop:
+        - { name: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+        - { name: "net.ipv4.ip_forward", value: "1" }
+
+    - name: Check whether ufw is installed
+      ansible.builtin.command: which ufw
+      register: ufw_present
+      changed_when: false
+      failed_when: false
+
+    - name: Open firewall ports required by k3s (ufw)
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: "{{ 'udp' if item == '8472' else 'tcp' }}"
+      loop:
+        - "6443"    # k3s API server
+        - "10250"   # kubelet
+        - "8472"    # flannel VXLAN
+        - "{{ k3s_nodeport_range }}"
+      when: ufw_present.rc == 0
+
+- name: Install k3s on master
+  hosts: k3s_master
+  become: true
+  tasks:
+    - name: Download k3s install script (server)
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+        force: true
+
+    - name: Run k3s install script (server)
+      ansible.builtin.command: /tmp/k3s-install.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+        INSTALL_K3S_EXEC: >-
+          server
+          --node-ip={{ internal_ip }}
+          --node-external-ip={{ ansible_host }}
+          --tls-san={{ ansible_host }}
+          --tls-san={{ internal_ip }}
+          --node-taint CriticalAddonsOnly=true:NoExecute
+          --write-kubeconfig-mode 644
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for node-token to be created
+      ansible.builtin.wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+        state: present
+
+    - name: Read node-token
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_node_token_b64
+
+    - name: Expose node token as a fact for the worker play
+      ansible.builtin.set_fact:
+        k3s_node_token: "{{ (k3s_node_token_b64.content | b64decode).strip() }}"
+
+    - name: Wait for kubeconfig to be created
+      ansible.builtin.wait_for:
+        path: /etc/rancher/k3s/k3s.yaml
+        state: present
+
+    - name: Wait for the k3s API server to be ready
+      ansible.builtin.command: /usr/local/bin/k3s kubectl get --raw=/readyz
+      register: k3s_readyz
+      until: k3s_readyz.stdout == "ok"
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: Create .kube directory for {{ ansible_user }}
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0700"
+
+    - name: Install kubeconfig for {{ ansible_user }} so kubectl works on login
+      ansible.builtin.copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+        remote_src: true
+
+- name: Install k3s on workers
+  hosts: k3s_worker
+  become: true
+  vars:
+    k3s_master_internal_ip: "{{ hostvars[groups['k3s_master'][0]].internal_ip }}"
+    k3s_token: "{{ hostvars[groups['k3s_master'][0]].k3s_node_token }}"
+  tasks:
+    - name: Download k3s install script (agent)
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+        force: true
+
+    - name: Run k3s install script (agent)
+      ansible.builtin.command: /tmp/k3s-install.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+        K3S_URL: "https://{{ k3s_master_internal_ip }}:6443"
+        K3S_TOKEN: "{{ k3s_token }}"
+        INSTALL_K3S_EXEC: >-
+          agent
+          --node-ip={{ internal_ip }}
+          --node-external-ip={{ ansible_host }}
+      args:
+        creates: /usr/local/bin/k3s-agent
+
+- name: Show cluster access info
+  hosts: k3s_master
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Print how to use the cluster
+      ansible.builtin.debug:
+        msg:
+          - "Cluster is up. SSH into the master as {{ ansible_user }} and run kubectl directly:"
+          - "ssh {{ ansible_user }}@{{ ansible_host }} kubectl get nodes -o wide"

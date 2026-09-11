@@ -1,0 +1,30 @@
+---
+# Tears down the k3s test cluster installed by k3s_install.yml.
+
+- name: Uninstall k3s from workers
+  hosts: k3s_worker
+  become: true
+  tasks:
+    - name: Run k3s-agent-uninstall.sh
+      ansible.builtin.command: /usr/local/bin/k3s-agent-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-agent-uninstall.sh
+
+- name: Uninstall k3s from master
+  hosts: k3s_master
+  become: true
+  tasks:
+    - name: Run k3s-uninstall.sh
+      ansible.builtin.command: /usr/local/bin/k3s-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-uninstall.sh
+
+- name: Remove kubeconfig installed on the master
+  hosts: k3s_master
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Delete ~/.kube/config
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube/config"
+        state: absent

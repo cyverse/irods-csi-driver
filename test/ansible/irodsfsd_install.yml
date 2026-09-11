@@ -1,0 +1,104 @@
+---
+# Installs irodsfsd (the iRODS FUSE mount management daemon used as the CSI
+# driver's pool service) on the k3s worker nodes, where CSI driver mounts
+# actually happen. The master is excluded - it is tainted so it never runs
+# workloads. irodsfsd depends on the irodsfs FUSE client binary, so irodsfs
+# (and the fuse package it needs) is installed first.
+
+- name: Install irodsfsd on workers
+  hosts: k3s_worker
+  become: true
+  tasks:
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - curl
+          - openssl
+          - fuse
+        state: present
+        update_cache: true
+
+    - name: Allow non-root FUSE mounts to set allow_other
+      # irodsfsd's default config sets allow_fuse_allow_other, which requires
+      # this - irodsfsd runs as its own service user, not root.
+      ansible.builtin.lineinfile:
+        path: /etc/fuse.conf
+        regexp: '^#?\s*user_allow_other\s*$'
+        line: user_allow_other
+
+    - name: Download irodsfs install script
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/cyverse/irodsfs/main/install.sh
+        dest: /tmp/irodsfs-install.sh
+        mode: "0755"
+        force: true
+
+    - name: Run irodsfs install script
+      ansible.builtin.command: /tmp/irodsfs-install.sh
+      args:
+        creates: /usr/bin/irodsfs
+
+    - name: Symlink irodsfs to the path irodsfsd expects
+      ansible.builtin.file:
+        src: /usr/bin/irodsfs
+        dest: /usr/local/bin/irodsfs
+        state: link
+        force: true
+
+    - name: Download irodsfsd install script
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/cyverse/irodsfsd/main/install.sh
+        dest: /tmp/irodsfsd-install.sh
+        mode: "0755"
+        force: true
+
+    - name: Run irodsfsd install script
+      ansible.builtin.command: /tmp/irodsfsd-install.sh
+      args:
+        creates: /usr/bin/irodsfsd
+      register: irodsfsd_install
+      failed_when: false
+
+    - name: Verify the irodsfsd binary was installed
+      ansible.builtin.stat:
+        path: /usr/bin/irodsfsd
+      register: irodsfsd_binary
+
+    - name: Fail if the install script did not complete
+      ansible.builtin.fail:
+        msg: |
+          irodsfsd install script failed before installing the binary:
+          {{ irodsfsd_install.stderr }}
+      when: not irodsfsd_binary.stat.exists
+
+    - name: Check whether irodsfsd is running
+      ansible.builtin.command: systemctl is-active irodsfsd
+      register: irodsfsd_active
+      changed_when: false
+      failed_when: false
+
+    - name: Restart irodsfsd if it isn't running
+      # Covers a node where irodsfsd was installed before irodsfs existed
+      # and is stuck in systemd's crash-restart backoff.
+      ansible.builtin.systemd:
+        name: irodsfsd
+        state: restarted
+      when: irodsfsd_active.stdout != "active"
+      ignore_errors: true
+
+    - name: Re-check whether irodsfsd is running
+      ansible.builtin.command: systemctl is-active irodsfsd
+      register: irodsfsd_active_recheck
+      changed_when: false
+      failed_when: false
+      when: irodsfsd_active.stdout != "active"
+
+    - name: Warn if irodsfsd still isn't running
+      ansible.builtin.debug:
+        msg: >-
+          irodsfsd is installed but not currently running (status:
+          {{ irodsfsd_active_recheck.stdout }}). Check
+          journalctl -u irodsfsd on this node.
+      when:
+        - irodsfsd_active.stdout != "active"
+        - irodsfsd_active_recheck.stdout != "active"

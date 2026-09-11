@@ -1,36 +1,12 @@
-/*
-Following functions or objects are from the code under APL2 License.
-- CreateVolume
-- DeleteVolume
-- ControllerGetCapabilities
-- ValidateVolumeCapabilities
-Original code:
-- https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/pkg/driver/controller.go
-
-
-Copyright 2019 The Kubernetes Authors.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package driver
 
 import (
 	"context"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	client_common "github.com/cyverse/irods-csi-driver/pkg/client/common"
+	"github.com/cyverse/irods-csi-driver/pkg/client"
 	"github.com/cyverse/irods-csi-driver/pkg/client/irods"
-	"github.com/cyverse/irods-csi-driver/pkg/common"
-	"github.com/cyverse/irods-csi-driver/pkg/metrics"
-	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
+	"github.com/cyverse/irods-csi-driver/pkg/commons"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -40,17 +16,17 @@ var (
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
-
-	// defaultVolumeSize specifies default volume size in Bytes
-	defaultVolumeSize int64 = 100 * 1024 * 1024 * 1024
 )
+
+// Dynamic Provisioning: CreateVolume → ControllerPublishVolume (Attach) → NodeStageVolume → NodePublishVolume
+// Static Provisioning: ControllerPublishVolume (Attach) → NodeStageVolume → NodePublishVolume
 
 // CreateVolume handles persistent volume creation event
 func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	// volume name is created by CO for idempotency
 	volName := req.GetName()
 	if len(volName) == 0 {
-		metrics.IncreaseCounterForVolumeMountFailures()
+		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
 	volID := generateVolumeID(volName)
@@ -59,66 +35,71 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 
 	volCaps := req.GetVolumeCapabilities()
 	if len(volCaps) == 0 {
-		metrics.IncreaseCounterForVolumeMountFailures()
+		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not provided")
 	}
 
 	if !isValidVolumeCapabilities(volCaps) {
-		metrics.IncreaseCounterForVolumeMountFailures()
+		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not supported")
 	}
 
-	capRange := req.GetCapacityRange()
-	volCapacity := defaultVolumeSize
-	if capRange != nil {
-		volCapacity = capRange.GetRequiredBytes()
+	volCapacity, err := getRequestedCapacity(req.GetCapacityRange())
+	if err != nil {
+		commons.IncreaseCounterForVolumeMountFailures()
+		return nil, err
 	}
 
 	// create a new volume
 	// merge params
-	configs := common.MergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetParameters())
+	configs := commons.MergeConfig(driver.config, driver.secrets, req.GetSecrets(), req.GetParameters())
 
 	///////////////////////////////////////////////////////////
 	// We only support irodsfs for dynamic volume provisioning
 	///////////////////////////////////////////////////////////
-	irodsClientType := client_common.GetClientType(configs)
-	if irodsClientType != client_common.IrodsFuseClientType {
-		metrics.IncreaseCounterForVolumeMountFailures()
+	irodsClientType, err := commons.ParseClientType(configs)
+	if err != nil {
+		commons.IncreaseCounterForVolumeMountFailures()
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	if irodsClientType != commons.IrodsFuseClientType {
+		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported driver type - %v", irodsClientType)
 	}
 
 	// make controller config
-	controllerConfig, err := makeControllerConfig(volName, configs)
+	controllerConfig, err := parseControllerConfig(volName, configs)
 	if err != nil {
-		metrics.IncreaseCounterForVolumeMountFailures()
+		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, err
 	}
 
 	// set path
-	configs[common.NormalizeConfigKey("path")] = controllerConfig.VolumePath
+	configs["path"] = controllerConfig.volumePath
 
 	// get iRODS connection info
 	irodsConnectionInfo, err := irods.GetConnectionInfo(configs)
 	if err != nil {
-		metrics.IncreaseCounterForVolumeMountFailures()
+		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, err
 	}
 
-	// generate path
-	if !controllerConfig.NotCreateVolumeDir {
-		// create
-		klog.V(5).Infof("Creating a volume dir %q", controllerConfig.VolumePath)
-		err = irods.Mkdir(irodsConnectionInfo, controllerConfig.VolumePath)
-		if err != nil {
-			metrics.IncreaseCounterForVolumeMountFailures()
-			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %q : %v", controllerConfig.VolumePath, err)
-		}
+	// Dynamic provisioning creates a new iRODS directory and therefore must
+	// never run with anonymous credentials.
+	if irodsConnectionInfo.IsAnonymousUser() {
+		commons.IncreaseCounterForVolumeMountFailures()
+		return nil, status.Error(codes.InvalidArgument, "dynamic provisioning requires a non-anonymous user")
 	}
 
-	// do not allow anonymous access for dynamic volume provisioning since it creates a new empty volume
-	if irodsConnectionInfo.IsAnonymousUser() {
-		metrics.IncreaseCounterForVolumeMountFailures()
-		return nil, status.Error(codes.InvalidArgument, "Argument user must be a non-anonymous user")
+	// generate path
+	if controllerConfig.createVolumeDirectory {
+		// create
+		klog.V(5).Infof("Creating a volume dir %q", controllerConfig.volumePath)
+		err = irods.Mkdir(irodsConnectionInfo, controllerConfig.volumePath)
+		if err != nil {
+			commons.IncreaseCounterForVolumeMountFailures()
+			return nil, status.Errorf(codes.Internal, "Could not create a volume dir %q : %v", controllerConfig.volumePath, err)
+		}
 	}
 
 	// copy config values to volContext, to be used in node
@@ -126,25 +107,10 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 	for k, v := range req.GetParameters() {
 		volContext[k] = v
 	}
-	volContext[common.NormalizeConfigKey("path")] = controllerConfig.VolumePath
+	volContext["path"] = controllerConfig.volumePath
 
 	// tell this volume is created via dynamic volume provisioning
 	setDynamicVolumeProvisioningMode(volContext)
-
-	// create a controller volume (for dynamic volume provisioning)
-	controllerVolume := &volumeinfo.ControllerVolume{
-		ID:             volID,
-		Name:           volName,
-		RootPath:       controllerConfig.VolumeRootPath,
-		Path:           controllerConfig.VolumePath,
-		ConnectionInfo: irodsConnectionInfo,
-		RetainData:     controllerConfig.RetainData,
-	}
-	err = driver.controllerVolumeManager.Put(controllerVolume)
-	if err != nil {
-		metrics.IncreaseCounterForVolumeMountFailures()
-		return nil, err
-	}
 
 	volume := &csi.Volume{
 		VolumeId:      volID,
@@ -164,27 +130,26 @@ func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeReq
 
 	klog.V(4).Infof("DeleteVolume: volumeId (%#v)", volID)
 
-	controllerVolume, err := driver.controllerVolumeManager.Pop(volID)
-	if err != nil {
-		return nil, err
-	}
-
-	if controllerVolume == nil {
-		// orphant
-		klog.V(4).Infof("DeleteVolume: cannot find a volume with id (%v)", volID)
-		// ignore this error
-		return &csi.DeleteVolumeResponse{}, nil
-	}
-
-	if !controllerVolume.RetainData {
-		klog.V(5).Infof("Deleting a volume dir %q", controllerVolume.Path)
-		err := irods.Rmdir(controllerVolume.ConnectionInfo, controllerVolume.Path)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not delete a volume dir %q: %v", controllerVolume.Path, err)
-		}
-	}
-
+	// Dynamic volume data is retained by policy, so deleting a CSI volume only
+	// releases its Kubernetes-side reference.
 	return &csi.DeleteVolumeResponse{}, nil
+}
+
+func getRequestedCapacity(capacityRange *csi.CapacityRange) (int64, error) {
+	if capacityRange == nil {
+		return 0, nil
+	}
+
+	requiredBytes := capacityRange.GetRequiredBytes()
+	limitBytes := capacityRange.GetLimitBytes()
+	if requiredBytes < 0 || limitBytes < 0 {
+		return 0, status.Error(codes.InvalidArgument, "capacity range values must not be negative")
+	}
+	if limitBytes > 0 && requiredBytes > limitBytes {
+		return 0, status.Error(codes.InvalidArgument, "required_bytes must not exceed limit_bytes")
+	}
+
+	return requiredBytes, nil
 }
 
 // ControllerPublishVolume handles persistent volume publish event in controller service
@@ -242,18 +207,44 @@ func (driver *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.V
 
 	confirmed := isValidVolumeCapabilities(volCaps)
 	if confirmed {
+		if err := driver.validateVolumeConfig(req); err != nil {
+			return nil, err
+		}
+
 		return &csi.ValidateVolumeCapabilitiesResponse{
 			Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
-				// TODO if volume context is provided, should validate it too
-				// VolumeContext:      req.GetVolumeContext(),
+				VolumeContext:      req.GetVolumeContext(),
 				VolumeCapabilities: volCaps,
-				// TODO if parameters are provided, should validate them too
-				// Parameters:      req.GetParameters(),
+				Parameters:         req.GetParameters(),
 			},
 		}, nil
 	}
 
 	return &csi.ValidateVolumeCapabilitiesResponse{}, nil
+}
+
+// validateVolumeConfig validates the supplied mount configuration. This
+// driver deliberately has no controller-side volume state, so it cannot
+// compare VolumeContext with a previously stored value.
+func (driver *Driver) validateVolumeConfig(req *csi.ValidateVolumeCapabilitiesRequest) error {
+	if len(req.GetVolumeContext()) == 0 && len(req.GetParameters()) == 0 && len(req.GetSecrets()) == 0 {
+		return nil
+	}
+
+	params := make(map[string]string, len(req.GetParameters())+len(req.GetVolumeContext()))
+	for key, value := range req.GetParameters() {
+		params[key] = value
+	}
+	// VolumeContext represents the existing volume and therefore takes
+	// precedence over the original CreateVolume parameters.
+	for key, value := range req.GetVolumeContext() {
+		params[key] = value
+	}
+	configs := commons.MergeConfig(driver.config, driver.secrets, req.GetSecrets(), params)
+	if err := client.ValidateConfig(configs); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateSnapshot creates a snapshot of a volume

@@ -1,74 +1,58 @@
-/*
-Following functions or objects are from the code under APL2 License.
-- Driver
-- NewDriver
-- Run
-- Stop
-- isValidVolumeCapabilities
-Original code:
-- https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/pkg/driver/driver.go
-- https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/pkg/driver/controller.go
-
-
-Copyright 2019 The Kubernetes Authors.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package driver
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
 	"k8s.io/klog"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/cyverse/irods-csi-driver/pkg/common"
-	"github.com/cyverse/irods-csi-driver/pkg/mounter"
-	"github.com/cyverse/irods-csi-driver/pkg/volumeinfo"
+	"github.com/cyverse/irods-csi-driver/pkg/commons"
+	irodsfsd_client "github.com/cyverse/irodsfsd/client"
 )
 
-var (
-	volumeCaps = []csi.VolumeCapability_AccessMode_Mode{
-		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-		csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY,
-		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-		csi.VolumeCapability_AccessMode_MULTI_NODE_READER_ONLY,
-		csi.VolumeCapability_AccessMode_MULTI_NODE_SINGLE_WRITER,
-		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-	}
-)
+const irodsfsdOperationTimeout = time.Minute
 
 // Driver object contains configuration parameters, grpc server and mounter
 type Driver struct {
-	config *common.Config
+	config *commons.Config
+	mode   commons.DriverMode
 
-	server  *grpc.Server
-	mounter mounter.Mounter
-	secrets map[string]string
-
-	controllerVolumeManager *volumeinfo.ControllerVolumeManager
-	nodeVolumeManager       *volumeinfo.NodeVolumeManager
+	server         *grpc.Server
+	irodsfsdClient *irodsfsd_client.MountServiceClient
+	mounter        Mounter
+	secrets        map[string]string
 }
 
 // NewDriver returns new driver
-func NewDriver(conf *common.Config) (*Driver, error) {
+func NewDriver(conf *commons.Config) (*Driver, error) {
 	driver := &Driver{
 		config:  conf,
-		mounter: mounter.NewNodeMounter(),
+		mode:    conf.GetDriverMode(),
+		mounter: NewNodeMounter(),
 		secrets: make(map[string]string),
-
-		controllerVolumeManager: nil,
-		nodeVolumeManager:       nil,
+	}
+	if driver.mode == commons.NodeDriverMode {
+		irodsfsdEndpoint := conf.GetIRODSFSDServiceEndpoint()
+		irodsfsdClient := irodsfsd_client.NewMountServiceClient(
+			irodsfsdEndpoint,
+			irodsfsdOperationTimeout,
+			true,
+			nil,
+		)
+		if err := irodsfsdClient.Connect(); err != nil {
+			return nil, fmt.Errorf("connect to irodsfsd at %q: %w", irodsfsdEndpoint, err)
+		}
+		readyContext, cancel := context.WithTimeout(context.Background(), irodsfsdOperationTimeout)
+		defer cancel()
+		if err := irodsfsdClient.Ready(readyContext); err != nil {
+			irodsfsdClient.Disconnect()
+			return nil, fmt.Errorf("verify irodsfsd at %q: %w", irodsfsdEndpoint, err)
+		}
+		driver.irodsfsdClient = irodsfsdClient
 	}
 
 	// update secrets
@@ -82,36 +66,12 @@ func NewDriver(conf *common.Config) (*Driver, error) {
 		}
 	}
 
-	volumeEncryptKey := "irodscsidriver_volume_2ce02bee-74ea-4b18-a440-472d9771f778"
-	for k, v := range driver.secrets {
-		if common.NormalizeConfigKey(k) == common.NormalizeConfigKey("volume_encrypt_key") {
-			volumeEncryptKey = v
-			break
-		}
-	}
-
-	controllerVolumeManager, err := volumeinfo.NewControllerVolumeManager(volumeEncryptKey, conf.StoragePath)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeVolumeManager, err := volumeinfo.NewNodeVolumeManager(volumeEncryptKey, conf.StoragePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// we need to recover crashed volumes if available
-	// but current csi driver does not bind-mount the path to the container
-
-	driver.controllerVolumeManager = controllerVolumeManager
-	driver.nodeVolumeManager = nodeVolumeManager
-
 	return driver, nil
 }
 
 // Run runs the driver service
 func (driver *Driver) Run() error {
-	scheme, addr, err := common.ParseCSIEndpoint(driver.config.Endpoint)
+	scheme, addr, err := commons.ParseServiceEndpoint(driver.config.GetServiceEndpoint())
 	if err != nil {
 		return err
 	}
@@ -136,15 +96,23 @@ func (driver *Driver) Run() error {
 	driver.server = grpc.NewServer(opts...)
 
 	csi.RegisterIdentityServer(driver.server, driver)
-	csi.RegisterControllerServer(driver.server, driver)
-	csi.RegisterNodeServer(driver.server, driver)
+	if driver.mode == commons.ControllerDriverMode {
+		csi.RegisterControllerServer(driver.server, driver)
+	} else {
+		csi.RegisterNodeServer(driver.server, driver)
+	}
 
-	klog.V(3).Infof("Listening for connections on address: %#v", listener.Addr())
+	klog.V(3).Infof("Listening for connections on address %q", addr)
 	return driver.server.Serve(listener)
 }
 
 // Stop stops the driver service
 func (driver *Driver) Stop() {
 	klog.V(3).Infof("Stopping server")
-	driver.server.Stop()
+	if driver.server != nil {
+		driver.server.Stop()
+	}
+	if driver.irodsfsdClient != nil {
+		driver.irodsfsdClient.Disconnect()
+	}
 }

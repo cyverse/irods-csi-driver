@@ -28,27 +28,25 @@ spec:
           imagePullPolicy: {{ .Values.nodeService.irodsPlugin.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
+            - --mode=node
             - --nodeid=$(NODE_ID)
             - --secretpath=$(SECRET_VOLUME_PATH)
-            - --poolservice=$(IRODSFS_POOL_ENDPOINT)
+            - --irodsfsd-endpoint=$(IRODSFSD_ENDPOINT)
             - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
-            - --storagepath=$(STORAGE_VOLUME_PATH)
             {{- toYaml .Values.nodeService.irodsPlugin.extraArgs | nindent 12 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
-            - name: IRODSFS_POOL_ENDPOINT
-              value: {{ .Values.nodeService.irodsPlugin.poolServerEndpoint }}
+            - name: IRODSFSD_ENDPOINT
+              value: {{ .Values.nodeService.irodsPlugin.irodsfsdEndpoint | quote }}
             - name: SECRET_VOLUME_PATH
               value: /secrets
-            - name: STORAGE_VOLUME_PATH
-              value: /storage
             - name: NODE_ID
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: PROMETHEUS_EXPORTER_PORT
-              value: "12023"
+              value: "14022"
           volumeMounts:
             - name: mountpoint-dir
               mountPath: {{ .Values.kubeletDir }}/pods
@@ -60,13 +58,11 @@ spec:
               mountPath: /csi
             - name: secret-volume
               mountPath: /secrets
-            - name: storage-volume
-              mountPath: /storage
           ports:
             - containerPort: 9810
               name: healthz
               protocol: TCP
-            - containerPort: 12023
+            - containerPort: 14022
               name: prom-metrics
               protocol: TCP
           livenessProbe:
@@ -79,32 +75,6 @@ spec:
             failureThreshold: 10
           resources:
             {{- toYaml .Values.nodeService.irodsPlugin.resources | nindent 12 }}
-        - name: irods-pool
-          securityContext:
-            {{- toYaml .Values.nodeService.irodsPool.securityContext | nindent 12 }}
-          image: "{{ .Values.nodeService.irodsPool.image.repository }}:{{ .Values.nodeService.irodsPool.image.tag }}"
-          imagePullPolicy: {{ .Values.nodeService.irodsPool.image.pullPolicy }}
-          args:
-            - --data_root=$(IRODSFS_POOL_DATA)
-            - --endpoint=$(IRODSFS_POOL_ENDPOINT)
-            - --prometheus_exporter_port=$(PROMETHEUS_EXPORTER_PORT)
-            {{- toYaml .Values.nodeService.irodsPool.extraArgs | nindent 12 }}
-          env:
-            - name: IRODSFS_POOL_DATA
-              value: /irodsfs_pool_data
-            - name: IRODSFS_POOL_ENDPOINT
-              value: {{ .Values.nodeService.irodsPool.poolServerEndpoint }}
-            - name: PROMETHEUS_EXPORTER_PORT
-              value: "12022"
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /csi
-          ports:
-            - containerPort: 12022
-              name: prom-metrics
-              protocol: TCP
-          resources:
-            {{- toYaml .Values.nodeService.irodsPool.resources | nindent 12 }}
         - name: csi-driver-registrar
           securityContext:
             {{- toYaml .Values.nodeService.csiDriverRegistrar.securityContext | nindent 12 }}
@@ -162,10 +132,6 @@ spec:
         - name: secret-volume
           secret:
             secretName: {{ include "helm.fullname" . }}-global-secret
-        - name: storage-volume
-          hostPath:
-            path: {{ .Values.kubeletDir }}/plugins/irods.csi.cyverse.org/storage
-            type: DirectoryOrCreate
       {{- with .Values.nodeService.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

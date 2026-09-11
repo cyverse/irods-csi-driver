@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+  labels:
+    vol-name: my-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: irods-sc
+  csi:
+    driver: irods.csi.cyverse.org
+    volumeHandle: my-proxyauth-vol-id
+    volumeAttributes:
+      # Connection and proxy credentials come from the driver global Secret.
+      # The client user and mounted iRODS path are specific to this PV.
+      clientUser: "my_client_user" # iRODS proxy client username
+      path: "/iplant/home/my_client_user" # iRODS path to mount
