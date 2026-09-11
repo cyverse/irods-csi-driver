@@ -1,0 +1,64 @@
+---
+# Removes the irodsfs-pool service installed by irodsfs_pool_install.yml.
+# Persistent data and staged writes are retained unless explicitly requested.
+
+- name: Uninstall irodsfs-pool from the pool host
+  hosts: irodsfs_pool
+  become: true
+  tasks:
+    - name: Check whether the irodsfs-pool service unit exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/irodsfs-pool.service
+      register: irodsfs_pool_unit
+
+    - name: Stop and disable irodsfs-pool
+      ansible.builtin.systemd:
+        name: irodsfs-pool
+        state: stopped
+        enabled: false
+      when: irodsfs_pool_unit.stat.exists
+
+    - name: Remove the irodsfs-pool service unit
+      ansible.builtin.file:
+        path: /etc/systemd/system/irodsfs-pool.service
+        state: absent
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Remove the irodsfs-pool binary
+      ansible.builtin.file:
+        path: /usr/bin/irodsfs-pool
+        state: absent
+
+    - name: Remove irodsfs-pool logs and runtime files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/log/irodsfs-pool
+        - /run/irodsfs-pool
+
+    - name: Remove irodsfs-pool configuration, data, and staged writes
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/irodsfs-pool
+        - /var/lib/irodsfs_pool
+        - /irodsfs_pool
+      when: irodsfs_pool_remove_data | bool
+
+    - name: Remove the irodsfs-pool service user
+      ansible.builtin.user:
+        name: irodsfs-pool
+        state: absent
+        remove: true
+      when: irodsfs_pool_remove_data | bool
+
+    - name: Remove the irodsfs-pool service group
+      ansible.builtin.group:
+        name: irodsfs-pool
+        state: absent
+      when: irodsfs_pool_remove_data | bool

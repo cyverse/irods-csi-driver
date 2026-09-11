@@ -9,7 +9,7 @@ k3s_nodeport_range: "30000:32767"
 csi_release_name: irods-csi-driver
 csi_namespace: irods-csi-driver
 csi_chart_package: "{{ playbook_dir }}/../../irods-csi-driver-0.12.0.tgz"
-# Ansible searches test/ansible/files/ for this file by default.
+# Ansible searches test/ansible/templates/ for this template by default.
 csi_values_file: user_values.yaml
 csi_helm_timeout: 10m
 # Pin the Helm client version for reproducible test-cluster setup.
@@ -17,3 +17,9 @@ csi_helm_version: v3.17.3
 csi_package_directory: /tmp/irods-csi-driver-helm
 csi_chart_remote_path: "{{ csi_package_directory }}/{{ csi_chart_package | basename }}"
 csi_values_remote_path: "{{ csi_package_directory }}/values.yaml"
+
+# The pool service shares the k3s master in the test topology.  CSI node
+# plugins connect over the cluster's private network rather than its public IP.
+irodsfs_pool_endpoint: "tcp://{{ hostvars[groups['irodsfs_pool'][0]].internal_ip }}:12020"
+# Set to true only after confirming that no staged writes need to be retained.
+irodsfs_pool_remove_data: false

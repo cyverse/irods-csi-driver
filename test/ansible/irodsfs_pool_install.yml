@@ -1,0 +1,48 @@
+---
+# Installs irodsfs-pool on the test pool host.  In this topology the pool host
+# is the k3s master; clients connect through its internal IP on port 12020.
+
+- name: Install irodsfs-pool on the pool host
+  hosts: irodsfs_pool
+  become: true
+  tasks:
+    - name: Install irodsfs-pool prerequisites
+      ansible.builtin.apt:
+        name:
+          - curl
+          - openssl
+        state: present
+        update_cache: true
+
+    - name: Download the irodsfs-pool installer
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/cyverse/irodsfs-pool/main/install.sh
+        dest: /tmp/irodsfs-pool-install.sh
+        mode: "0755"
+        force: true
+
+    - name: Install irodsfs-pool
+      ansible.builtin.command: /tmp/irodsfs-pool-install.sh
+      args:
+        creates: /usr/bin/irodsfs-pool
+
+    - name: Check whether ufw is installed
+      ansible.builtin.command: which ufw
+      register: irodsfs_pool_ufw_present
+      changed_when: false
+      failed_when: false
+
+    - name: Allow k3s workers to reach the pool gRPC service
+      community.general.ufw:
+        rule: allow
+        from_ip: "{{ hostvars[item].internal_ip }}"
+        port: "12020"
+        proto: tcp
+      loop: "{{ groups['k3s_worker'] }}"
+      when: irodsfs_pool_ufw_present.rc == 0
+
+    - name: Verify that irodsfs-pool is running
+      ansible.builtin.command: systemctl is-active irodsfs-pool
+      register: irodsfs_pool_active
+      changed_when: false
+      failed_when: irodsfs_pool_active.stdout != "active"

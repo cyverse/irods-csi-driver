@@ -5,10 +5,5 @@ globalConfig:
       host: "data.cyverse.org"
       port: "1247"
       zone: "iplant"
+      poolEndpoint: "{{ irodsfs_pool_endpoint }}"
       mountPathWhitelist: "/iplant/home"
-controllerService:
-  csiProvisioner:
-    extraArgs:
-      - --timeout=5m
-      - --v=5
-      - --leader-election

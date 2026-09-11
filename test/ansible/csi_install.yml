@@ -95,8 +95,8 @@
         dest: "{{ csi_chart_remote_path }}"
         mode: "0644"
 
-    - name: Copy the optional Helm values file to the k3s master
-      ansible.builtin.copy:
+    - name: Render the optional Helm values file on the k3s master
+      ansible.builtin.template:
         src: "{{ csi_values_file }}"
         dest: "{{ csi_values_remote_path }}"
         mode: "0600"

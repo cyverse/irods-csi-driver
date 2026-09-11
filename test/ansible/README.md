@@ -16,6 +16,9 @@ the cluster's internal network.
 | worker1 | `<worker1-public-ip>`  | `<worker1-internal-ip>`        |
 | worker2 | `<worker2-public-ip>`  | `<worker2-internal-ip>`        |
 
+For the test topology, the iRODS FUSE Pool service shares the master host.
+Workers use the master's internal IP to reach its gRPC endpoint on port 12020.
+
 See `inventory.ini` for the actual IP addresses.
 
 Assumes Ubuntu/Debian nodes with passwordless (key-based) SSH and sudo access.
@@ -99,6 +102,35 @@ irodsfsd's own installer doesn't ship an uninstall script, so this stops the
 service (letting it unmount anything it has mounted first) and removes the
 binary, config, systemd unit, data/log directories, and the `irodsfsd`
 service user/group it created.
+
+## Installing irodsfs-pool
+
+```
+ansible-playbook irodsfs_pool_install.yml
+```
+
+Installs [irodsfs-pool](https://github.com/cyverse/irodsfs-pool) on the
+`irodsfs_pool` host group, which shares the k3s master for this test setup.
+The playbook installs and starts the systemd service, and, when UFW is present,
+allows only the workers' internal IPs to reach its gRPC port (12020).
+
+`csi_install.yml` renders `templates/user_values.yaml` and configures the CSI
+driver's `poolEndpoint` as `tcp://<master-internal-ip>:12020`. Run the pool
+playbook before installing or upgrading the CSI Helm release.
+
+To remove the service, installed binary, logs, and runtime files while
+preserving pool configuration, data, staged writes, and the service account:
+
+```
+ansible-playbook irodsfs_pool_uninstall.yml
+```
+
+Delete the configuration, service account, pool data, and staged writes only
+after confirming they are no longer needed:
+
+```
+ansible-playbook irodsfs_pool_uninstall.yml -e irodsfs_pool_remove_data=true
+```
 
 ## Notes
 
