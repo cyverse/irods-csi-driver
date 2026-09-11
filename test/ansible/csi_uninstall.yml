@@ -1,0 +1,43 @@
+---
+# Removes the Helm release installed by csi_install.yml.
+# Override the release or namespace with -e when non-default values were used.
+
+- name: Uninstall iRODS CSI Driver Helm release
+  hosts: k3s_master
+  become: true
+  pre_tasks:
+    - name: Verify that Helm is installed on the k3s master
+      ansible.builtin.command:
+        argv:
+          - helm
+          - version
+          - --short
+      changed_when: false
+
+  tasks:
+    - name: Check whether the iRODS CSI Driver release exists
+      ansible.builtin.command:
+        argv:
+          - helm
+          - status
+          - "{{ csi_release_name }}"
+          - --namespace
+          - "{{ csi_namespace }}"
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: csi_helm_status
+      changed_when: false
+      failed_when: false
+
+    - name: Uninstall the iRODS CSI Driver release
+      ansible.builtin.command:
+        argv:
+          - helm
+          - uninstall
+          - "{{ csi_release_name }}"
+          - --namespace
+          - "{{ csi_namespace }}"
+          - --wait
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      when: csi_helm_status.rc == 0
