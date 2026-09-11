@@ -17,6 +17,3 @@ csi_helm_version: v3.17.3
 csi_package_directory: /tmp/irods-csi-driver-helm
 csi_chart_remote_path: "{{ csi_package_directory }}/{{ csi_chart_package | basename }}"
 csi_values_remote_path: "{{ csi_package_directory }}/values.yaml"
-# Applied to inventory members in k3s_worker before the chart is installed.
-csi_worker_node_label_key: irods.csi.cyverse.org/worker
-csi_worker_node_label_value: "true"

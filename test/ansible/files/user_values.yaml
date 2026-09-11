@@ -12,9 +12,3 @@ controllerService:
       - --timeout=5m
       - --v=5
       - --leader-election
-nodeService:
-  # csi_install.yml applies this label only to hosts in the k3s_worker group.
-  # It prevents the node DaemonSet from running on the tainted master.
-  nodeSelector:
-    kubernetes.io/os: linux
-    irods.csi.cyverse.org/worker: "true"

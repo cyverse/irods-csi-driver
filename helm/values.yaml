@@ -45,6 +45,10 @@ controllerService:
 nodeService:
   podSecurityContext: {}
 
+  # Keep empty to respect node taints (for example, a tainted control-plane
+  # node). Add explicit tolerations only when the node service must run there.
+  tolerations: []
+
   nodeSelector:
     kubernetes.io/os: linux
 

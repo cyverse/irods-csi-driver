@@ -83,22 +83,6 @@
       when: csi_helm_version_check.rc != 0
 
   tasks:
-    - name: Label worker nodes for the CSI node service
-      ansible.builtin.command:
-        argv:
-          - /usr/local/bin/k3s
-          - kubectl
-          - label
-          - node
-          - "{{ hostvars[item].node_name }}"
-          - "{{ csi_worker_node_label_key }}={{ csi_worker_node_label_value }}"
-          - --overwrite
-      environment:
-        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
-      loop: "{{ groups['k3s_worker'] }}"
-      register: csi_worker_node_labels
-      changed_when: "' not labeled' not in csi_worker_node_labels.stdout"
-
     - name: Create a directory for the Helm package
       ansible.builtin.file:
         path: "{{ csi_package_directory }}"
