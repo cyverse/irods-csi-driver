@@ -49,6 +49,10 @@ This installs k3s server on the master and k3s agent on both workers, and
 installs a kubeconfig at `~/.kube/config` for the SSH login user on the
 master node. No kubeconfig is fetched to the control machine.
 
+The CSI installation playbook labels the inventory's `k3s_worker` nodes with
+`irods.csi.cyverse.org/worker=true`. Its Helm values use that label to place
+the CSI node DaemonSet on workers only; it is not placed on the master.
+
 ## Using the cluster
 
 SSH into the master node and use `kubectl` directly - it works out of the
