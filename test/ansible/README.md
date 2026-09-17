@@ -85,12 +85,13 @@ ansible-playbook irodsfsd_install.yml
 
 Installs [irodsfsd](https://github.com/cyverse/irodsfsd) (the CSI driver's
 pool service) on the two worker nodes only - the master never runs
-workloads, so it doesn't need it. irodsfsd depends on the
-[irodsfs](https://github.com/cyverse/irodsfs) FUSE client and the `fuse`
-package, so the playbook installs those first, symlinks `irodsfs` to
-`/usr/local/bin/irodsfs` (the path irodsfsd's default config expects). If
-irodsfsd still isn't running afterwards, it tries a restart and prints a
-warning rather than failing the whole run.
+workloads, so it doesn't need it. irodsfsd's install script also installs
+the [irodsfs](https://github.com/cyverse/irodsfs) FUSE client it runs as its
+mount client, so the playbook only adds the `fuse` package beforehand.
+irodsfs lands in `/usr/bin/irodsfs`, which irodsfsd falls back to when
+`irodsfs_executable_path` is left at its default, so no symlink is needed.
+If irodsfsd still isn't running afterwards, the playbook tries a restart and
+prints a warning rather than failing the whole run.
 
 To remove it:
 
@@ -101,7 +102,8 @@ ansible-playbook irodsfsd_uninstall.yml
 irodsfsd's own installer doesn't ship an uninstall script, so this stops the
 service (letting it unmount anything it has mounted first) and removes the
 binary, config, systemd unit, data/log directories, and the `irodsfsd`
-service user/group it created.
+service user/group it created, along with the `irodsfs` binary and
+`mount.irodsfs` helper the installer put in place.
 
 ## Installing irodsfs-pool
 

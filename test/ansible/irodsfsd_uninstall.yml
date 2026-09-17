@@ -1,7 +1,7 @@
 ---
-# Removes irodsfsd and irodsfs (installed by irodsfsd_install.yml) from the
-# k3s worker nodes. Neither project ships an uninstall script, so this
-# reverses each install step directly. Stopping irodsfsd first lets it
+# Removes irodsfsd and irodsfs (both installed by irodsfsd's install script)
+# from the k3s worker nodes. Neither project ships an uninstall script, so
+# this reverses each install step directly. Stopping irodsfsd first lets it
 # unmount anything it has mounted before its files are removed.
 
 - name: Uninstall irodsfsd from workers
@@ -59,7 +59,9 @@
         name: irodsfsd
         state: absent
 
-    - name: Remove irodsfs symlink
+    - name: Remove irodsfs symlink left by earlier installs
+      # Older irodsfsd_install.yml runs symlinked /usr/local/bin/irodsfs;
+      # current installs rely on irodsfsd's /usr/bin/irodsfs fallback instead.
       ansible.builtin.file:
         path: /usr/local/bin/irodsfs
         state: absent
@@ -73,6 +75,8 @@
         - /sbin/mount.irodsfs
 
     - name: Remove downloaded install scripts
+      # /tmp/irodsfs-install.sh is only left behind by earlier runs, which
+      # downloaded irodsfs separately.
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
