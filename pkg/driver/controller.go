@@ -25,13 +25,14 @@ var (
 func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	// volume name is created by CO for idempotency
 	volName := req.GetName()
+	volID := generateVolumeID(volName)
+
+	klog.V(5).Infof("CreateVolume: creating volume %q (%q)", volName, volID)
+
 	if len(volName) == 0 {
 		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
-	volID := generateVolumeID(volName)
-
-	klog.V(4).Infof("CreateVolume: volumeName(%#v)", volName)
 
 	volCaps := req.GetVolumeCapabilities()
 	if len(volCaps) == 0 {
@@ -118,17 +119,22 @@ func (driver *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeReq
 		VolumeContext: volContext,
 	}
 
+	klog.V(5).Infof("CreateVolume: created volume %q (%q)", volName, volID)
+
 	return &csi.CreateVolumeResponse{Volume: volume}, nil
 }
 
 // DeleteVolume handles persistent volume deletion event
 func (driver *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	volID := req.GetVolumeId()
+
+	klog.V(5).Infof("DeleteVolume: deleting volume %q", volID)
+
 	if len(volID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
-	klog.V(4).Infof("DeleteVolume: volumeId (%#v)", volID)
+	klog.V(5).Infof("DeleteVolume: deleted volume %q", volID)
 
 	// Dynamic volume data is retained by policy, so deleting a CSI volume only
 	// releases its Kubernetes-side reference.
@@ -164,8 +170,6 @@ func (driver *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Co
 
 // ControllerGetCapabilities returns capabilities
 func (driver *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
-	//klog.V(4).Infof("ControllerGetCapabilities: called with args %#v", req)
-
 	var caps []*csi.ControllerServiceCapability
 	for _, cap := range controllerCaps {
 		c := &csi.ControllerServiceCapability{
@@ -182,19 +186,16 @@ func (driver *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Co
 
 // GetCapacity returns volume capacity
 func (driver *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
-	klog.V(4).Infof("GetCapacity: called with args %#v", req)
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
 // ListVolumes returns a list of volumes created
 func (driver *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	klog.V(4).Infof("ListVolumes: called with args %#v", req)
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
 // ValidateVolumeCapabilities checks validity of volume capabilities
 func (driver *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
-	klog.V(4).Infof("ValidateVolumeCapabilities: called with args %#v", req)
 	volID := req.GetVolumeId()
 	if len(volID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")

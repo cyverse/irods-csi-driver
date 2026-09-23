@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
+	"k8s.io/utils/mount"
 )
 
 var nodeCaps = []csi.NodeServiceCapability_RPC_Type{
@@ -19,6 +20,9 @@ var nodeCaps = []csi.NodeServiceCapability_RPC_Type{
 func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	volID := req.GetVolumeId()
 	stagingPath := req.GetStagingTargetPath()
+
+	klog.V(5).Infof("NodeStageVolume: mounting %q at %q", volID, stagingPath)
+
 	if err := validateNodeMountRequest(volID, stagingPath, req.GetVolumeCapability()); err != nil {
 		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, err
@@ -38,18 +42,23 @@ func (driver *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	if err := client.MountClient(driver.irodsfsdClient, volID, configs, mountOptions, stagingPath); err != nil {
 		return nil, err
 	}
+
 	klog.V(5).Infof("NodeStageVolume: mounted %q at %q", volID, stagingPath)
+
 	return &csi.NodeStageVolumeResponse{}, nil
 }
 
 func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	volID := req.GetVolumeId()
+	stagingPath := req.GetStagingTargetPath()
 	targetPath := req.GetTargetPath()
+
+	klog.V(5).Infof("NodePublishVolume: bind mounting %q at %q", volID, targetPath)
+
 	if err := validateNodeMountRequest(volID, targetPath, req.GetVolumeCapability()); err != nil {
 		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, err
 	}
-	stagingPath := req.GetStagingTargetPath()
 	if stagingPath == "" {
 		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, status.Error(codes.InvalidArgument, "staging target path not provided")
@@ -71,20 +80,26 @@ func (driver *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		commons.IncreaseCounterForVolumeMountFailures()
 		return nil, err
 	}
+
 	klog.V(5).Infof("NodePublishVolume: bind mounted %q at %q", volID, targetPath)
+
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
 func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	if req.GetVolumeId() == "" {
+	volID := req.GetVolumeId()
+	targetPath := req.GetTargetPath()
+
+	klog.V(5).Infof("NodeUnpublishVolume: bind unmounting %q at %q", volID, targetPath)
+
+	if volID == "" {
 		return nil, status.Error(codes.InvalidArgument, "volume ID not provided")
 	}
-	targetPath := req.GetTargetPath()
 	if targetPath == "" {
 		return nil, status.Error(codes.InvalidArgument, "target path not provided")
 	}
 
-	notMountPoint, err := driver.mounter.IsLikelyNotMountPoint(targetPath)
+	notMountPoint, err := mount.IsNotMountPoint(driver.mounter, targetPath)
 	if os.IsNotExist(err) {
 		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
@@ -103,11 +118,18 @@ func (driver *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	if err := os.Remove(targetPath); err != nil && !os.IsNotExist(err) {
 		return nil, status.Errorf(codes.Internal, "remove target path %q: %v", targetPath, err)
 	}
+
+	klog.V(5).Infof("NodeUnpublishVolume: bind unmounted %q at %q", volID, targetPath)
+
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
 func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
 	volID := req.GetVolumeId()
+	stagingPath := req.GetStagingTargetPath()
+
+	klog.V(5).Infof("NodeUnstageVolume: unmounting %q at %q", volID, stagingPath)
+
 	if volID == "" {
 		return nil, status.Error(codes.InvalidArgument, "volume ID not provided")
 	}
@@ -117,6 +139,9 @@ func (driver *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	if err := client.UnmountVolume(driver.irodsfsdClient, volID); err != nil {
 		return nil, err
 	}
+
+	klog.V(5).Infof("NodeUnstageVolume: unmounted %q at %q", volID, stagingPath)
+
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
 
@@ -130,7 +155,7 @@ func (driver *Driver) ensureMountTarget(targetPath string) (bool, error) {
 			return false, status.Errorf(codes.Internal, "create target path %q: %v", targetPath, err)
 		}
 	}
-	notMountPoint, err := driver.mounter.IsLikelyNotMountPoint(targetPath)
+	notMountPoint, err := mount.IsNotMountPoint(driver.mounter, targetPath)
 	if err != nil {
 		return false, status.Errorf(codes.Internal, "check mount point %q: %v", targetPath, err)
 	}
