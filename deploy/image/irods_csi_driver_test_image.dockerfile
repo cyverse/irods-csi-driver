@@ -15,13 +15,16 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Setup Utility Packages
 RUN apt-get update && \
-    apt-get install -y wget curl fuse apt-transport-https lsb-release gnupg
+    apt-get install -y wget curl apt-transport-https lsb-release gnupg build-essential openmpi-bin libopenmpi-dev git autoconf automake pkg-config libtool gettext
 
 WORKDIR /opt/
 
 # Create a test user and group
 RUN groupadd -g 1000 testgroup && \
     useradd -u 1000 -g 1000 -ms /bin/bash testuser
+
+RUN git clone https://github.com/hpc/ior.git
+RUN cd ior && ./bootstrap && ./configure && make && make install
 
 # Set default command as bash
 CMD ["/bin/bash"]
