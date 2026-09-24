@@ -55,7 +55,7 @@ func Rmdir(conn *IRODSFSConnectionInfo, path string) error {
 func TestConnection(conn *IRODSFSConnectionInfo) error {
 	account := GetIRODSAccount(conn)
 	if conn.PoolEndpoint != "" {
-		poolClient := irodsfs_pool_client.NewPoolServiceClient(conn.PoolEndpoint, 60*time.Second, false, nil)
+		poolClient := irodsfs_pool_client.NewPoolServiceClient(conn.PoolEndpoint, 60*time.Second, false, "", nil)
 		if err := poolClient.Connect(); err != nil {
 			klog.V(5).Infof("Failed to connect to iRODS pool service %q", conn.PoolEndpoint)
 			return err

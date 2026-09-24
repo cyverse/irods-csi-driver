@@ -1,19 +1,19 @@
 module github.com/cyverse/irods-csi-driver
 
-go 1.25.0
+go 1.25.9
 
 require (
 	github.com/cockroachdb/errors v1.14.0
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/cyverse/go-irodsclient v0.21.2
-	github.com/cyverse/irodsfs v0.13.0
-	github.com/cyverse/irodsfs-common v0.0.0-20260904153238-dd85f20bbbc3
-	github.com/cyverse/irodsfs-pool v0.12.1
+	github.com/cyverse/irodsfs v0.13.3
+	github.com/cyverse/irodsfs-common v0.0.0-20260923220717-827291d1d76a
+	github.com/cyverse/irodsfs-pool v0.12.5
 	github.com/cyverse/irodsfsd v0.1.1
 	github.com/golang/protobuf v1.5.4
 	github.com/prometheus/client_golang v1.24.1
-	google.golang.org/grpc v1.81.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/grpc v1.83.1
+	google.golang.org/protobuf v1.36.12
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
@@ -34,8 +34,8 @@ require (
 	github.com/getsentry/sentry-go v0.46.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
@@ -62,7 +62,7 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260904194346-d0f1323225a4 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
