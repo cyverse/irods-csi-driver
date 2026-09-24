@@ -22,4 +22,4 @@ csi_values_remote_path: "{{ csi_package_directory }}/values.yaml"
 # plugins connect over the cluster's private network rather than its public IP.
 irodsfs_pool_endpoint: "tcp://{{ hostvars[groups['irodsfs_pool'][0]].internal_ip }}:12020"
 # Set to true only after confirming that no staged writes need to be retained.
-irodsfs_pool_remove_data: false
+irodsfs_pool_remove_data: true
