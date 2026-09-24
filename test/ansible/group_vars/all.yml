@@ -8,7 +8,7 @@ k3s_nodeport_range: "30000:32767"
 # iRODS CSI Driver Helm installation settings.
 csi_release_name: irods-csi-driver
 csi_namespace: irods-csi-driver
-csi_chart_package: "{{ playbook_dir }}/../../irods-csi-driver-0.12.0.tgz"
+csi_chart_package: "{{ playbook_dir }}/../../irods-csi-driver-0.12.1.tgz"
 # Ansible searches test/ansible/templates/ for this template by default.
 csi_values_file: user_values.yaml
 csi_helm_timeout: 10m

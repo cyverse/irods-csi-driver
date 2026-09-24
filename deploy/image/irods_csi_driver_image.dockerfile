@@ -9,7 +9,7 @@
 FROM --platform=$BUILDPLATFORM golang:1.26.8 AS builder
 ARG TARGETOS
 ARG TARGETARCH
-ARG VERSION=v0.12.0
+ARG VERSION=v0.12.1
 ARG SRC_DIR="/go/src/github.com/cyverse/irods-csi-driver/"
 
 WORKDIR ${SRC_DIR}

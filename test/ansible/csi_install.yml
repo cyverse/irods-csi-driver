@@ -4,7 +4,7 @@
 # The package and, optionally, a values file are copied from the Ansible
 # control machine.  Override the defaults with -e, for example:
 #   ansible-playbook csi_install.yml \
-#     -e csi_chart_package=/path/to/irods-csi-driver-0.12.0.tgz \
+#     -e csi_chart_package=/path/to/irods-csi-driver-0.12.1.tgz \
 #     -e csi_values_file=/path/to/values.yaml
 
 - name: Install iRODS CSI Driver Helm package
