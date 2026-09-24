@@ -20,10 +20,7 @@ controllerService:
       - --logtostderr
       - --v=5
 
-    securityContext:
-      privileged: true
-      capabilities:
-        add: ["SYS_ADMIN"]
+    securityContext: {}
 
     resources: {}
 
@@ -66,8 +63,6 @@ nodeService:
 
     securityContext:
       privileged: true
-      capabilities:
-        add: ["SYS_ADMIN"]
 
     resources: {}
 
