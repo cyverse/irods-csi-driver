@@ -7,7 +7,7 @@
   become: true
   tasks:
     - name: Install irodsfs-pool prerequisites
-      ansible.builtin.apt:
+      ansible.builtin.package:
         name:
           - curl
           - openssl

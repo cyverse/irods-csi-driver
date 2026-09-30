@@ -10,7 +10,7 @@
   become: true
   tasks:
     - name: Install prerequisites
-      ansible.builtin.apt:
+      ansible.builtin.package:
         name:
           - curl
           - openssl

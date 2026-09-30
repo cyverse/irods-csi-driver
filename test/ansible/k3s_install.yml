@@ -18,7 +18,7 @@
         name: "{{ node_name }}"
 
     - name: Install base packages
-      ansible.builtin.apt:
+      ansible.builtin.package:
         name:
           - curl
           - open-iscsi
