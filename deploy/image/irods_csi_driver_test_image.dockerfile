@@ -15,7 +15,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Setup Utility Packages
 RUN apt-get update && \
-    apt-get install -y wget curl apt-transport-https lsb-release gnupg build-essential openmpi-bin libopenmpi-dev git autoconf automake pkg-config libtool gettext
+    apt-get install -y wget curl apt-transport-https lsb-release gnupg build-essential openmpi-bin libopenmpi-dev git autoconf automake pkg-config libtool gettext iozone3
 
 WORKDIR /opt/
 
