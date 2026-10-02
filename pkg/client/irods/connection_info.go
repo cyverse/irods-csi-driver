@@ -238,8 +238,11 @@ func makeConnectionConfig(config irodsclient_fs.ConnectionConfig) *api.Connectio
 	if config.LongOperationTimeout != 0 {
 		result.LongOperationTimeout = durationpb.New(time.Duration(config.LongOperationTimeout))
 	}
-	if config.TcpBufferSize != 0 {
-		result.TcpBufferSize = proto.Int32(int32(config.TcpBufferSize))
+	if config.TcpSendBufferSize != 0 {
+		result.TcpSendBufferSize = proto.Int32(int32(config.TcpSendBufferSize))
+	}
+	if config.TcpRecvBufferSize != 0 {
+		result.TcpRecvBufferSize = proto.Int32(int32(config.TcpRecvBufferSize))
 	}
 	if config.WaitConnection {
 		result.WaitConnection = proto.Bool(true)
