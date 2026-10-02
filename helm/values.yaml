@@ -13,7 +13,7 @@ controllerService:
   irodsPlugin:
     image:
       repository: cyverse/irods-csi-driver
-      tag: v0.12.1
+      tag: v0.12.2
       pullPolicy: Always
 
     extraArgs:
@@ -52,7 +52,7 @@ nodeService:
   irodsPlugin:
     image:
       repository: cyverse/irods-csi-driver
-      tag: v0.12.1
+      tag: v0.12.2
       pullPolicy: Always
 
     irodsfsdEndpoint: tcp://127.0.0.1:13020
