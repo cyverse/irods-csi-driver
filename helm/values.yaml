@@ -69,7 +69,7 @@ nodeService:
   csiDriverRegistrar:
     image:
       repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
-      tag: v2.9.1
+      tag: v2.18.0
       pullPolicy: IfNotPresent
 
     extraArgs:
@@ -82,7 +82,7 @@ nodeService:
   livenessProbe:
     image:
       repository: registry.k8s.io/sig-storage/livenessprobe
-      tag: v2.11.0
+      tag: v2.20.0
       pullPolicy: IfNotPresent
 
     resources: {}
