@@ -3,8 +3,7 @@ This chart enables easy installation of the iRODS CSI Driver using Helm.
 
 ### Compatibility
 - Helm 3+
-- Kubernetes > 1.17.x, can be deployed to any namespace.
-- Kubernetes < 1.17.x, namespace **must** be `kube-system`, as `system-cluster-critical` is hard-coded to this namespace.
+- Kubernetes 1.20 or higher, can be deployed to any namespace.
 
 ### Prerequisites
 
@@ -64,27 +63,15 @@ All values must be strings.
 ### Install
 #### Install with default configuration
 
-Kubernetes > 1.17.x
 ```shell script
 helm install irods-csi-driver .
-```
-
-Kubernetes < 1.17.x
-```shell script
-helm install irods-csi-driver --namespace kube-system .
 ```
 
 #### Install with global configuration for proxy authentication
 Edit `user_values.yaml` file for configuration.
 
-Kubernetes > 1.17.x
 ```shell script
 helm install irods-csi-driver -f user_values.yaml .
-```
-
-Kubernetes < 1.17.x
-```shell script
-helm install irods-csi-driver -f user_values.yaml --namespace kube-system .
 ```
 
 #### Install in k0s

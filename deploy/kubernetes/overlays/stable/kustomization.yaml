@@ -6,7 +6,7 @@ images:
 - name: cyverse/irods-csi-driver
   newTag: v0.12.2
 - name: registry.k8s.io/sig-storage/csi-provisioner
-  newTag: v3.1.0
+  newTag: v5.3.0
 - name: registry.k8s.io/sig-storage/livenessprobe
   newTag: v2.20.0
 - name: registry.k8s.io/sig-storage/csi-node-driver-registrar

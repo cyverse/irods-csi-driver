@@ -6,6 +6,10 @@
 
 iRODS CSI Driver only supports CSI Specification Version v1.2.0 or higher.
 
+### Kubernetes Compatibility
+
+iRODS CSI Driver requires Kubernetes 1.20 or higher, the minimum version supported by the bundled `csi-provisioner` sidecar (v5.3.0).
+
 ### Features
 
 iRODS CSI Driver relies on external iRODS clients for mounting iRODS collections.
@@ -99,6 +103,8 @@ Mounts **host**:/**path**
 Be aware that the Master branch is not stable! Please use recently released version of code. 
 
 #### Prerequisites
+
+Kubernetes 1.20 or higher is required.
 
 `irodsfs` and `irodsfsd` must be installed before installing or using the iRODS CSI Driver. You can obtain them from the following repositories:
 

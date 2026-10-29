@@ -3,6 +3,8 @@ This directory contains YAML files to install iRODS CSI Driver on Kubernetes.
 
 ## Prerequisites
 
+Kubernetes 1.20 or higher is required.
+
 Install and start `irodsfsd` as a system service on every node that runs the
 CSI node pod. The base node manifest uses host networking and connects to
 `tcp://127.0.0.1:13020`; change `IRODSFSD_ENDPOINT` if the service uses a
