@@ -1,7 +1,7 @@
 PKG=github.com/cyverse/irods-csi-driver
 CSI_DRIVER_IMAGE?=cyverse/irods-csi-driver
 CSI_DRIVER_DOCKERFILE=deploy/image/irods_csi_driver_image.dockerfile
-VERSION=v0.12.3
+VERSION=v0.12.4
 GOOS?=linux
 GOARCH?=$(shell go env GOARCH)
 PLATFORM?=$(GOOS)/$(GOARCH)
