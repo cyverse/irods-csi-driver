@@ -55,19 +55,12 @@ func Rmdir(conn *IRODSFSConnectionInfo, path string) error {
 func TestConnection(conn *IRODSFSConnectionInfo) error {
 	account := GetIRODSAccount(conn)
 	if conn.PoolEndpoint != "" {
-		poolClient := irodsfs_pool_client.NewPoolServiceClient(conn.PoolEndpoint, 60*time.Second, false, "", nil)
-		if err := poolClient.Connect(); err != nil {
-			klog.V(5).Infof("Failed to connect to iRODS pool service %q", conn.PoolEndpoint)
-			return err
-		}
-		defer poolClient.Disconnect()
-
-		session, err := poolClient.NewSession(account, applicationName, "connection test")
-		if err != nil {
+		poolClient := irodsfs_pool_client.NewPoolServiceClient(conn.PoolEndpoint, 60*time.Second, false, "", account, applicationName, "connection test", nil)
+		if _, err := poolClient.Connect(); err != nil {
 			klog.V(5).Infof("Failed to log in through iRODS pool service %q - %v", conn.PoolEndpoint, account.GetRedacted())
 			return err
 		}
-		if err := session.Release(); err != nil {
+		if err := poolClient.Release(); err != nil {
 			klog.V(5).Infof("Failed to release iRODS pool service session %q - %v", conn.PoolEndpoint, account.GetRedacted())
 			return err
 		}
